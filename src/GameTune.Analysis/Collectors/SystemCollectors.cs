@@ -16,8 +16,10 @@ public sealed partial class DiskCollector : ICollector
     public void Collect(SystemProfile p)
     {
         var sysLetter = Path.GetPathRoot(Environment.SystemDirectory)!.TrimEnd('\\', ':');
-        var sysPart = Wmi.Query($"SELECT DiskNumber FROM MSFT_Partition WHERE DriveLetter='{sysLetter}'", StorageNs).FirstOrDefault();
-        long? sysDiskNumber = sysPart?.Long("DiskNumber");
+        // DriveLetter в MSFT_Partition — char16; сравниваем в коде, а не в WQL
+        long? sysDiskNumber = Wmi.Query("SELECT DiskNumber, DriveLetter FROM MSFT_Partition", StorageNs)
+            .Where(x => x["DriveLetter"] is { } dl && char.ToUpperInvariant(Convert.ToChar(dl)) == char.ToUpperInvariant(sysLetter[0]))
+            .Select(x => x.Long("DiskNumber")).FirstOrDefault();
 
         var wear = ReadWear();
         foreach (var d in Wmi.Query("SELECT DeviceId, FriendlyName, MediaType, BusType, HealthStatus, Size FROM MSFT_PhysicalDisk", StorageNs))

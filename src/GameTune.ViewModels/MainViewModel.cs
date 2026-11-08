@@ -122,7 +122,7 @@ public sealed partial class MainViewModel : ObservableObject
             Session = open;
             if (open.AbTests.Any(a => a.Phase == AbPhase.AwaitRebootB))
             {
-                if (wf.ResumeAbIfRebooted(open))
+                if (await Task.Run(() => wf.ResumeAbIfRebooted(open)))
                 {
                     ShowMessage("Перезагрузка выполнена. Продолжаем A/B-проверку: замер варианта B.");
                     Navigate(MeasureViewModel.ForAbB(this));
@@ -130,7 +130,9 @@ public sealed partial class MainViewModel : ObservableObject
             }
             else if (open.Stage == SessionStage.AwaitingReboot)
             {
-                var check = wf.ResumeIfRebooted(open);
+                ShowMessage("Проверяю, что изменения применились после перезагрузки…");
+                var check = await Task.Run(() => wf.ResumeIfRebooted(open));
+                Toast = null;
                 if (check is not null)
                 {
                     var apply = new ApplyViewModel(this, report: null) { PostReboot = check };

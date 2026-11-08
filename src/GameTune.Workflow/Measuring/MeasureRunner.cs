@@ -43,7 +43,15 @@ public static class MeasureConditions
 [SupportedOSPlatform("windows")]
 public sealed class ThrottleProbe
 {
-    private bool _seen;
+    private volatile bool _seen;
+    private int _busy;
+
+    /// <summary>Неблокирующий вызов: проверка идёт в фоне, чтобы не мешать замеру и интерфейсу.</summary>
+    public void SampleInBackground()
+    {
+        if (Interlocked.Exchange(ref _busy, 1) == 1) return;
+        _ = Task.Run(() => { try { Sample(); } finally { Volatile.Write(ref _busy, 0); } });
+    }
     public bool Throttled => _seen;
     public string? Reason { get; private set; }
 

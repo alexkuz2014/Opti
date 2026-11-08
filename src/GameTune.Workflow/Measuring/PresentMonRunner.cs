@@ -81,7 +81,7 @@ public sealed class PresentMonRunner : IMeasureRunner
             if (ct.IsCancellationRequested) { try { p.Kill(true); } catch { } ct.ThrowIfCancellationRequested(); }
             if (sw.Elapsed.TotalSeconds > total + 30) { try { p.Kill(true); } catch { } break; }
             await Task.Delay(500, CancellationToken.None);
-            if (++tick % 10 == 0) probe.Sample();
+            if (++tick % 10 == 0) probe.SampleInBackground();
             progress?.Report(new MeasureProgress(Math.Min(sw.Elapsed.TotalSeconds, total), total, Array.Empty<double>(), req.ProcessName, sw.Elapsed.TotalSeconds < req.WarmupSec));
             if (sw.Elapsed.TotalSeconds < 3 && p.HasExited) break; // мгновенный выход — неверные аргументы
         }

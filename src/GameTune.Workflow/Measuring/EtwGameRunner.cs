@@ -24,7 +24,7 @@ public sealed class EtwGameRunner : IMeasureRunner
             {
                 await Task.Delay(500, ct);
                 var elapsed = (DateTime.UtcNow - started).TotalSeconds;
-                if (++tick % 10 == 0) probe.Sample();
+                if (++tick % 10 == 0) probe.SampleInBackground();
                 if (progress is not null)
                 {
                     var guess = cap.GuessGameProcess(req.ProcessName);

@@ -45,7 +45,7 @@ public sealed class SyntheticRunner : IMeasureRunner
             if (ct.IsCancellationRequested) { try { p.Kill(true); } catch { } ct.ThrowIfCancellationRequested(); }
             if (sw.Elapsed.TotalSeconds > total + 60) { try { p.Kill(true); } catch { } throw new TimeoutException("Синтетический тест завис."); }
             await Task.Delay(500, CancellationToken.None);
-            if (++tick % 10 == 0) probe.Sample();
+            if (++tick % 10 == 0) probe.SampleInBackground();
             progress?.Report(new MeasureProgress(Math.Min(sw.Elapsed.TotalSeconds, total), total, Array.Empty<double>(), "GameTune.Bench", sw.Elapsed.TotalSeconds < req.WarmupSec));
         }
         if (p.ExitCode == 2) throw new OperationCanceledException("Синтетический тест прерван клавишей Esc.");

@@ -12,10 +12,18 @@ public abstract class ChartBase : FrameworkElement
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty SecondaryProperty = DependencyProperty.Register(nameof(Secondary), typeof(IReadOnlyList<double>), typeof(ChartBase),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+    // Значения по умолчанию у DependencyProperty должны быть замороженными (иначе WPF бросает исключение при регистрации).
     public static readonly DependencyProperty PrimaryBrushProperty = DependencyProperty.Register(nameof(PrimaryBrush), typeof(Brush), typeof(ChartBase),
-        new FrameworkPropertyMetadata(new SolidColorBrush(Color.FromRgb(0x7D, 0x86, 0x96)), FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(Frozen(0x7D, 0x86, 0x96), FrameworkPropertyMetadataOptions.AffectsRender));
     public static readonly DependencyProperty SecondaryBrushProperty = DependencyProperty.Register(nameof(SecondaryBrush), typeof(Brush), typeof(ChartBase),
-        new FrameworkPropertyMetadata(new SolidColorBrush(Color.FromRgb(0x5B, 0x9B, 0xFF)), FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(Frozen(0x5B, 0x9B, 0xFF), FrameworkPropertyMetadataOptions.AffectsRender));
+
+    private static Brush Frozen(byte r, byte g, byte b)
+    {
+        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+        brush.Freeze();
+        return brush;
+    }
 
     public IReadOnlyList<double>? Primary { get => (IReadOnlyList<double>?)GetValue(PrimaryProperty); set => SetValue(PrimaryProperty, value); }
     public IReadOnlyList<double>? Secondary { get => (IReadOnlyList<double>?)GetValue(SecondaryProperty); set => SetValue(SecondaryProperty, value); }
@@ -87,7 +95,9 @@ public sealed class FrameTimeChart : ChartBase
                 }
             }
             geo.Freeze();
-            dc.DrawGeometry(null, new Pen(brush, 1.2), geo);
+            var pen = new Pen(brush, 1.2);
+            pen.Freeze();
+            dc.DrawGeometry(null, pen, geo);
         }
     }
 
