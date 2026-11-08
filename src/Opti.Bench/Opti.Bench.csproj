@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Синтетический тест D3D11. Библиотека: запускается внутри Opti.exe и opti-cli.exe с ключом «bench». -->
+  <PropertyGroup>
+    <RootNamespace>Opti.Bench</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Opti.Core\Opti.Core.csproj" />
+    <ProjectReference Include="..\Opti.Measure\Opti.Measure.csproj" />
+    <ProjectReference Include="..\Opti.Native\Opti.Native.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Vortice.Direct3D11" Version="3.5.0" />
+    <PackageReference Include="Vortice.D3DCompiler" Version="3.5.0" />
+  </ItemGroup>
+</Project>

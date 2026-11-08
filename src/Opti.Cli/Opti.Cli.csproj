@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>opti-cli</AssemblyName>
+    <RootNamespace>Opti.Cli</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Портативный один файл: dotnet publish -c Release -r win-x64 -->
+    <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
+    <PublishSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- TraceEvent ищет свои нативные библиотеки рядом со сборкой — распаковываем всё содержимое -->
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Opti.Core\Opti.Core.csproj" />
+    <ProjectReference Include="..\Opti.Analysis\Opti.Analysis.csproj" />
+    <ProjectReference Include="..\Opti.Fixes\Opti.Fixes.csproj" />
+    <ProjectReference Include="..\Opti.Measure\Opti.Measure.csproj" />
+    <ProjectReference Include="..\Opti.Workflow\Opti.Workflow.csproj" />
+    <ProjectReference Include="..\Opti.Bench\Opti.Bench.csproj" />
+  </ItemGroup>
+</Project>

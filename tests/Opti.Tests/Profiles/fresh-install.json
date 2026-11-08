@@ -1,0 +1,27 @@
+{
+  "label": "ПК сразу после переустановки Windows: Ryzen 9 7950X3D без драйвера чипсета, монитор в материнке, устройства без драйверов",
+  "device": { "isLaptop": false, "manufacturer": "ASUS", "model": "ROG STRIX X670E-F" },
+  "os": { "productName": "Windows 11 Pro", "displayVersion": "24H2", "build": 26100, "ubr": 1, "installDate": "2026-11-03T10:00:00", "pendingReboot": true },
+  "cpu": { "name": "AMD Ryzen 9 7950X3D 16-Core Processor", "vendor": "Amd", "cores": 16, "threads": 32, "maxClockMhz": 4200 },
+  "gpus": [
+    { "name": "AMD Radeon(TM) Graphics", "vendor": "Amd", "driverDate": "2026-09-01T00:00:00", "dedicatedVramMb": 512, "isIntegrated": true, "drivesDisplay": true },
+    { "name": "NVIDIA GeForce RTX 4080", "vendor": "Nvidia", "driverDate": "2026-10-01T00:00:00", "dedicatedVramMb": 16000, "isIntegrated": false, "drivesDisplay": false }
+  ],
+  "hybrid": { "isHybrid": true },
+  "displays": [ { "deviceName": "\\\\.\\DISPLAY1", "friendlyName": "Samsung Odyssey", "width": 2560, "height": 1440, "currentHz": 60, "maxHzAtCurrentResolution": 60, "isPrimary": true, "isInternal": false, "adapterName": "AMD Radeon(TM) Graphics" } ],
+  "memory": { "totalMb": 32000, "availableMb": 27000, "modules": [ { "capacityMb": 16384, "ratedSpeed": 6000, "configuredSpeed": 4800 }, { "capacityMb": 16384, "ratedSpeed": 6000, "configuredSpeed": 4800 } ], "channelsPopulated": 2, "pageFileDisabled": false },
+  "disks": [ { "model": "Samsung 990 PRO", "mediaType": "Nvme", "isSystem": true, "driveLetter": "C:", "sizeGb": 2000, "freeGb": 1900, "healthStatus": "Healthy" } ],
+  "power": { "onAcPower": true, "activeSchemeGuid": "381b4222-f694-41f0-9685-ff5bb260df2e", "acMaxProcessorState": 100, "acCoreParkingMinCores": 100, "availableSchemeGuids": [ "381b4222-f694-41f0-9685-ff5bb260df2e" ] },
+  "timers": {}, "security": {},
+  "graphics": { "gameModeEnabled": true },
+  "background": {},
+  "network": [],
+  "games": [],
+  "problemDevices": [
+    { "name": "SM Bus Controller", "deviceClass": "System", "errorCode": 28 },
+    { "name": "Ethernet Controller", "deviceClass": "Net", "errorCode": 28 },
+    { "name": "Отключённый Bluetooth", "deviceClass": "Bluetooth", "errorCode": 22 }
+  ],
+  "chipset": { "amdPpmDriver": false, "amdVCacheOptimizer": false },
+  "input": { "mouseAcceleration": true, "stickyKeysFlags": 510, "filterKeysFlags": 126 }
+}

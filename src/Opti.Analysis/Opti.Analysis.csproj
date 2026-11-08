@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Opti.Analysis</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Opti.Core\Opti.Core.csproj" />
+    <ProjectReference Include="..\Opti.Native\Opti.Native.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="10.0.0" />
+  </ItemGroup>
+</Project>
