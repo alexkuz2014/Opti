@@ -1,4 +1,4 @@
-# GameTune
+# Opti
 
 **Программа для Windows 10/11, которая находит реальные причины лагов, применяет только подходящие исправления и честно показывает «до / после» по замерам.**
 
@@ -16,8 +16,8 @@
 
 | Файл | Что это |
 |---|---|
-| `GameTune-<версия>-Setup.exe` | Установщик: ярлыки, удаление через «Приложения», при удалении предлагает откатить изменения |
-| `GameTune-<версия>-win-x64.zip` | Портативная версия: распакуйте и запустите `GameTune.exe` |
+| `Opti-<версия>-Setup.exe` | Установщик: ярлыки, удаление через «Приложения», при удалении предлагает откатить изменения |
+| `Opti-<версия>-win-x64.zip` | Портативная версия: распакуйте и запустите `Opti.exe` |
 | `SHA256SUMS.txt` | Контрольные суммы |
 
 Нужна 64-битная Windows 10 или 11. .NET устанавливать не нужно — он внутри. Программа просит права администратора: без них не прочитать события ядра и не изменить системные настройки. Файлы пока без цифровой подписи, поэтому SmartScreen покажет «Неизвестный издатель» → «Подробнее» → «Выполнить в любом случае».
@@ -26,9 +26,9 @@
 
 1. **Главная.** Выберите цель (минимальная задержка, плавность, максимальный FPS, стрим/запись, тихо и холодно) и нажмите «Проанализировать компьютер» (30–60 с, только чтение).
 2. **Отчёт анализа.** Найденные проблемы по важности: что не так, почему это важно и на каких данных основан вывод. Аппаратные ограничения помечены отдельно.
-3. **Замер «до».** Реальная игра (3 прогона по 60 с), синтетический тест GameTune (полностью воспроизводим, игра не нужна) или PresentMon.
+3. **Замер «до».** Реальная игра (3 прогона по 60 с), синтетический тест Opti (полностью воспроизводим, игра не нужна) или PresentMon.
 4. **Стратегия.** Список исправлений с галочками: риск, нужна ли перезагрузка, причина. Безопасные отмечены, рискованные — нет.
-5. **Применение.** Точка восстановления, журнал, применение. Если нужна перезагрузка, GameTune сам откроется после входа и проверит, что всё применилось и не было синих экранов.
+5. **Применение.** Точка восстановления, журнал, применение. Если нужна перезагрузка, Opti сам откроется после входа и проверит, что всё применилось и не было синих экранов.
 6. **Замер «после»** — в тех же условиях. Программа предупредит, если условия отличаются.
 7. **Сравнение.** Карточки «было → стало» с 95 % доверительными интервалами, графики фреймтайма и распределения, режим вывода. Откат по каждому пункту. Экспорт в HTML и CSV.
 8. **История.** Все сессии, отчёты, откат любой сессии или всего сразу.
@@ -37,29 +37,29 @@
 
 ### Консольная версия
 
-`gametune-cli.exe` лежит рядом с `GameTune.exe` и делает то же самое из командной строки:
+`opti-cli.exe` лежит рядом с `Opti.exe` и делает то же самое из командной строки:
 
 ```bash
-gametune-cli run --goal latency --mode synthetic
+opti-cli run --goal latency --mode synthetic
 ```
 
 ```text
-gametune-cli run      [--goal latency|smooth|fps|stream|quiet] [--mode game|synthetic|presentmon]   мастер целиком
-gametune-cli analyze  [--html report.html] [--dpc 30] [--net]      анализ и отчёт
-gametune-cli plan     --goal fps [--profile profile.json]          план и точный список изменений (ничего не меняет)
-gametune-cli measure  [--mode …] [--phase before|after]            замер в текущую сессию
-gametune-cli apply    [--fix ID,ID] [--option ID:key=value]       применить
-gametune-cli ab       --fix HAGS_AB                                A/B-проверка спорной настройки
-gametune-cli compare  [before.json after.json] [--html out.html]  сравнение
-gametune-cli rollback --fix ID [--session ID] | --session ID | --all
-gametune-cli history | report | latency | net | version | doctor   (doctor — проверка окружения)
+opti-cli run      [--goal latency|smooth|fps|stream|quiet] [--mode game|synthetic|presentmon]   мастер целиком
+opti-cli analyze  [--html report.html] [--dpc 30] [--net]      анализ и отчёт
+opti-cli plan     --goal fps [--profile profile.json]          план и точный список изменений (ничего не меняет)
+opti-cli measure  [--mode …] [--phase before|after]            замер в текущую сессию
+opti-cli apply    [--fix ID,ID] [--option ID:key=value]       применить
+opti-cli ab       --fix HAGS_AB                                A/B-проверка спорной настройки
+opti-cli compare  [before.json after.json] [--html out.html]  сравнение
+opti-cli rollback --fix ID [--session ID] | --session ID | --all
+opti-cli history | report | latency | net | version | doctor   (doctor — проверка окружения)
 ```
 
 ## Что проверяется
 
 Все правила таблицы §3.2 ТЗ и ещё семь:
 
-| Проблема | Важность | Что делает GameTune |
+| Проблема | Важность | Что делает Opti |
 |---|---|---|
 | Экран не на максимальной частоте | Критично | Выставляет максимальную частоту |
 | Игры могут запускаться на встроенной GPU (гибридная графика) | Критично | Привязывает игры к дискретной GPU, не трогая ваш выбор |
@@ -110,10 +110,10 @@ gametune-cli history | report | latency | net | version | doctor   (doctor — �
 
 ## Безопасность
 
-- Система меняется только через `ChangeContext`. Сначала исходное значение записывается в журнал `C:\ProgramData\GameTune\journal.db`, потом меняется настройка. Не удалось сохранить исходное значение — изменение не выполняется.
+- Система меняется только через `ChangeContext`. Сначала исходное значение записывается в журнал `C:\ProgramData\Opti\journal.db`, потом меняется настройка. Не удалось сохранить исходное значение — изменение не выполняется.
 - Исходное значение фиксируется один раз: повторное применение не затирает оригинал.
 - Исправление, упавшее посередине, откатывает свои частичные изменения.
-- Файлы (сцены OBS) копируются в `C:\ProgramData\GameTune\backups\`.
+- Файлы (сцены OBS) копируются в `C:\ProgramData\Opti\backups\`.
 - Перед первым применением создаётся точка восстановления Windows (если защита системы включена).
 - В игры ничего не внедряется: кадры читаются из ETW, поэтому античиты не реагируют.
 - Телеметрии нет. Сеть используется только для проверки обновлений (можно выключить) и для теста сети по вашей команде.
@@ -136,17 +136,17 @@ build/publish.sh
 Релиз в GitHub делает workflow `.github/workflows/release.yml` на `windows-latest`: тесты, сборка, PresentMon из официального релиза, установщик, публикация. Запуск — пуш в ветку `release` (тег `v<версия>` из `Directory.Build.props` создаётся автоматически) или пуш тега `v*`. CI (`ci.yml`) прогоняет тесты и сборку на каждый пуш в `main`.
 
 ```
-src/GameTune.Core        модели профиля, IDetector/IFix, журнал, StrategyEngine
-src/GameTune.Native      P/Invoke: экран, DXGI, D3DKMT (HAGS), питание; утилиты и их разбор
-src/GameTune.Analysis    14 коллекторов и 27 детекторов
-src/GameTune.Fixes       бэкенды настроек, 16 исправлений, журнал SQLite, применение, откат
-src/GameTune.Measure     метрики, бутстреп, ETW (Present, DPC/ISR), PresentMon CSV, таймер, сеть
-src/GameTune.Workflow    сессии, продолжение после перезагрузки, самопроверка, A/B, HTML-отчёт, обновления
-src/GameTune.ViewModels  логика интерфейса (MVVM, тестируется без Windows)
-src/GameTune.App         WPF-интерфейс — GameTune.exe
-src/GameTune.Cli         консольная версия — gametune-cli.exe
-src/GameTune.Bench       синтетический тест D3D11 — GameTune.Bench.exe
-tests/GameTune.Tests     тесты; Profiles/*.json — профили ноутбука с Optimus, ПК с RTX, ноутбука с iGPU, слабого ПК, ReviOS
+src/Opti.Core        модели профиля, IDetector/IFix, журнал, StrategyEngine
+src/Opti.Native      P/Invoke: экран, DXGI, D3DKMT (HAGS), питание; утилиты и их разбор
+src/Opti.Analysis    14 коллекторов и 27 детекторов
+src/Opti.Fixes       бэкенды настроек, 16 исправлений, журнал SQLite, применение, откат
+src/Opti.Measure     метрики, бутстреп, ETW (Present, DPC/ISR), PresentMon CSV, таймер, сеть
+src/Opti.Workflow    сессии, продолжение после перезагрузки, самопроверка, A/B, HTML-отчёт, обновления
+src/Opti.ViewModels  логика интерфейса (MVVM, тестируется без Windows)
+src/Opti.App         WPF-интерфейс — Opti.exe
+src/Opti.Cli         консольная версия — opti-cli.exe
+src/Opti.Bench       синтетический тест D3D11 — Opti.Bench.exe
+tests/Opti.Tests     тесты; Profiles/*.json — профили ноутбука с Optimus, ПК с RTX, ноутбука с iGPU, слабого ПК, ReviOS
 installer/               установщик NSIS
 ```
 

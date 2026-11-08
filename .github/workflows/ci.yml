@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, gametune-prototype]
+    branches: [main, opti-prototype]
   pull_request:
 
 jobs:
@@ -17,5 +17,5 @@ jobs:
         run: dotnet test -c Release --nologo
       - name: Сборка интерфейса и синтетического теста
         run: |
-          dotnet build src/GameTune.App -c Release --nologo
-          dotnet build src/GameTune.Bench -c Release --nologo
+          dotnet build src/Opti.App -c Release --nologo
+          dotnet build src/Opti.Bench -c Release --nologo

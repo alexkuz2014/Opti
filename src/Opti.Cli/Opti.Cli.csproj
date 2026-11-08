@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>opti-cli</AssemblyName>
+    <RootNamespace>Opti.Cli</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifier Condition="'$(PublishForWindows)' == 'true'">win-x64</RuntimeIdentifier>
+    <SelfContained Condition="'$(PublishForWindows)' == 'true'">true</SelfContained>
+    <PublishSingleFile Condition="'$(PublishForWindows)' == 'true'">true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Opti.Core\Opti.Core.csproj" />
+    <ProjectReference Include="..\Opti.Analysis\Opti.Analysis.csproj" />
+    <ProjectReference Include="..\Opti.Fixes\Opti.Fixes.csproj" />
+    <ProjectReference Include="..\Opti.Measure\Opti.Measure.csproj" />
+    <ProjectReference Include="..\Opti.Workflow\Opti.Workflow.csproj" />
+  </ItemGroup>
+</Project>

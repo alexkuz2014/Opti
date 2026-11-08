@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Opti.Core\Opti.Core.csproj" />
+    <ProjectReference Include="..\..\src\Opti.Analysis\Opti.Analysis.csproj" />
+    <ProjectReference Include="..\..\src\Opti.Fixes\Opti.Fixes.csproj" />
+    <ProjectReference Include="..\..\src\Opti.Measure\Opti.Measure.csproj" />
+    <ProjectReference Include="..\..\src\Opti.Workflow\Opti.Workflow.csproj" />
+    <ProjectReference Include="..\..\src\Opti.ViewModels\Opti.ViewModels.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Profiles\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

@@ -53,7 +53,7 @@ jobs:
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: GameTune ${{ steps.ver.outputs.version }}
+          name: Opti ${{ steps.ver.outputs.version }}
           body_path: release-notes.md
           prerelease: ${{ steps.ver.outputs.prerelease == 'true' }}
           files: |

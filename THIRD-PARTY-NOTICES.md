@@ -1,6 +1,6 @@
 # Сторонние компоненты
 
-GameTune использует следующие библиотеки. Их лицензии разрешают распространение в составе программы.
+Opti использует следующие библиотеки. Их лицензии разрешают распространение в составе программы.
 
 | Компонент | Лицензия | Назначение |
 |---|---|---|
@@ -16,6 +16,6 @@ GameTune использует следующие библиотеки. Их ли
 
 ## PresentMon (необязательно)
 
-Если рядом с программой лежит `PresentMon*.exe`, GameTune использует его как вспомогательную программу для режима «Игра через PresentMon». PresentMon — проект Intel / GameTechDev, лицензия MIT: https://github.com/GameTechDev/PresentMon. Если релиз собран в CI с PresentMon, его лицензия действует для этого файла:
+Если рядом с программой лежит `PresentMon*.exe`, Opti использует его как вспомогательную программу для режима «Игра через PresentMon». PresentMon — проект Intel / GameTechDev, лицензия MIT: https://github.com/GameTechDev/PresentMon. Если релиз собран в CI с PresentMon, его лицензия действует для этого файла:
 
 > Copyright (C) 2017-2024 Intel Corporation. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.

@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="${1:-$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)}"
-NAME="GameTune-$VERSION-win-x64"
+NAME="Opti-$VERSION-win-x64"
 OUT="artifacts/$NAME"
 DOTNET="${DOTNET:-dotnet}"
 
@@ -13,7 +13,7 @@ rm -rf artifacts
 mkdir -p "$OUT"
 
 # Все три программы публикуются в одну папку и делят один самодостаточный рантайм .NET 8.
-for proj in src/GameTune.App src/GameTune.Cli src/GameTune.Bench; do
+for proj in src/Opti.App src/Opti.Cli src/Opti.Bench; do
   "$DOTNET" publish "$proj" -c Release -r win-x64 --self-contained true \
     -p:PublishSingleFile=false -p:Version="$VERSION" -p:DebugType=none -p:DebugSymbols=false \
     -o "$OUT" --nologo -v quiet
@@ -27,8 +27,8 @@ cp THIRD-PARTY-NOTICES.md "$OUT/THIRD-PARTY-NOTICES.md"
 (cd artifacts && zip -qr "$NAME.zip" "$NAME")
 
 if command -v makensis >/dev/null 2>&1; then
-  makensis -V2 -DVERSION="$VERSION" -DNUMVER="${VERSION%%-*}" -DSRCDIR="$PWD/$OUT" -DOUTFILE="$PWD/artifacts/GameTune-$VERSION-Setup.exe" \
-    -DICON="$PWD/src/GameTune.App/Assets/gametune.ico" installer/gametune.nsi
+  makensis -V2 -DVERSION="$VERSION" -DNUMVER="${VERSION%%-*}" -DSRCDIR="$PWD/$OUT" -DOUTFILE="$PWD/artifacts/Opti-$VERSION-Setup.exe" \
+    -DICON="$PWD/src/Opti.App/Assets/opti.ico" installer/opti.nsi
 else
   echo "makensis не найден — установщик не собран (только zip)." >&2
 fi

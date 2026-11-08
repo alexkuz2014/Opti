@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>Opti</AssemblyName>
+    <RootNamespace>Opti.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\opti.ico</ApplicationIcon>
+    <RuntimeIdentifier Condition="'$(PublishForWindows)' == 'true'">win-x64</RuntimeIdentifier>
+    <SelfContained Condition="'$(PublishForWindows)' == 'true'">true</SelfContained>
+    <PublishSingleFile Condition="'$(PublishForWindows)' == 'true'">true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Opti.ViewModels\Opti.ViewModels.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\opti.ico" />
+    <Resource Include="Assets\opti.png" />
+  </ItemGroup>
+</Project>
