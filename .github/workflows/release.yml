@@ -35,9 +35,16 @@ jobs:
           $v = '${{ github.ref_name }}'.TrimStart('v')
           if ($v -notmatch '^\d') { $v = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version }
           ./build/publish.ps1 -Version $v
+      - name: Описание релиза
+        shell: pwsh
+        run: |
+          $notes = "docs/release-notes/${{ github.ref_name }}.md"
+          if (Test-Path $notes) { Copy-Item $notes release-notes.md } else { Copy-Item CHANGELOG.md release-notes.md }
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          name: GameTune ${{ github.ref_name }}
+          body_path: release-notes.md
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
             artifacts/*.zip
