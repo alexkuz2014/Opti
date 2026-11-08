@@ -45,6 +45,7 @@ internal static class Commands
               latency  [--seconds 60]                                        Задержка системы: DPC/ISR + точность таймера
               net      [--target 1.1.1.1] [--no-load]                        Пинг, джиттер, bufferbloat
               version                                                        Версия и проверка обновлений
+              doctor                                                         Проверка окружения (права, ETW, утилиты, PresentMon)
 
             Цели: latency (мин. задержка), smooth (плавность), fps (макс. FPS), stream (стрим/запись), quiet (тихо и холодно).
             Данные: {GameTunePaths.DataDir}
@@ -150,7 +151,7 @@ internal static class Commands
         if (a.Get("session") is { } id) return host.Workflow.Store.Load(id) ?? throw new ArgumentException($"Сессия {id} не найдена");
         var open = host.Workflow.Store.LatestOpen();
         if (open is not null && open.Stage < SessionStage.Compared) return open;
-        if (!needAnalysis) throw new InvalidOperationException("Нет открытой сессии. Начните с «gametune run».");
+        if (!needAnalysis) throw new InvalidOperationException("Нет открытой сессии. Начните с «gametune-cli run».");
         var analysis = AnalysisLoader.LoadOrCollect(a);
         return host.Workflow.StartSession(analysis, ParseGoal(a.Get("goal"), host.Settings.DefaultGoal));
     }
@@ -201,7 +202,7 @@ internal static class Commands
             Console.WriteLine("Перезагрузка через 10 секунд…");
             return true;
         }
-        Console.WriteLine("Перезагрузитесь, когда будет удобно. Продолжение — «gametune resume» (запустится само при входе).");
+        Console.WriteLine("Перезагрузитесь, когда будет удобно. Продолжение — «gametune-cli resume» (запустится само при входе).");
         return false;
     }
 
@@ -245,7 +246,7 @@ internal static class Commands
             return 0;
         }
         Console.WriteLine("\nБудут применены: " + string.Join(", ", chosen.Select(f => f.Id)));
-        if (abCandidates.Count > 0) Console.WriteLine("Спорные настройки проверяются отдельно: " + string.Join(", ", abCandidates.Select(id => $"gametune ab --fix {id}")));
+        if (abCandidates.Count > 0) Console.WriteLine("Спорные настройки проверяются отдельно: " + string.Join(", ", abCandidates.Select(id => $"gametune-cli ab --fix {id}")));
         if (!a.Has("yes") && !Output.Confirm("Применить? Перед изменениями создаётся точка восстановления, всё записывается в журнал для отката.")) return 1;
 
         Output.Header("Шаг 3. Применение");
@@ -521,7 +522,7 @@ internal static class Commands
         var separate = chosen.Where(c => c.ApplySeparately).ToList();
         if (separate.Count > 0 && chosen.Count > 1)
         {
-            Output.Color(ConsoleColor.Yellow, "Спорные настройки проверяются отдельно: " + string.Join(", ", separate.Select(x => $"gametune ab --fix {x.Fix.Id}")) + "\n");
+            Output.Color(ConsoleColor.Yellow, "Спорные настройки проверяются отдельно: " + string.Join(", ", separate.Select(x => $"gametune-cli ab --fix {x.Fix.Id}")) + "\n");
             chosen = chosen.Except(separate).ToList();
         }
         if (chosen.Count == 0) { Console.WriteLine("Нечего применять."); return 0; }
@@ -532,9 +533,9 @@ internal static class Commands
 
         var report = wf.Apply(s, chosen.Select(c => c.Fix).ToList(), CliHost.ExePath, "resume");
         PrintApplyReport(report);
-        Console.WriteLine($"Откат этой сессии: gametune rollback --session {s.Id}");
+        Console.WriteLine($"Откат этой сессии: gametune-cli rollback --session {s.Id}");
         if (report.RebootRequired) OfferReboot(a);
-        else Console.WriteLine("Дальше: «gametune measure» (замер «после»), затем «gametune compare».");
+        else Console.WriteLine("Дальше: «gametune-cli measure» (замер «после»), затем «gametune-cli compare».");
         return report.Results.Any(x => x.Outcome == FixOutcome.Failed) ? 3 : 0;
     }
 

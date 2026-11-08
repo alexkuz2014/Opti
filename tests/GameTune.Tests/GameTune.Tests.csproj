@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\src\GameTune.Fixes\GameTune.Fixes.csproj" />
     <ProjectReference Include="..\..\src\GameTune.Measure\GameTune.Measure.csproj" />
     <ProjectReference Include="..\..\src\GameTune.Workflow\GameTune.Workflow.csproj" />
+    <ProjectReference Include="..\..\src\GameTune.ViewModels\GameTune.ViewModels.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Profiles\*.json" CopyToOutputDirectory="PreserveNewest" />

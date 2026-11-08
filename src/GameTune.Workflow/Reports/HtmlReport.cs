@@ -126,7 +126,7 @@ public static class HtmlReport
             foreach (var c in d.Changes)
                 sb.Append($"<tr><td>{E(Title(d, c.FixId))}</td><td class=\"mono\">{E(c.Type.ToString())} {E(c.Target)}</td><td class=\"mono\">{E(c.Before.ToString())}</td><td class=\"mono\">{E(c.After.ToString())}</td><td>{(c.RolledBack ? "откачено" : "действует")}</td></tr>");
             sb.Append("</tbody></table>");
-            sb.Append($"<p class=\"muted small\">Откат всей сессии: <code>gametune rollback --session {E(s.Id)}</code>, одного исправления: <code>gametune rollback --fix ID --session {E(s.Id)}</code>, или кнопка «Откатить» в программе.</p></section>");
+            sb.Append($"<p class=\"muted small\">Откат всей сессии: <code>gametune-cli rollback --session {E(s.Id)}</code>, одного исправления: <code>gametune-cli rollback --fix ID --session {E(s.Id)}</code>, или кнопка «Откатить» в программе.</p></section>");
         }
 
         if (s.PostReboot is { } pr)

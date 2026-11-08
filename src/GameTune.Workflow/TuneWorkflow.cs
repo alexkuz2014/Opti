@@ -43,6 +43,8 @@ public sealed class TuneWorkflow
     public SessionStore Store { get; }
     public IReadOnlyList<IFix> Catalog { get; }
     public IChangeJournal Journal => _journal;
+    /// <summary>Бэкенды настроек — для полного отката вне сессий.</summary>
+    public IBackendRegistry BackendsForRollback => _backends;
 
     public TuneSession StartSession(AnalysisResult analysis, UserGoal goal)
     {

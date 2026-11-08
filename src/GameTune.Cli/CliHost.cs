@@ -24,7 +24,7 @@ internal sealed class CliHost : IDisposable
             new WindowsRestorePointService(), new WindowsResumeScheduler(), new WindowsCrashEventSource());
     }
 
-    public static string ExePath => Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "gametune.exe");
+    public static string ExePath => Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "gametune-cli.exe");
 
     public void Dispose() => Journal.Dispose();
 }
@@ -42,7 +42,7 @@ internal static class AnalysisLoader
             return SystemAnalyzer.FromProfile(GameTuneJson.Deserialize<SystemProfile>(profileJson));
         }
         Console.Write("Анализ системы: ");
-        var r = SystemAnalyzer.Collect(progress: name => Console.Write(name + "… "));
+        var r = SystemAnalyzer.Collect(SystemAnalyzer.DefaultCollectors(GameTune.Workflow.GameTuneSettings.Load().ObsConfigDir), name => Console.Write(name + "… "));
         Console.WriteLine("готово.");
         return r;
     }

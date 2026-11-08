@@ -16,14 +16,14 @@ public sealed class AnalysisResult
 /// <summary>Анализ системы: сбор профиля всеми коллекторами + запуск детекторов.</summary>
 public static class SystemAnalyzer
 {
-    public static IReadOnlyList<ICollector> DefaultCollectors()
+    public static IReadOnlyList<ICollector> DefaultCollectors(string? obsConfigDir = null)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Сбор профиля работает только в Windows. Для тестов используйте сохранённые профили (--profile).");
         return new ICollector[]
         {
             new DeviceCollector(), new OsCollector(), new CpuCollector(), new GpuDisplayCollector(), new MemoryCollector(),
             new DiskCollector(), new PowerCollector(), new ThermalCollector(), new TimersAndSecurityCollector(),
-            new GraphicsSettingsCollector(), new BackgroundCollector(), new ObsCollector(), new NetworkCollector(), new GamesCollector(),
+            new GraphicsSettingsCollector(), new BackgroundCollector(), new ObsCollector(obsConfigDir), new NetworkCollector(), new GamesCollector(),
         };
     }
 

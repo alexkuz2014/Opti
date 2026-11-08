@@ -110,13 +110,24 @@ public sealed class BackgroundCollector : ICollector
 [SupportedOSPlatform("windows")]
 public sealed class ObsCollector : ICollector
 {
+    private readonly string? _configDirOverride;
+    /// <param name="configDirOverride">Папка настроек портативного OBS (из настроек GameTune).</param>
+    public ObsCollector(string? configDirOverride = null) => _configDirOverride = configDirOverride;
     public string Name => "OBS";
 
     public void Collect(SystemProfile p)
     {
         var installDir = Reg.Str(@"HKLM\SOFTWARE\OBS Studio", "") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "obs-studio");
         var exe = Path.Combine(installDir, "bin", "64bit", "obs64.exe");
-        var configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "obs-studio");
+        var configDir = !string.IsNullOrWhiteSpace(_configDirOverride) && Directory.Exists(_configDirOverride)
+            ? _configDirOverride
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "obs-studio");
+        // Портативный OBS: config лежит рядом с программой, exe — на уровень выше
+        if (!File.Exists(exe) && _configDirOverride is not null)
+        {
+            var portableExe = Path.GetFullPath(Path.Combine(configDir, "..", "..", "bin", "64bit", "obs64.exe"));
+            if (File.Exists(portableExe)) exe = portableExe;
+        }
         if (!File.Exists(exe) && !Directory.Exists(configDir)) return;
 
         var obs = new ObsInfo
