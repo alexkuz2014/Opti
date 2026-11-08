@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>gametune</AssemblyName>
+    <RootNamespace>GameTune.Cli</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifier Condition="'$(PublishForWindows)' == 'true'">win-x64</RuntimeIdentifier>
+    <SelfContained Condition="'$(PublishForWindows)' == 'true'">true</SelfContained>
+    <PublishSingleFile Condition="'$(PublishForWindows)' == 'true'">true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GameTune.Core\GameTune.Core.csproj" />
+    <ProjectReference Include="..\GameTune.Analysis\GameTune.Analysis.csproj" />
+    <ProjectReference Include="..\GameTune.Fixes\GameTune.Fixes.csproj" />
+    <ProjectReference Include="..\GameTune.Measure\GameTune.Measure.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,18 @@
+{
+  "label": "ПК на ReviOS: сборка уже задала таймеры и MPO, игровой режим выключен сборкой",
+  "device": { "isLaptop": false },
+  "os": { "productName": "Windows 11 Pro", "displayVersion": "24H2", "build": 26100, "ubr": 1742, "modifiedBuild": "ReviOS" },
+  "cpu": { "name": "Intel Core i5-13600K", "vendor": "Intel", "cores": 14, "threads": 20, "maxClockMhz": 3500 },
+  "gpus": [ { "name": "AMD Radeon RX 7800 XT", "vendor": "Amd", "driverDate": "2026-05-01T00:00:00", "dedicatedVramMb": 16368, "isIntegrated": false, "drivesDisplay": true } ],
+  "hybrid": { "isHybrid": false },
+  "displays": [ { "deviceName": "\\\\.\\DISPLAY1", "width": 2560, "height": 1440, "currentHz": 144, "maxHzAtCurrentResolution": 144, "isPrimary": true } ],
+  "memory": { "totalMb": 32000, "availableMb": 28000, "modules": [ { "capacityMb": 16384, "ratedSpeed": 6000, "configuredSpeed": 6000 }, { "capacityMb": 16384, "ratedSpeed": 6000, "configuredSpeed": 6000 } ], "channelsPopulated": 2 },
+  "disks": [ { "model": "WD SN850X", "mediaType": "Nvme", "isSystem": true, "sizeGb": 1000, "freeGb": 600, "healthStatus": "Healthy" } ],
+  "power": { "onAcPower": true, "activeSchemeGuid": "e9a42b02-d5df-448d-aa00-03f14749eb61", "acMaxProcessorState": 100, "acCoreParkingMinCores": 100, "availableSchemeGuids": [ "e9a42b02-d5df-448d-aa00-03f14749eb61" ] },
+  "timers": { "usePlatformTick": true, "disableDynamicTick": true, "globalTimerResolutionRequests": true },
+  "security": { "hvciRunning": false, "bitLockerOnSystemDrive": false },
+  "graphics": { "hagsSupported": true, "hagsEnabled": true, "overlayTestMode": 5, "windowedOptimizationsEnabled": true, "vrrOptimizationsEnabled": true, "gameModeEnabled": true, "gameDvrEnabled": false },
+  "background": {},
+  "network": [],
+  "games": []
+}

@@ -1,0 +1,33 @@
+{
+  "label": "Настольный ПК с RTX 4070: XMP выключен, HPET через bcdedit, экономия энергии, MPO-ключ",
+  "device": { "isLaptop": false, "hasBattery": false, "manufacturer": "MSI", "model": "MS-7D91" },
+  "os": { "productName": "Windows 11 Pro", "displayVersion": "24H2", "build": 26100, "ubr": 2605 },
+  "cpu": { "name": "AMD Ryzen 7 7800X3D", "vendor": "Amd", "cores": 8, "threads": 16, "maxClockMhz": 4200 },
+  "gpus": [
+    { "name": "NVIDIA GeForce RTX 4070", "vendor": "Nvidia", "driverVersion": "31.0.15.3623", "driverDate": "2023-06-20T00:00:00", "dedicatedVramMb": 12010, "isIntegrated": false, "drivesDisplay": true, "luid": "0000000000033333" }
+  ],
+  "hybrid": { "isHybrid": false },
+  "displays": [
+    { "deviceName": "\\\\.\\DISPLAY1", "friendlyName": "LG 27GP850", "width": 2560, "height": 1440, "currentHz": 165, "maxHzAtCurrentResolution": 165, "isPrimary": true, "isInternal": false, "adapterName": "NVIDIA GeForce RTX 4070" }
+  ],
+  "memory": {
+    "totalMb": 32480, "availableMb": 25000,
+    "modules": [
+      { "capacityMb": 16384, "ratedSpeed": 6000, "configuredSpeed": 4800, "slot": "DIMM_A2", "partNumber": "F5-6000J3038F16G" },
+      { "capacityMb": 16384, "ratedSpeed": 6000, "configuredSpeed": 4800, "slot": "DIMM_B2", "partNumber": "F5-6000J3038F16G" }
+    ],
+    "channelsPopulated": 2
+  },
+  "disks": [
+    { "model": "Samsung 990 PRO 1TB", "mediaType": "Nvme", "isSystem": true, "driveLetter": "C:", "sizeGb": 1000, "freeGb": 62, "healthStatus": "Healthy", "wearPercent": 3, "trimEnabled": true }
+  ],
+  "power": { "onAcPower": true, "activeSchemeGuid": "a1841308-3541-4fab-bc81-f71556f20b4a", "activeSchemeName": "Экономия энергии", "acMaxProcessorState": 70, "acCoreParkingMinCores": 10, "availableSchemeGuids": [ "381b4222-f694-41f0-9685-ff5bb260df2e", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", "a1841308-3541-4fab-bc81-f71556f20b4a" ] },
+  "timers": { "usePlatformClock": true, "usePlatformTick": false, "disableDynamicTick": true, "globalTimerResolutionRequests": false },
+  "security": { "vbsRunning": false, "hvciRunning": false, "bitLockerOnSystemDrive": false },
+  "graphics": { "hagsSupported": true, "hagsEnabled": false, "overlayTestMode": 5, "windowedOptimizationsEnabled": false, "gameModeEnabled": false, "gameDvrEnabled": false },
+  "background": { "startupItems": [], "runningOverlays": [ "Discord (оверлей, если включён)" ] },
+  "network": [ { "name": "Ethernet", "description": "Realtek Gaming 2.5GbE", "kind": "Ethernet", "isUp": true, "linkSpeedMbps": 1000, "allowComputerToTurnOff": false } ],
+  "netQuality": { "target": "1.1.1.1", "idlePingMs": 12, "idleJitterMs": 1.1, "loadedPingMs": 180, "packetLossPercent": 0 },
+  "dpc": { "durationSec": 60, "drivers": [ { "driver": "ndis.sys", "maxDpcUs": 210, "maxIsrUs": 15, "dpcCount": 1000 }, { "driver": "rt640x64.sys", "maxDpcUs": 1840, "maxIsrUs": 40, "dpcCount": 300 } ] },
+  "games": [ { "name": "Valorant", "launcher": "Other", "executables": [ "C:\\Riot Games\\VALORANT\\live\\VALORANT.exe" ], "isOnline": true } ]
+}

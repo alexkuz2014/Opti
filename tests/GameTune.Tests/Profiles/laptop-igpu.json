@@ -1,0 +1,28 @@
+{
+  "label": "Ноутбук только с Radeon 780M, один модуль памяти, мало свободной ОЗУ, от батареи",
+  "device": { "isLaptop": true, "hasBattery": true, "manufacturer": "Lenovo", "model": "IdeaPad Slim 5" },
+  "os": { "productName": "Windows 11 Home", "displayVersion": "23H2", "build": 22631, "ubr": 4602 },
+  "cpu": { "name": "AMD Ryzen 7 7840U", "vendor": "Amd", "cores": 8, "threads": 16, "maxClockMhz": 3300 },
+  "gpus": [ { "name": "AMD Radeon(TM) 780M", "vendor": "Amd", "driverVersion": "31.0.24027.1012", "driverDate": "2026-03-01T00:00:00", "dedicatedVramMb": 512, "isIntegrated": true, "drivesDisplay": true } ],
+  "hybrid": { "isHybrid": false },
+  "displays": [ { "deviceName": "\\\\.\\DISPLAY1", "width": 1920, "height": 1200, "currentHz": 60, "maxHzAtCurrentResolution": 60, "isPrimary": true, "isInternal": true } ],
+  "memory": { "totalMb": 16000, "availableMb": 2400, "modules": [ { "capacityMb": 16384, "ratedSpeed": 5600, "configuredSpeed": 5600, "slot": "DIMM 0" } ],
+              "topConsumers": [ { "name": "chrome", "workingSetMb": 5200 }, { "name": "Teams", "workingSetMb": 1400 } ] },
+  "disks": [ { "model": "SK hynix BC901", "mediaType": "Nvme", "isSystem": true, "driveLetter": "C:", "sizeGb": 512, "freeGb": 30, "healthStatus": "Healthy" } ],
+  "power": { "onAcPower": false, "batteryPercent": 54, "activeSchemeGuid": "381b4222-f694-41f0-9685-ff5bb260df2e", "powerModeOverlay": "BetterBattery", "availableSchemeGuids": [ "381b4222-f694-41f0-9685-ff5bb260df2e" ] },
+  "timers": {},
+  "security": { "hvciRunning": false },
+  "graphics": { "hagsSupported": false, "gameModeEnabled": true, "windowedOptimizationsEnabled": true, "vrrOptimizationsEnabled": true },
+  "background": {
+    "startupItems": [
+      { "name": "Teams", "enabled": true, "approvedKey": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run|Teams" },
+      { "name": "OneDrive", "enabled": true, "approvedKey": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run|OneDrive" },
+      { "name": "Spotify", "enabled": true, "approvedKey": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run|Spotify" },
+      { "name": "Steam", "enabled": true }, { "name": "Epic", "enabled": true }, { "name": "Discord", "enabled": true },
+      { "name": "Telegram", "enabled": true }, { "name": "Zoom", "enabled": true }, { "name": "Adobe", "enabled": true },
+      { "name": "Logitech", "enabled": true }, { "name": "Corsair", "enabled": true }, { "name": "Razer", "enabled": false }
+    ]
+  },
+  "network": [ { "name": "Wi-Fi", "kind": "WiFi", "isUp": true, "allowComputerToTurnOff": false, "wifiBandGhz": 5 } ],
+  "games": []
+}
