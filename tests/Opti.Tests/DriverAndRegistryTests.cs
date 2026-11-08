@@ -162,4 +162,25 @@ public class DriverAndRegistryTests
         Assert.Contains(all, e => e.Name == "Discord");
         Assert.All(SoftwareCatalog.All, c => Assert.NotEmpty(c.Items));
     }
+
+    // ---------- Твики ----------
+
+    [Fact]
+    public void TweakCatalog_IsConsistent()
+    {
+        var all = Opti.Core.Tweaks.TweakCatalog.All;
+        Assert.Equal(all.Count, all.Select(t => t.Id).Distinct().Count());
+        foreach (var t in all)
+        {
+            Assert.NotEmpty(t.Values);
+            foreach (var v in t.Values)
+            {
+                Assert.Matches(@"^HK(LM|CU)\\", v.Key);
+                Assert.Contains(v.Kind, new[] { "DWord", "String" });
+                if (v.Kind == "DWord") Assert.True(uint.TryParse(v.On, out _), $"{t.Id}: {v.On}");
+            }
+            if (t.Link is not null) Assert.StartsWith("https://", t.Link);
+        }
+        Assert.Contains(all, t => t.Id == "CLASSIC_CONTEXT_MENU" && t.MinBuild == 22000);
+    }
 }

@@ -70,7 +70,7 @@ public sealed partial class DriversViewModel : PageViewModel
                     {
                         DriverStatus.Missing => "драйвер не установлен",
                         DriverStatus.Old => "старый — обновите",
-                        DriverStatus.Generic => "стандартный Microsoft — лучше драйвер производителя",
+                        DriverStatus.Generic => "стандартный Microsoft",
                         _ => "в порядке",
                     },
                     Tone = st switch { DriverStatus.Missing => Palette.Bad, DriverStatus.Ok => Palette.Good, _ => Palette.Warn },

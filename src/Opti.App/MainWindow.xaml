@@ -18,8 +18,35 @@
         <DataTemplate DataType="{x:Type vm:DriversViewModel}"><v:DriversView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SoftwareViewModel}"><v:SoftwareView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:AutoSetupViewModel}"><v:AutoSetupView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:TweaksViewModel}"><v:TweaksView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:HistoryViewModel}"><v:HistoryView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><v:SettingsView/></DataTemplate>
+                    <DataTemplate x:Key="NavItemTemplate">
+                        <StackPanel>
+                        <TextBlock Text="{Binding Header}" Style="{StaticResource NavHeader}" Visibility="{Binding Header, Converter={StaticResource StrToVis}}"/>
+                        <Button x:Name="NavBtn" Style="{StaticResource NavButton}" ToolTipService.ShowOnDisabled="True" IsEnabled="{Binding IsEnabled}" CommandParameter="{Binding}"
+                                Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <Grid>
+                                <Border x:Name="Pill" Width="3" Height="18" CornerRadius="1.5" HorizontalAlignment="Left" Margin="-12,0,0,0"
+                                        Background="{StaticResource BrandGradientBrush}" Visibility="Hidden"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="NavIcon" Text="{Binding Icon}" Style="{StaticResource Icon}" Width="30"/>
+                                    <TextBlock x:Name="NavTitle" Text="{Binding Title}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                <Setter TargetName="NavBtn" Property="ToolTip" Value="{Binding DisabledHint}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                <Setter TargetName="Pill" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="NavTitle" Property="FontWeight" Value="SemiBold"/>
+                                <Setter TargetName="NavIcon" Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -40,30 +67,8 @@
                 <Ellipse Width="7" Height="7" Fill="{StaticResource BrandGreenBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
                 <TextBlock Text="{Binding WindowTitle}" Style="{StaticResource Caption}"/>
             </StackPanel>
-            <ItemsControl ItemsSource="{Binding Nav}" Focusable="False">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Button Style="{StaticResource NavButton}" IsEnabled="{Binding IsEnabled}" CommandParameter="{Binding}"
-                                Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}">
-                            <Grid>
-                                <Border x:Name="Pill" Width="3" Height="18" CornerRadius="1.5" HorizontalAlignment="Left" Margin="-12,0,0,0"
-                                        Background="{StaticResource BrandGradientBrush}" Visibility="Hidden"/>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="NavIcon" Text="{Binding Icon}" Style="{StaticResource Icon}" Width="30"/>
-                                    <TextBlock x:Name="NavTitle" Text="{Binding Title}" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Grid>
-                        </Button>
-                        <DataTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                <Setter TargetName="Pill" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="NavTitle" Property="FontWeight" Value="SemiBold"/>
-                                <Setter TargetName="NavIcon" Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
-                            </DataTrigger>
-                        </DataTemplate.Triggers>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding NavBottom}" Focusable="False" Margin="0,0,0,10" ItemTemplate="{StaticResource NavItemTemplate}"/>
+            <ItemsControl ItemsSource="{Binding NavTop}" Focusable="False" ItemTemplate="{StaticResource NavItemTemplate}"/>
         </DockPanel>
 
         <!-- Содержимое -->

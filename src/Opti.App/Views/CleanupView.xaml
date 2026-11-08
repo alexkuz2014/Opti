@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <DockPanel>
         <!-- Панель действий всегда видна внизу -->
-        <Border DockPanel.Dock="Bottom" Padding="40,12" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource ActionBar}">
             <DockPanel>
                 <ProgressBar DockPanel.Dock="Right" IsIndeterminate="True" Width="160" VerticalAlignment="Center"
                              Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
@@ -14,7 +14,7 @@
             </DockPanel>
         </Border>
         <ScrollViewer>
-            <StackPanel Margin="40,32,40,32" MaxWidth="920" HorizontalAlignment="Left">
+            <StackPanel Margin="{StaticResource PageMargin}" MaxWidth="{StaticResource ContentMaxWidth}" HorizontalAlignment="Left">
                 <TextBlock Text="Очистка" Style="{StaticResource PageTitle}"/>
                 <TextBlock Style="{StaticResource Secondary}" MaxWidth="660" HorizontalAlignment="Left"
                            Text="Бережно: только временные файлы и кеши, только старые, занятые пропускаются. Документы, игры, пароли и реестр не трогаются."/>

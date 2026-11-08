@@ -44,6 +44,7 @@ public sealed class ViewModelTests : IDisposable
             Workflow = new TuneWorkflow(Settings, new SessionStore(Path.Combine(dir, "sessions")), reg, Journal);
             Runner = new FakeRunner(frameMs);
             DataDir = dir;
+            Tweaks = new Opti.Fixes.Services.TweakService(reg, Journal);
         }
         public Opti.Core.Profile.SystemProfile Profile { get; }
         public Dictionary<ChangeType, InMemoryBackend> Map { get; }
@@ -68,6 +69,10 @@ public sealed class ViewModelTests : IDisposable
         public List<Opti.Workflow.Cleanup.ICleanupTarget> Cleanup { get; } = new();
         public IReadOnlyList<Opti.Workflow.Cleanup.ICleanupTarget> CleanupTargets() => Cleanup;
         public string? StartupNotice => null;
+        public Opti.Fixes.Services.TweakService Tweaks { get; }
+        public int OsBuild => 26100;
+        public int ExplorerRestarts { get; private set; }
+        public void RestartExplorer() => ExplorerRestarts++;
     }
 
     [Fact]
@@ -83,7 +88,7 @@ public sealed class ViewModelTests : IDisposable
         await main.Home.AnalyzeCommand.ExecuteAsync(null);
         Assert.Same(main.Analysis, main.CurrentPage);
         Assert.True(main.Nav[1].IsEnabled);
-        Assert.Contains(main.Analysis.Findings, f => f.Finding.Id == "DISP_LOW_HZ" && f.SeverityText == "КРИТИЧНО");
+        Assert.Contains(main.Analysis.Findings, f => f.Finding.Id == "DISP_LOW_HZ" && f.SeverityText == "критично");
         Assert.NotNull(main.Analysis.Summary);
 
         main.Analysis.MeasureBeforeCommand.Execute(null);
@@ -370,6 +375,76 @@ public sealed class ViewModelTests : IDisposable
         var wiztree = main.Software.Categories.SelectMany(c => c.Items).First(i => i.Name == "WizTree");
         main.Software.OpenCommand.Execute(wiztree);
         Assert.Equal("https://diskanalyzer.com/", Assert.Single(svc.Opened));
+    }
+
+    [Fact]
+    public async Task Analysis_StatTilesFilterFindings()
+    {
+        var svc = new FakeServices(_dir, "laptop-optimus", _ => 8.0);
+        var main = new MainViewModel(svc);
+        await main.Home.AnalyzeCommand.ExecuteAsync(null);
+        var a = main.Analysis;
+        int total = a.Findings.Count;
+        Assert.Equal(total, a.CriticalCount + a.ImportantCount + a.AdviceCount);
+        a.FilterCritical = true;
+        Assert.Equal(a.CriticalCount, a.Findings.Count);
+        Assert.All(a.Findings, f => Assert.Equal(Core.Findings.Severity.Critical, f.Finding.Severity));
+        a.FilterFixable = true; // плитки взаимоисключающие
+        Assert.False(a.FilterCritical);
+        Assert.All(a.Findings, f => Assert.True(f.HasFix));
+        a.ClearFilterCommand.Execute(null);
+        Assert.Equal(total, a.Findings.Count);
+        Assert.False(a.IsFiltered);
+    }
+
+    [Fact]
+    public void Tweaks_ToggleOnAndOff_RestoresOriginalValues()
+    {
+        var svc = new FakeServices(_dir, "desktop-rtx", _ => 8.0);
+        var reg = svc.Map[ChangeType.Registry];
+        var delayTarget = Opti.Fixes.Backends.Targets.Reg(@"HKCU\Control Panel\Desktop", "MenuShowDelay");
+        reg.Seed(delayTarget, StateValue.Str("400"));
+        var main = new MainViewModel(svc);
+        var page = main.Tweaks;
+        page.OnShown();
+        var items = page.Groups.SelectMany(g => g.Items).ToList();
+        Assert.True(items.Count >= 10);
+        Assert.All(items, i => Assert.False(i.IsOn));
+
+        var menu = items.First(i => i.Tweak.Id == "CLASSIC_CONTEXT_MENU");
+        menu.IsOn = true;
+        Assert.Null(menu.Error);
+        Assert.True(page.NeedsExplorerRestart);
+        page.RestartExplorerCommand.Execute(null);
+        Assert.Equal(1, svc.ExplorerRestarts);
+        Assert.False(page.NeedsExplorerRestart);
+
+        var delay = items.First(i => i.Tweak.Id == "FAST_MENUS");
+        delay.IsOn = true;
+        Assert.Equal(StateValue.Str("100"), reg.Read(delayTarget));
+        Assert.Contains("выхода", page.PendingText);
+
+        // Выключение — точное исходное состояние
+        delay.IsOn = false;
+        Assert.Equal(StateValue.Str("400"), reg.Read(delayTarget));
+        menu.IsOn = false;
+        Assert.False(reg.Read(Opti.Fixes.Backends.Targets.Reg(@"HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32", "")).Exists);
+
+        // Повторная загрузка видит реальное состояние
+        page.EnableRecommendedCommand.Execute(null);
+        page.Load();
+        var reloaded = page.Groups.SelectMany(g => g.Items).ToList();
+        Assert.All(reloaded.Where(i => i.Recommended && i.IsAvailable), i => Assert.True(i.IsOn, i.Title));
+        Assert.Contains(svc.Journal.GetSessions(), x => x.SessionId == Opti.Fixes.Services.TweakService.SessionId);
+    }
+
+    [Fact]
+    public void Nav_GroupsToolsAndFooter()
+    {
+        var main = new MainViewModel(new FakeServices(_dir, "desktop-rtx", _ => 8.0));
+        Assert.Equal(new[] { "История", "Настройки" }, main.NavBottom.Select(n => n.Title));
+        Assert.Contains(main.NavTop, n => n.Header == "ИНСТРУМЕНТЫ" && n.Title == "Драйверы");
+        Assert.All(main.Nav.Where(n => !n.IsEnabled), n => Assert.False(string.IsNullOrEmpty(n.DisabledHint)));
     }
 
     [Fact]

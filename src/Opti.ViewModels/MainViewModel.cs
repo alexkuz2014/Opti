@@ -20,6 +20,12 @@ public sealed partial class NavItem : ObservableObject
     public required string Title { get; init; }
     public required string Icon { get; init; }
     public required Func<PageViewModel> Page { get; init; }
+    /// <summary>Заголовок группы над пунктом (первый пункт группы).</summary>
+    public string? Header { get; init; }
+    /// <summary>Пункт внизу панели (История, Настройки).</summary>
+    public bool IsFooter { get; init; }
+    /// <summary>Подсказка для недоступного пункта.</summary>
+    public string? DisabledHint { get; init; }
     [ObservableProperty] private bool _isEnabled = true;
     [ObservableProperty] private bool _isActive;
 }
@@ -38,18 +44,20 @@ public sealed partial class MainViewModel : ObservableObject
         Cleanup = new CleanupViewModel(this);
         Drivers = new DriversViewModel(this);
         Software = new SoftwareViewModel(this);
+        Tweaks = new TweaksViewModel(this);
         Nav = new ObservableCollection<NavItem>
         {
             // Значки — глифы шрифта Segoe Fluent Icons / Segoe MDL2 Assets
             new() { Title = "Главная", Icon = "\uE80F", Page = () => Home },
-            new() { Title = "Анализ", Icon = "\uE9D9", Page = () => Analysis, IsEnabled = false },
-            new() { Title = "Исправления", Icon = "\uE90F", Page = () => Strategy, IsEnabled = false },
-            new() { Title = "Результат", Icon = "\uE9D2", Page = () => Compare ?? (PageViewModel)Home, IsEnabled = false },
-            new() { Title = "Драйверы", Icon = "\uE950", Page = () => Drivers, IsEnabled = false },
+            new() { Title = "Анализ", Icon = "\uE9D9", Page = () => Analysis, IsEnabled = false, Header = "ОПТИМИЗАЦИЯ", DisabledHint = "Появится после анализа" },
+            new() { Title = "Исправления", Icon = "\uE90F", Page = () => Strategy, IsEnabled = false, DisabledHint = "Появится после анализа" },
+            new() { Title = "Результат", Icon = "\uE9D2", Page = () => Compare ?? (PageViewModel)Home, IsEnabled = false, DisabledHint = "Появится после замера «после»" },
+            new() { Title = "Драйверы", Icon = "\uE950", Page = () => Drivers, IsEnabled = false, Header = "ИНСТРУМЕНТЫ", DisabledHint = "Появится после анализа" },
+            new() { Title = "Твики", Icon = "\uE70F", Page = () => Tweaks },
             new() { Title = "Очистка", Icon = "\uEA99", Page = () => Cleanup },
             new() { Title = "Программы", Icon = "\uE71D", Page = () => Software },
-            new() { Title = "История", Icon = "\uE81C", Page = () => History },
-            new() { Title = "Настройки", Icon = "\uE713", Page = () => SettingsPage },
+            new() { Title = "История", Icon = "\uE81C", Page = () => History, IsFooter = true },
+            new() { Title = "Настройки", Icon = "\uE713", Page = () => SettingsPage, IsFooter = true },
         };
         _currentPage = Home;
         Nav[0].IsActive = true;
@@ -64,8 +72,11 @@ public sealed partial class MainViewModel : ObservableObject
     public CleanupViewModel Cleanup { get; }
     public DriversViewModel Drivers { get; }
     public SoftwareViewModel Software { get; }
+    public TweaksViewModel Tweaks { get; }
     public CompareViewModel? Compare { get; private set; }
     public ObservableCollection<NavItem> Nav { get; }
+    public IEnumerable<NavItem> NavTop => Nav.Where(n => !n.IsFooter);
+    public IEnumerable<NavItem> NavBottom => Nav.Where(n => n.IsFooter);
     public string WindowTitle => $"Opti {Services.AppVersion}";
 
     [ObservableProperty] private PageViewModel _currentPage;
