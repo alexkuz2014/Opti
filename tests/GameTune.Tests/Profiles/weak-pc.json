@@ -1,0 +1,19 @@
+{
+  "label": "Слабый ПК: 4 ядра, 8 ГБ, Windows на HDD, перегрев",
+  "device": { "isLaptop": false, "manufacturer": "Unknown", "model": "Desktop" },
+  "os": { "productName": "Windows 10 Home", "displayVersion": "22H2", "build": 19045, "ubr": 5487 },
+  "cpu": { "name": "Intel Core i5-4460", "vendor": "Intel", "cores": 4, "threads": 4, "maxClockMhz": 3200, "performancePercent": 62 },
+  "gpus": [ { "name": "NVIDIA GeForce GTX 1050 Ti", "vendor": "Nvidia", "driverVersion": "27.21.14.5671", "driverDate": "2021-01-15T00:00:00", "dedicatedVramMb": 4096, "isIntegrated": false, "drivesDisplay": true } ],
+  "hybrid": { "isHybrid": false },
+  "displays": [ { "deviceName": "\\\\.\\DISPLAY1", "width": 1920, "height": 1080, "currentHz": 60, "maxHzAtCurrentResolution": 60, "isPrimary": true } ],
+  "memory": { "totalMb": 8150, "availableMb": 3100, "modules": [ { "capacityMb": 8192, "ratedSpeed": 1600, "configuredSpeed": 1600, "slot": "DIMM1" } ] },
+  "disks": [ { "model": "WDC WD10EZEX", "mediaType": "Hdd", "isSystem": true, "driveLetter": "C:", "sizeGb": 1000, "freeGb": 45, "healthStatus": "Warning" } ],
+  "thermals": { "cpuTempC": 97, "gpuTempC": 84, "throttleObserved": true },
+  "power": { "onAcPower": true, "activeSchemeGuid": "381b4222-f694-41f0-9685-ff5bb260df2e", "acMaxProcessorState": 100, "acCoreParkingMinCores": 100, "availableSchemeGuids": [ "381b4222-f694-41f0-9685-ff5bb260df2e", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" ] },
+  "timers": {},
+  "security": {},
+  "graphics": { "gameModeEnabled": true },
+  "background": {},
+  "network": [ { "name": "Ethernet", "kind": "Ethernet", "isUp": true, "allowComputerToTurnOff": true } ],
+  "games": []
+}

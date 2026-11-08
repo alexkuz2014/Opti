@@ -1,0 +1,62 @@
+name: Release
+
+# Релиз создаётся пушем тега v* или пушем в ветку «release»
+# (во втором случае тег v<версия из Directory.Build.props> создаётся автоматически).
+on:
+  push:
+    tags: ['v*']
+    branches: [release]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Версия
+        id: ver
+        shell: pwsh
+        run: |
+          if ('${{ github.ref_type }}' -eq 'tag') { $v = '${{ github.ref_name }}'.TrimStart('v') }
+          else { $v = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "tag=v$v" >> $env:GITHUB_OUTPUT
+          "prerelease=$($v.Contains('-').ToString().ToLower())" >> $env:GITHUB_OUTPUT
+      - name: Тесты
+        run: dotnet test -c Release --nologo
+      - name: PresentMon (MIT) для режима «Игра через PresentMon»
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory tools -Force | Out-Null
+          gh release download -R GameTechDev/PresentMon --pattern "PresentMon-*-x64.exe" -D tools
+          Get-ChildItem tools\PresentMon-*-x64.exe | Select-Object -First 1 | Rename-Item -NewName PresentMon.exe
+      - name: NSIS
+        run: choco install nsis -y --no-progress
+      - name: Сборка релиза
+        shell: pwsh
+        run: ./build/publish.ps1 -Version ${{ steps.ver.outputs.version }}
+      - name: Описание релиза
+        shell: pwsh
+        run: |
+          $notes = "docs/release-notes/${{ steps.ver.outputs.tag }}.md"
+          if (Test-Path $notes) { Copy-Item $notes release-notes.md } else { Copy-Item CHANGELOG.md release-notes.md }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: GameTune ${{ steps.ver.outputs.version }}
+          body_path: release-notes.md
+          prerelease: ${{ steps.ver.outputs.prerelease == 'true' }}
+          files: |
+            artifacts/*.zip
+            artifacts/*.exe
+            artifacts/SHA256SUMS.txt

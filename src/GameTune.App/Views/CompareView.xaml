@@ -1,0 +1,101 @@
+<UserControl x:Class="GameTune.App.Views.CompareView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:GameTune.App.Controls">
+    <ScrollViewer>
+        <StackPanel Margin="32,28" MaxWidth="1100" HorizontalAlignment="Left">
+            <TextBlock Text="{Binding Title}" Style="{StaticResource H1}"/>
+            <Border Style="{StaticResource Card}" BorderBrush="{Binding MessageColor}" BorderThickness="3,1,1,1">
+                <TextBlock Text="{Binding Message}" Style="{StaticResource Body}" FontSize="16" Foreground="{Binding MessageColor}"/>
+            </Border>
+            <ItemsControl ItemsSource="{Binding Warnings}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding StringFormat='⚠ {0}'}" Foreground="{StaticResource Warn}" TextWrapping="Wrap"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ItemsControl ItemsSource="{Binding Cards}" Margin="0,12,0,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Width="250" Margin="0,0,10,10" BorderBrush="{Binding Color}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource MutedText}" FontSize="12"/>
+                                <TextBlock FontSize="20" Margin="0,4,0,2">
+                                    <Run Text="{Binding Before, Mode=OneWay}" Foreground="{StaticResource Muted}"/>
+                                    <Run Text="→" Foreground="{StaticResource Muted}"/>
+                                    <Run Text="{Binding After, Mode=OneWay}" FontWeight="SemiBold"/>
+                                    <Run Text="{Binding Unit, Mode=OneWay}" FontSize="12" Foreground="{StaticResource Muted}"/>
+                                </TextBlock>
+                                <TextBlock Foreground="{Binding Color}" FontWeight="SemiBold">
+                                    <Run Text="{Binding Delta, Mode=OneWay}"/>
+                                    <Run Text="·"/>
+                                    <Run Text="{Binding VerdictText, Mode=OneWay}"/>
+                                </TextBlock>
+                                <TextBlock Text="{Binding Ci}" Style="{StaticResource MutedText}" FontSize="11" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding FlipText}" Style="{StaticResource Body}" Visibility="{Binding FlipText, Converter={StaticResource StrToVis}}"/>
+
+            <TextBlock Text="Фреймтайм" Style="{StaticResource H2}"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <Rectangle Width="12" Height="12" Fill="{StaticResource BeforeSeries}" RadiusX="3" RadiusY="3" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding BeforeLabel}" Style="{StaticResource MutedText}" Margin="6,0,18,0"/>
+                <Rectangle Width="12" Height="12" Fill="{StaticResource Accent}" RadiusX="3" RadiusY="3" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding AfterLabel}" Style="{StaticResource MutedText}" Margin="6,0,0,0"/>
+            </StackPanel>
+            <Border Style="{StaticResource Card}">
+                <c:FrameTimeChart Height="240" Primary="{Binding BeforeFrames}" Secondary="{Binding AfterFrames}"
+                                  PrimaryBrush="{StaticResource BeforeSeries}" SecondaryBrush="{StaticResource Accent}"/>
+            </Border>
+            <TextBlock Text="Распределение фреймтайма" Style="{StaticResource H2}"/>
+            <Border Style="{StaticResource Card}">
+                <c:HistogramChart Height="220" Primary="{Binding BeforeFrames}" Secondary="{Binding AfterFrames}"
+                                  PrimaryBrush="{StaticResource BeforeSeries}" SecondaryBrush="{StaticResource Accent}"/>
+            </Border>
+
+            <StackPanel Visibility="{Binding AppliedFixes.Count, Converter={StaticResource CountToVis}}">
+                <TextBlock Text="Что изменено" Style="{StaticResource H2}"/>
+                <ItemsControl ItemsSource="{Binding AppliedFixes}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Откатить" VerticalAlignment="Top" CommandParameter="{Binding}"
+                                            Command="{Binding DataContext.RollbackFixCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            Visibility="{Binding RolledBack, Converter={StaticResource InvBoolToVis}}"/>
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding StatusText}" Style="{StaticResource MutedText}" Margin="10,0,0,0"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Changes}" Style="{StaticResource MutedText}" FontFamily="Consolas" FontSize="11" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <WrapPanel Margin="0,12,0,0">
+                <Button Style="{StaticResource AccentButton}" Content="Готово" Command="{Binding FinishCommand}" Margin="0,0,8,8"/>
+                <Button Content="Отчёт в HTML" Command="{Binding ExportHtmlCommand}" Margin="0,0,8,8"/>
+                <Button Content="Сырые кадры в CSV" Command="{Binding ExportCsvCommand}" Margin="0,0,8,8"/>
+                <Button Style="{StaticResource DangerButton}" Content="Откатить всю сессию" Command="{Binding RollbackSessionCommand}" Margin="0,0,8,8"
+                        Visibility="{Binding IsAb, Converter={StaticResource InvBoolToVis}}"/>
+            </WrapPanel>
+            <TextBlock Text="Рекомендуется откат: результат хуже, чем было." Foreground="{StaticResource Bad}"
+                       Visibility="{Binding SuggestRollback, Converter={StaticResource BoolToVis}}"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

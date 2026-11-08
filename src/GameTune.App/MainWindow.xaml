@@ -1,0 +1,78 @@
+<Window x:Class="GameTune.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:GameTune.ViewModels;assembly=GameTune.ViewModels"
+        xmlns:v="clr-namespace:GameTune.App.Views"
+        Title="{Binding WindowTitle}" Width="1200" Height="820" MinWidth="940" MinHeight="620"
+        Background="{StaticResource Bg}" WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/Assets/gametune.ico"
+        FontFamily="Segoe UI" FontSize="14" TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:HomeViewModel}"><v:HomeView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:AnalysisViewModel}"><v:AnalysisView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:MeasureViewModel}"><v:MeasureView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:StrategyViewModel}"><v:StrategyView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ApplyViewModel}"><v:ApplyView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CompareViewModel}"><v:CompareView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:HistoryViewModel}"><v:HistoryView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><v:SettingsView/></DataTemplate>
+    </Window.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+
+        <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="20,22,0,22">
+                    <Image Source="pack://application:,,,/Assets/gametune.png" Width="30" Height="30"/>
+                    <TextBlock Text="GameTune" FontSize="20" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Bottom" Text="{Binding WindowTitle}" Style="{StaticResource MutedText}" FontSize="11" Margin="22,0,0,16"/>
+                <ItemsControl ItemsSource="{Binding Nav}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource NavButton}" IsEnabled="{Binding IsEnabled}"
+                                    Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Icon}" Width="28" Foreground="{StaticResource Muted}"/>
+                                    <TextBlock x:Name="NavTitle" Text="{Binding Title}" Foreground="{StaticResource Muted}"/>
+                                </StackPanel>
+                            </Button>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                    <Setter TargetName="NavTitle" Property="Foreground" Value="{StaticResource Text}"/>
+                                    <Setter TargetName="NavTitle" Property="FontWeight" Value="SemiBold"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Border Background="{StaticResource AccentSoft}" Padding="20,8" Visibility="{Binding UpdateMessage, Converter={StaticResource StrToVis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Открыть страницу релиза" Command="{Binding OpenUpdateCommand}"/>
+                    <TextBlock Text="{Binding UpdateMessage}" VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
+            <ContentControl Grid.Row="1" Content="{Binding CurrentPage}" Focusable="False"/>
+            <Border Grid.Row="2" Background="{StaticResource Panel2}" BorderBrush="{Binding ToastColor}" BorderThickness="0,2,0,0" Padding="20,10"
+                    Visibility="{Binding Toast, Converter={StaticResource StrToVis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="✕" Padding="10,2" Command="{Binding CloseToastCommand}"/>
+                    <TextBlock Text="{Binding Toast}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

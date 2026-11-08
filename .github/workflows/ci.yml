@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main, gametune-prototype]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Тесты
+        run: dotnet test -c Release --nologo
+      - name: Сборка интерфейса и синтетического теста
+        run: |
+          dotnet build src/GameTune.App -c Release --nologo
+          dotnet build src/GameTune.Bench -c Release --nologo

@@ -1,0 +1,42 @@
+{
+  "label": "Ноутбук с Optimus (RTX 4060 + Iris Xe), 60 Гц вместо 144, OBS с захватом экрана",
+  "device": { "isLaptop": true, "hasBattery": true, "manufacturer": "ASUSTeK", "model": "TUF Gaming F15" },
+  "os": { "productName": "Windows 11 Home", "displayVersion": "24H2", "build": 26100, "ubr": 2314 },
+  "cpu": { "name": "Intel Core i7-12700H", "vendor": "Intel", "cores": 14, "threads": 20, "maxClockMhz": 2300 },
+  "gpus": [
+    { "name": "Intel(R) Iris(R) Xe Graphics", "vendor": "Intel", "driverVersion": "31.0.101.4502", "driverDate": "2023-05-10T00:00:00", "dedicatedVramMb": 128, "isIntegrated": true, "drivesDisplay": true, "luid": "0000000000011111" },
+    { "name": "NVIDIA GeForce RTX 4060 Laptop GPU", "vendor": "Nvidia", "driverVersion": "32.0.15.6094", "driverDate": "2026-08-20T00:00:00", "dedicatedVramMb": 8188, "isIntegrated": false, "drivesDisplay": false, "luid": "0000000000022222" }
+  ],
+  "hybrid": { "isHybrid": true, "internalDisplayOnIntegrated": true },
+  "displays": [
+    { "deviceName": "\\\\.\\DISPLAY1", "friendlyName": "Встроенный экран", "width": 1920, "height": 1080, "currentHz": 60, "maxHzAtCurrentResolution": 144, "isPrimary": true, "isInternal": true, "adapterName": "Intel(R) Iris(R) Xe Graphics" }
+  ],
+  "memory": {
+    "totalMb": 16120, "availableMb": 9100,
+    "modules": [
+      { "capacityMb": 8192, "ratedSpeed": 3200, "configuredSpeed": 3200, "slot": "ChannelA-DIMM0" },
+      { "capacityMb": 8192, "ratedSpeed": 3200, "configuredSpeed": 3200, "slot": "ChannelB-DIMM0" }
+    ],
+    "channelsPopulated": 2
+  },
+  "disks": [ { "model": "Micron 2400", "mediaType": "Nvme", "isSystem": true, "driveLetter": "C:", "sizeGb": 512, "freeGb": 140, "healthStatus": "Healthy", "trimEnabled": true } ],
+  "thermals": { "gpuTempC": 71 },
+  "power": { "onAcPower": true, "activeSchemeGuid": "381b4222-f694-41f0-9685-ff5bb260df2e", "activeSchemeName": "Сбалансированная", "powerModeOverlay": "BetterBattery", "modernStandby": true, "acMaxProcessorState": 100, "acCoreParkingMinCores": 5, "availableSchemeGuids": ["381b4222-f694-41f0-9685-ff5bb260df2e"] },
+  "timers": { "globalTimerResolutionRequests": false },
+  "security": { "vbsRunning": true, "hvciRunning": true, "bitLockerOnSystemDrive": true },
+  "graphics": { "hagsSupported": true, "hagsEnabled": true, "gameModeEnabled": true, "gameDvrEnabled": true },
+  "background": {
+    "startupItems": [ { "name": "Discord", "enabled": true, "approvedKey": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run|Discord" } ],
+    "runningOverlays": [ "Discord (оверлей, если включён)", "Steam (оверлей)", "NVIDIA App / GeForce Experience (оверлей)" ]
+  },
+  "obs": {
+    "installed": true, "exePath": "C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe", "runsAsAdmin": true, "usesDisplayCapture": true,
+    "sceneFilesWithDisplayCapture": [ "C:\\Users\\u\\AppData\\Roaming\\obs-studio\\basic\\scenes\\Untitled.json" ],
+    "replayBufferEnabled": true, "replayBufferSeconds": 600, "replayBufferMaxMb": 4096
+  },
+  "network": [ { "name": "Wi-Fi", "description": "Intel Wi-Fi 6 AX201", "kind": "WiFi", "isUp": true, "linkSpeedMbps": 866, "allowComputerToTurnOff": true, "wifiBandGhz": 2.4 } ],
+  "games": [
+    { "name": "Counter-Strike 2", "launcher": "Steam", "installDir": "D:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive", "executables": [ "D:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive\\game\\bin\\win64\\cs2.exe" ], "isOnline": true },
+    { "name": "Cyberpunk 2077", "launcher": "Gog", "installDir": "D:\\GOG\\Cyberpunk 2077", "executables": [ "D:\\GOG\\Cyberpunk 2077\\bin\\x64\\Cyberpunk2077.exe" ], "exeGpuPreferences": { "D:\\GOG\\Cyberpunk 2077\\bin\\x64\\Cyberpunk2077.exe": 1 } }
+  ]
+}
