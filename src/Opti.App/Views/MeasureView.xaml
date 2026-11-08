@@ -3,76 +3,87 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:Opti.App.Controls">
     <ScrollViewer>
-        <StackPanel Margin="32,28" MaxWidth="1040" HorizontalAlignment="Left">
-            <TextBlock Text="{Binding Title}" Style="{StaticResource H1}"/>
-            <TextBlock Text="{Binding Hint}" Style="{StaticResource MutedText}" FontSize="15" MaxWidth="820" HorizontalAlignment="Left"/>
+        <StackPanel Margin="40,32,40,40" MaxWidth="920" HorizontalAlignment="Left">
+            <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}"/>
+            <TextBlock Text="{Binding Hint}" Style="{StaticResource Secondary}" MaxWidth="640" HorizontalAlignment="Left"/>
 
-            <TextBlock Text="Режим" Style="{StaticResource H2}"/>
-            <ListBox Style="{StaticResource CardList}" ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" IsEnabled="{Binding ModeEditable}">
+            <ListBox Style="{StaticResource ChoiceList}" ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}"
+                     IsEnabled="{Binding ModeEditable}" Margin="0,20,0,0">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Width="300" IsEnabled="{Binding Available}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding AvailabilityText}" Foreground="{StaticResource Warn}" Margin="8,0,0,0"/>
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource Strong}"/>
+                                <Border Margin="8,0,0,0" Padding="6,1" CornerRadius="4" VerticalAlignment="Center"
+                                        Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                        Visibility="{Binding Recommended, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="рекомендуется" FontSize="11" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
+                                </Border>
                             </StackPanel>
-                            <TextBlock Text="{Binding Description}" Style="{StaticResource MutedText}" FontSize="12" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding Description}" Style="{StaticResource Caption}" Margin="0,4,0,0"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <TextBlock Text="Режим тот же, что и в предыдущем замере, — иначе сравнение будет нечестным." Style="{StaticResource MutedText}" FontSize="12"
-                       Visibility="{Binding ModeLocked, Converter={StaticResource BoolToVis}}"/>
 
-            <WrapPanel Margin="0,8,0,0">
-                <StackPanel Margin="0,0,18,8">
-                    <TextBlock Text="Прогонов" Style="{StaticResource MutedText}"/>
-                    <TextBox Text="{Binding Runs, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                <TextBlock Text="{Binding EstimateText}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <Button Style="{StaticResource LinkButton}" Content="Параметры" Command="{Binding ToggleAdvancedCommand}" FontSize="12"/>
+            </StackPanel>
+            <WrapPanel Margin="0,12,0,0" Visibility="{Binding ShowAdvanced, Converter={StaticResource BoolToVis}}">
+                <StackPanel Margin="0,0,16,8">
+                    <TextBlock Text="Прогонов" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Runs, UpdateSourceTrigger=PropertyChanged}" Width="96"/>
                 </StackPanel>
-                <StackPanel Margin="0,0,18,8">
-                    <TextBlock Text="Длительность, с" Style="{StaticResource MutedText}"/>
-                    <TextBox Text="{Binding Duration, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+                <StackPanel Margin="0,0,16,8">
+                    <TextBlock Text="Длительность, с" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Duration, UpdateSourceTrigger=PropertyChanged}" Width="96"/>
                 </StackPanel>
-                <StackPanel Margin="0,0,18,8">
-                    <TextBlock Text="Прогрев, с" Style="{StaticResource MutedText}"/>
-                    <TextBox Text="{Binding Warmup, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+                <StackPanel Margin="0,0,16,8">
+                    <TextBlock Text="Прогрев, с" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Warmup, UpdateSourceTrigger=PropertyChanged}" Width="96"/>
                 </StackPanel>
-                <StackPanel Margin="0,0,18,8">
-                    <TextBlock Text="Процесс игры (необязательно)" Style="{StaticResource MutedText}"/>
+                <StackPanel Margin="0,0,16,8" Visibility="{Binding IsGameMode, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="Процесс игры (необязательно)" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding ProcessName, UpdateSourceTrigger=PropertyChanged}" Width="220"/>
                 </StackPanel>
             </WrapPanel>
 
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                <Button Style="{StaticResource AccentButton}" Content="Начать замер" Command="{Binding StartCommand}"/>
-                <Button Content="Остановить" Command="{Binding CancelCommand}" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}"/>
-                <Button Content="Пропустить замер" Command="{Binding SkipCommand}" Visibility="{Binding CanSkip, Converter={StaticResource BoolToVis}}"/>
+            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                <Button Style="{StaticResource AccentButton}" Content="Начать" Command="{Binding StartCommand}"/>
+                <Button Content="Остановить" Command="{Binding CancelCommand}" Margin="0,0,8,0" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}"/>
+                <Button Content="Пропустить" Command="{Binding SkipCommand}" Visibility="{Binding CanSkip, Converter={StaticResource BoolToVis}}"/>
             </StackPanel>
 
-            <Border Style="{StaticResource Card}" Margin="0,16,0,10">
+            <Border Style="{StaticResource Card}" Margin="0,20,0,0" Visibility="{Binding Status, Converter={StaticResource StrToVis}}">
                 <StackPanel>
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding LiveFps}" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding LiveFps}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold"/>
                         <TextBlock Text="{Binding Status}" VerticalAlignment="Center"/>
                     </DockPanel>
-                    <ProgressBar Value="{Binding Progress}" Maximum="100" Margin="0,10,0,10"/>
-                    <c:FrameTimeChart Height="200" Primary="{Binding LiveFrameTimes}" PrimaryBrush="{StaticResource Accent}"/>
-                    <TextBlock Text="Живой график фреймтайма (последние кадры). Пики вверх — рывки." Style="{StaticResource MutedText}" FontSize="12"/>
+                    <ProgressBar Value="{Binding Progress}" Maximum="100" Margin="0,10,0,0"/>
+                    <StackPanel Visibility="{Binding IsGameMode, Converter={StaticResource BoolToVis}}" Margin="0,12,0,0">
+                        <c:FrameTimeChart Height="180" Primary="{Binding LiveFrameTimes}" PrimaryBrush="{DynamicResource AccentFillColorDefaultBrush}"/>
+                        <TextBlock Text="Фреймтайм последних кадров. Пики вверх — рывки." Style="{StaticResource Caption}"/>
+                    </StackPanel>
+                    <TextBlock Text="Тест идёт в полноэкранном окне. Нажмите Esc, чтобы прервать." Style="{StaticResource Caption}" Margin="0,8,0,0"
+                               Visibility="{Binding IsGameMode, Converter={StaticResource InvBoolToVis}}"/>
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="Выполненные прогоны" Style="{StaticResource H2}" Visibility="{Binding Completed.Count, Converter={StaticResource CountToVis}}"/>
-            <ItemsControl ItemsSource="{Binding Completed}">
+            <ItemsControl ItemsSource="{Binding Completed}" Margin="0,12,0,0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource Card}" BorderBrush="{Binding Color}" BorderThickness="3,1,1,1" Padding="14,8">
+                        <Border Style="{StaticResource Card}" Padding="14,10">
                             <DockPanel>
-                                <Button DockPanel.Dock="Right" Content="Удалить" Padding="10,4" CommandParameter="{Binding}"
+                                <Button DockPanel.Dock="Right" Content="&#xE74D;" FontFamily="{StaticResource IconFont}" FontSize="12" Padding="8,6" ToolTip="Удалить прогон"
+                                        CommandParameter="{Binding}" VerticalAlignment="Center"
                                         Command="{Binding DataContext.RemoveRunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                <Ellipse Style="{StaticResource Dot}" Fill="{Binding Color, Converter={StaticResource ToneToBrush}}"/>
                                 <StackPanel>
-                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{Binding Text}" Style="{StaticResource MutedText}"/>
-                                    <TextBlock Text="{Binding Warning}" Foreground="{StaticResource Warn}" TextWrapping="Wrap"
+                                    <TextBlock Text="{Binding Label}" Style="{StaticResource Strong}"/>
+                                    <TextBlock Text="{Binding Text}" Style="{StaticResource Caption}"/>
+                                    <TextBlock Text="{Binding Warning}" Style="{StaticResource Caption}" Foreground="{DynamicResource SystemFillColorCautionBrush}"
                                                Visibility="{Binding Warning, Converter={StaticResource StrToVis}}"/>
                                 </StackPanel>
                             </DockPanel>
@@ -80,7 +91,8 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button Style="{StaticResource AccentButton}" Content="{Binding FinishText}" Command="{Binding FinishCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+            <Button Style="{StaticResource AccentButton}" Content="{Binding FinishText}" Command="{Binding FinishCommand}" HorizontalAlignment="Left" Margin="0,12,0,0"
+                    Visibility="{Binding Completed.Count, Converter={StaticResource CountToVis}}"/>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

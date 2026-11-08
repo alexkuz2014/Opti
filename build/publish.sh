@@ -1,37 +1,20 @@
 #!/usr/bin/env bash
-# Сборка релиза для Windows x64 (работает в Linux и Windows/Git Bash):
+# Портативная сборка для Windows x64 (работает в Linux и Windows/Git Bash):
 #   build/publish.sh [версия]
-# Результат в artifacts/: портативный zip, установщик (если есть makensis) и SHA256SUMS.txt
+# Результат в artifacts/: Opti.exe (интерфейс), opti-cli.exe (командная строка), SHA256SUMS.txt.
+# Каждый файл самодостаточный: .NET устанавливать не нужно, установка не нужна.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="${1:-$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)}"
-NAME="Opti-$VERSION-win-x64"
-OUT="artifacts/$NAME"
 DOTNET="${DOTNET:-dotnet}"
-
 rm -rf artifacts
-mkdir -p "$OUT"
+mkdir -p artifacts
 
-# Все три программы публикуются в одну папку и делят один самодостаточный рантайм .NET 8.
-for proj in src/Opti.App src/Opti.Cli src/Opti.Bench; do
-  "$DOTNET" publish "$proj" -c Release -r win-x64 --self-contained true \
-    -p:PublishSingleFile=false -p:Version="$VERSION" -p:DebugType=none -p:DebugSymbols=false \
-    -o "$OUT" --nologo -v quiet
-done
+"$DOTNET" publish src/Opti.App -c Release -r win-x64 -p:Version="$VERSION" -p:DebugType=none -p:DebugSymbols=false -o artifacts/app --nologo -v quiet
+"$DOTNET" publish src/Opti.Cli -c Release -r win-x64 -p:Version="$VERSION" -p:DebugType=none -p:DebugSymbols=false -o artifacts/cli --nologo -v quiet
+mv artifacts/app/Opti.exe artifacts/Opti.exe
+mv artifacts/cli/opti-cli.exe artifacts/opti-cli.exe
+rm -rf artifacts/app artifacts/cli
 
-cp README.md "$OUT/README.md"
-cp CHANGELOG.md "$OUT/CHANGELOG.md"
-cp THIRD-PARTY-NOTICES.md "$OUT/THIRD-PARTY-NOTICES.md"
-[ -f tools/PresentMon.exe ] && cp tools/PresentMon*.exe "$OUT/" || true
-
-(cd artifacts && zip -qr "$NAME.zip" "$NAME")
-
-if command -v makensis >/dev/null 2>&1; then
-  makensis -V2 -DVERSION="$VERSION" -DNUMVER="${VERSION%%-*}" -DSRCDIR="$PWD/$OUT" -DOUTFILE="$PWD/artifacts/Opti-$VERSION-Setup.exe" \
-    -DICON="$PWD/src/Opti.App/Assets/opti.ico" installer/opti.nsi
-else
-  echo "makensis не найден — установщик не собран (только zip)." >&2
-fi
-
-(cd artifacts && sha256sum *.zip *.exe 2>/dev/null > SHA256SUMS.txt || true)
+(cd artifacts && sha256sum Opti.exe opti-cli.exe > SHA256SUMS.txt)
 ls -la artifacts

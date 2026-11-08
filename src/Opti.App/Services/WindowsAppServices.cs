@@ -7,6 +7,7 @@ using Opti.Fixes.Journal;
 using Opti.Fixes.Services;
 using Opti.ViewModels;
 using Opti.Workflow;
+using Opti.Workflow.Cleanup;
 using Opti.Workflow.Measuring;
 using Opti.Workflow.Sessions;
 
@@ -19,10 +20,13 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
 
     public WindowsAppServices()
     {
+        StartupNotice = OptiPaths.MigrateLegacyData();
+        var scheduler = new WindowsResumeScheduler();
+        scheduler.CancelLegacy();
         Settings = OptiSettings.Load();
         _journal = new SqliteChangeJournal(OptiPaths.JournalPath);
         Workflow = new TuneWorkflow(Settings, new SessionStore(), WindowsBackends.Create(), _journal,
-            new WindowsRestorePointService(), new WindowsResumeScheduler(), new WindowsCrashEventSource());
+            new WindowsRestorePointService(), scheduler, new WindowsCrashEventSource());
     }
 
     public TuneWorkflow Workflow { get; }
@@ -31,6 +35,7 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
     public string AppVersion => AppInfo.Version;
     public string ReportsDir => OptiPaths.ReportsDir;
     public string DataDir => OptiPaths.DataDir;
+    public string? StartupNotice { get; }
     public string ResumeExePath => Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "Opti.exe");
 
     public Task<AnalysisResult> AnalyzeAsync(IProgress<string> progress, CancellationToken ct) =>
@@ -39,8 +44,8 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
     public bool IsModeAvailable(MeasureMode mode) => mode switch
     {
         MeasureMode.Synthetic => SyntheticRunner.Locate() is not null,
-        MeasureMode.PresentMon => PresentMonRunner.Locate(Settings.PresentMonPath) is not null,
-        _ => true,
+        MeasureMode.Game => true,
+        _ => false,
     };
 
     public IMeasureRunner CreateRunner(MeasureMode mode) => MeasureRunnerFactory.Create(mode, Settings);
@@ -57,6 +62,8 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
         Task.FromResult(MessageBox.Show(Application.Current.MainWindow, message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
 
     public Task<UpdateInfo?> CheckForUpdatesAsync() => UpdateChecker.CheckAsync(AppVersion);
+
+    public IReadOnlyList<ICleanupTarget> CleanupTargets() => CleanupCatalog.ForWindows();
 
     public void Dispose() => _journal.Dispose();
 }

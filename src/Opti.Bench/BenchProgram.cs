@@ -6,13 +6,17 @@ namespace Opti.Bench;
 
 /// <summary>
 /// Синтетический тест Opti: фиксированная D3D11-сцена и фиксированная длительность — полная воспроизводимость.
-/// opti.bench --out run.json [--duration 60] [--warmup 5] [--instances 8192] [--gpu-load 24] [--cpu-load 1.0] [--window 1280x720] [--gpu high|default]
+/// Opti.exe --bench --out run.json [--duration 30] [--warmup 5] [--instances 8192] [--gpu-load 24] [--cpu-load 1.0] [--window 1280x720] [--gpu high|default]
 /// Код выхода: 0 — успех, 2 — прервано (Esc), 1 — ошибка.
 /// </summary>
-internal static class Program
+public static class BenchProgram
 {
-    [STAThread]
-    private static int Main(string[] args)
+    public const string Switch = "--bench";
+
+    public static bool IsBenchInvocation(string[] args) => args.Length > 0 && args[0] == Switch;
+
+    /// <summary>Запуск теста. Вызывается из Main программы-хозяина в STA-потоке.</summary>
+    public static int Run(string[] args)
     {
         string? Get(string key)
         {
@@ -20,7 +24,7 @@ internal static class Program
             return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
         }
         var outPath = Get("out");
-        double duration = double.Parse(Get("duration") ?? "60", System.Globalization.CultureInfo.InvariantCulture);
+        double duration = double.Parse(Get("duration") ?? "30", System.Globalization.CultureInfo.InvariantCulture);
         double warmup = double.Parse(Get("warmup") ?? "5", System.Globalization.CultureInfo.InvariantCulture);
         int instances = int.Parse(Get("instances") ?? "8192");
         float load = float.Parse(Get("gpu-load") ?? "24", System.Globalization.CultureInfo.InvariantCulture);

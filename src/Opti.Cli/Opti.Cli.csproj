@@ -4,10 +4,12 @@
     <AssemblyName>opti-cli</AssemblyName>
     <RootNamespace>Opti.Cli</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <RuntimeIdentifier Condition="'$(PublishForWindows)' == 'true'">win-x64</RuntimeIdentifier>
-    <SelfContained Condition="'$(PublishForWindows)' == 'true'">true</SelfContained>
-    <PublishSingleFile Condition="'$(PublishForWindows)' == 'true'">true</PublishSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- Портативный один файл: dotnet publish -c Release -r win-x64 -->
+    <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
+    <PublishSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- TraceEvent ищет свои нативные библиотеки рядом со сборкой — распаковываем всё содержимое -->
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Opti.Core\Opti.Core.csproj" />
@@ -15,5 +17,6 @@
     <ProjectReference Include="..\Opti.Fixes\Opti.Fixes.csproj" />
     <ProjectReference Include="..\Opti.Measure\Opti.Measure.csproj" />
     <ProjectReference Include="..\Opti.Workflow\Opti.Workflow.csproj" />
+    <ProjectReference Include="..\Opti.Bench\Opti.Bench.csproj" />
   </ItemGroup>
 </Project>

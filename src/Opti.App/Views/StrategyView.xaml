@@ -2,35 +2,30 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer>
-        <StackPanel Margin="32,28" MaxWidth="1040" HorizontalAlignment="Left">
-            <TextBlock Text="{Binding Title}" Style="{StaticResource H1}"/>
-            <TextBlock Text="{Binding Header}" Style="{StaticResource MutedText}"/>
-            <TextBlock Style="{StaticResource MutedText}" Margin="0,6,0,0"
-                       Text="Каждое исправление привязано к найденной проблеме. Безопасные отмечены по умолчанию; рискованные — только по вашему выбору."/>
+        <StackPanel Margin="40,32,40,40" MaxWidth="920" HorizontalAlignment="Left">
+            <TextBlock Text="Исправления" Style="{StaticResource PageTitle}"/>
+            <TextBlock Text="{Binding Header}" Style="{StaticResource Secondary}"/>
+            <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0"
+                       Text="Каждое исправление связано с найденной проблемой. Безопасные отмечены, рискованные — только по вашему выбору. Всё откатывается."/>
 
-            <TextBlock Text="Исправления" Style="{StaticResource H2}"/>
-            <ItemsControl ItemsSource="{Binding Fixes}">
+            <ItemsControl ItemsSource="{Binding Fixes}" Margin="0,20,0,0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border Style="{StaticResource Card}">
                             <DockPanel>
-                                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsSelected}" VerticalAlignment="Top" Margin="0,3,12,0"/>
+                                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsSelected}" VerticalAlignment="Top" Margin="0,0,6,0" MinWidth="0"/>
                                 <StackPanel>
-                                    <WrapPanel>
-                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" Margin="0,0,4,0"/>
-                                        <Border Style="{StaticResource Badge}" BorderBrush="{Binding RiskColor}">
-                                            <TextBlock Text="{Binding RiskText}" Foreground="{Binding RiskColor}" FontSize="11"/>
-                                        </Border>
-                                        <Border Style="{StaticResource Badge}" BorderBrush="{StaticResource Warn}" Visibility="{Binding RequiresReboot, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="нужна перезагрузка" Foreground="{StaticResource Warn}" FontSize="11"/>
-                                        </Border>
-                                    </WrapPanel>
-                                    <TextBlock Text="{Binding Explanation}" Style="{StaticResource Body}" Margin="0,4,0,0"/>
-                                    <TextBlock Text="{Binding Reason}" Style="{StaticResource MutedText}" FontSize="12" Margin="0,4,0,0"/>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource Strong}"/>
+                                    <TextBlock Text="{Binding Explanation}" Style="{StaticResource Secondary}" Margin="0,2,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                        <Ellipse Style="{StaticResource Dot}" Width="6" Height="6" Margin="0,0,6,0" Fill="{Binding RiskColor, Converter={StaticResource ToneToBrush}}"/>
+                                        <TextBlock Text="{Binding RiskText}" Style="{StaticResource Caption}"/>
+                                        <TextBlock Text="  ·  нужна перезагрузка" Style="{StaticResource Caption}" Visibility="{Binding RequiresReboot, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
                                     <ItemsControl ItemsSource="{Binding Notes}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding StringFormat='! {0}'}" Foreground="{StaticResource Warn}" TextWrapping="Wrap" FontSize="12"/>
+                                                <TextBlock Text="{Binding}" Style="{StaticResource Caption}" Foreground="{DynamicResource SystemFillColorCautionBrush}" Margin="0,4,0,0"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
@@ -43,51 +38,43 @@
 
             <Border Style="{StaticResource Card}" Visibility="{Binding ShowStartupChoices, Converter={StaticResource BoolToVis}}">
                 <StackPanel>
-                    <TextBlock Text="Какие программы убрать из автозагрузки?" FontWeight="SemiBold"/>
-                    <TextBlock Text="Отключаются только отмеченные — так же, как в «Диспетчере задач». Вернуть можно в любой момент." Style="{StaticResource MutedText}" Margin="0,2,0,8"/>
+                    <TextBlock Text="Что убрать из автозагрузки" Style="{StaticResource Strong}"/>
+                    <TextBlock Text="Отключаются только отмеченные — как в «Диспетчере задач». Вернуть можно в любой момент." Style="{StaticResource Caption}" Margin="0,2,0,8"/>
                     <ItemsControl ItemsSource="{Binding StartupChoices}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <CheckBox IsChecked="{Binding IsChecked}" Margin="0,3" ToolTip="{Binding Detail}">
-                                    <TextBlock Text="{Binding Name}"/>
-                                </CheckBox>
+                                <CheckBox IsChecked="{Binding IsChecked}" Content="{Binding Name}" ToolTip="{Binding Detail}" Margin="0,2"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" BorderBrush="{StaticResource Warn}" Visibility="{Binding NeedsBitLockerAck, Converter={StaticResource BoolToVis}}">
+            <Border Style="{StaticResource Card}" Visibility="{Binding NeedsBitLockerAck, Converter={StaticResource BoolToVis}}">
                 <CheckBox IsChecked="{Binding BitLockerAcknowledged}">
                     <TextBlock TextWrapping="Wrap" Text="На системном диске включён BitLocker. Изменение конфигурации загрузки может запросить ключ восстановления — ключ у меня под рукой."/>
                 </CheckBox>
             </Border>
 
-            <Button Style="{StaticResource AccentButton}" Content="Применить отмеченное" Padding="22,11" FontSize="15" HorizontalAlignment="Left"
-                    Command="{Binding ApplyCommand}" Margin="0,4,0,0"/>
-            <TextBlock Text="Создаётся точка восстановления, каждое изменение пишется в журнал с исходным значением." Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                <Button Style="{StaticResource AccentButton}" Content="Применить выбранное" Command="{Binding ApplyCommand}"/>
+                <TextBlock Text="Перед изменениями создаётся точка восстановления." Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+            </StackPanel>
 
             <StackPanel Visibility="{Binding AbFixes.Count, Converter={StaticResource CountToVis}}">
-                <TextBlock Text="Спорные настройки — только через A/B-замер" Style="{StaticResource H2}"/>
-                <TextBlock Style="{StaticResource MutedText}" Margin="0,0,0,8"
-                           Text="Эффект зависит от железа и игры. Программа замерит текущий вариант, применит другой, замерит снова и оставит лучший. При равенстве вернёт как было."/>
+                <TextBlock Text="Проверить замером" Style="{StaticResource SectionTitle}"/>
+                <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,10"
+                           Text="Эффект этих настроек зависит от железа. Opti замерит текущий вариант, применит другой, замерит снова и оставит лучший. При равенстве вернёт как было."/>
                 <ItemsControl ItemsSource="{Binding AbFixes}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource Card}">
                                 <DockPanel>
-                                    <Button DockPanel.Dock="Right" Content="Проверить A/B" VerticalAlignment="Center" CommandParameter="{Binding}"
+                                    <Button DockPanel.Dock="Right" Content="Проверить" VerticalAlignment="Center" CommandParameter="{Binding}"
                                             Command="{Binding DataContext.StartAbCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding Explanation}" Style="{StaticResource MutedText}"/>
-                                        <ItemsControl ItemsSource="{Binding Notes}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding}" Foreground="{StaticResource Warn}" TextWrapping="Wrap" FontSize="12"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
+                                    <StackPanel Margin="0,0,12,0">
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource Strong}"/>
+                                        <TextBlock Text="{Binding Explanation}" Style="{StaticResource Caption}"/>
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -97,50 +84,53 @@
             </StackPanel>
 
             <StackPanel Visibility="{Binding Advice.Count, Converter={StaticResource CountToVis}}">
-                <TextBlock Text="Советы — вы делаете сами" Style="{StaticResource H2}"/>
+                <TextBlock Text="Рекомендации — делаете вы" Style="{StaticResource SectionTitle}"/>
                 <ItemsControl ItemsSource="{Binding Advice}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Style="{StaticResource Card}" BorderBrush="{Binding Color}" BorderThickness="3,1,1,1">
-                                <Expander>
-                                    <Expander.Header>
-                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                    </Expander.Header>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Explanation}" Style="{StaticResource Body}"/>
-                                        <ItemsControl ItemsSource="{Binding ManualSteps}" Margin="0,6,0,0">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding StringFormat='→ {0}'}" Style="{StaticResource Body}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <ItemsControl ItemsSource="{Binding Links}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Button Style="{StaticResource LinkButton}" Content="{Binding}" CommandParameter="{Binding}"
-                                                            Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </Expander>
-                            </Border>
+                            <Expander Margin="0,0,0,6" HorizontalAlignment="Stretch">
+                                <Expander.Header>
+                                    <DockPanel>
+                                        <Ellipse Style="{StaticResource Dot}" Fill="{Binding Color, Converter={StaticResource ToneToBrush}}"/>
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource Strong}"/>
+                                    </DockPanel>
+                                </Expander.Header>
+                                <StackPanel Margin="18,4,0,4">
+                                    <TextBlock Text="{Binding Explanation}" Style="{StaticResource Body}"/>
+                                    <ItemsControl ItemsSource="{Binding ManualSteps}" Margin="0,8,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,2">
+                                                    <TextBlock Text="&#xE76C;" Style="{StaticResource Icon}" FontSize="10" Margin="0,0,8,0" VerticalAlignment="Top" Padding="0,4,0,0"/>
+                                                    <TextBlock Text="{Binding}" Style="{StaticResource Body}"/>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl ItemsSource="{Binding LinkItems}" Margin="0,6,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource LinkButton}" Content="{Binding Text}" CommandParameter="{Binding Url}" Margin="0,2"
+                                                        Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Expander>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </StackPanel>
 
-            <StackPanel Visibility="{Binding Excluded.Count, Converter={StaticResource CountToVis}}">
-                <TextBlock Text="Не включено в план" Style="{StaticResource H2}"/>
-                <ItemsControl ItemsSource="{Binding Excluded}">
+            <Expander Header="Не включено в план" Margin="0,16,0,0" Visibility="{Binding Excluded.Count, Converter={StaticResource CountToVis}}">
+                <ItemsControl ItemsSource="{Binding Excluded}" Margin="18,4,0,4">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding StringFormat='– {0}'}" Style="{StaticResource MutedText}"/>
+                            <TextBlock Text="{Binding}" Style="{StaticResource Caption}" Margin="0,2"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </StackPanel>
+            </Expander>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

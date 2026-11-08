@@ -11,15 +11,29 @@ public sealed class GoalOption
     public required UserGoal Goal { get; init; }
     public required string Title { get; init; }
     public required string Description { get; init; }
+    /// <summary>Глиф шрифта Segoe Fluent Icons.</summary>
     public required string Icon { get; init; }
 
     public static IReadOnlyList<GoalOption> All { get; } = new[]
     {
-        new GoalOption { Goal = UserGoal.LowLatency, Title = "Минимальная задержка", Description = "Соревновательные игры: отклик важнее всего", Icon = "⚡" },
-        new GoalOption { Goal = UserGoal.Smoothness, Title = "Плавность", Description = "Ровный фреймтайм без рывков в одиночных играх", Icon = "〰" },
-        new GoalOption { Goal = UserGoal.MaxFps, Title = "Максимальный FPS", Description = "Больше кадров любой ценой (кроме безопасности)", Icon = "▲" },
-        new GoalOption { Goal = UserGoal.Streaming, Title = "Стрим / запись", Description = "OBS, повторы и игра одновременно", Icon = "●" },
-        new GoalOption { Goal = UserGoal.QuietCool, Title = "Тихо и холодно", Description = "Ноутбук от батареи или в тишине", Icon = "❄" },
+        new GoalOption { Goal = UserGoal.LowLatency, Title = "Отклик", Description = "Соревновательные игры", Icon = "\uE945" },
+        new GoalOption { Goal = UserGoal.Smoothness, Title = "Плавность", Description = "Ровные кадры без рывков", Icon = "\uE9E9" },
+        new GoalOption { Goal = UserGoal.MaxFps, Title = "Максимум FPS", Description = "Больше кадров", Icon = "\uEC4A" },
+        new GoalOption { Goal = UserGoal.Streaming, Title = "Стрим", Description = "OBS и запись", Icon = "\uE714" },
+        new GoalOption { Goal = UserGoal.QuietCool, Title = "Тихо", Description = "Меньше шума и нагрева", Icon = "\uE9CA" },
+    };
+}
+
+public sealed class LinkItem
+{
+    public required string Text { get; init; }
+    public required string Url { get; init; }
+
+    public static LinkItem From(string url) => new()
+    {
+        Url = url,
+        Text = url.StartsWith("ms-settings:", StringComparison.OrdinalIgnoreCase) ? "Открыть параметры Windows"
+             : Uri.TryCreate(url, UriKind.Absolute, out var u) ? "Источник: " + u.Host.Replace("www.", "") : url,
     };
 }
 
@@ -40,6 +54,8 @@ public sealed class FindingItem
     public IReadOnlyList<string> Evidence => Finding.Evidence;
     public IReadOnlyList<string> ManualSteps => Finding.ManualSteps;
     public IReadOnlyList<string> Links => Finding.Links;
+    public IReadOnlyList<LinkItem> LinkItems => Finding.Links.Select(LinkItem.From).ToList();
+    public bool HasDetails => Evidence.Count + ManualSteps.Count + Links.Count > 0;
     public bool HasFix => Finding.FixIds.Count > 0;
     public string FixHint => HasFix ? "Можно исправить автоматически" : IsHardware ? "Аппаратное ограничение — программно не исправить" : "Совет: действие за вами";
 }

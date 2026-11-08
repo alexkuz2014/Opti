@@ -30,17 +30,27 @@ public abstract class ChartBase : FrameworkElement
     public Brush PrimaryBrush { get => (Brush)GetValue(PrimaryBrushProperty); set => SetValue(PrimaryBrushProperty, value); }
     public Brush SecondaryBrush { get => (Brush)GetValue(SecondaryBrushProperty); set => SetValue(SecondaryBrushProperty, value); }
 
-    protected static readonly Brush GridBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x2B, 0x30, 0x38)));
-    protected static readonly Brush LabelBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x9A, 0xA2, 0xAE)));
-    protected static readonly Pen GridPen = FreezePen(new Pen(GridBrush, 1));
+    private static readonly Brush FallbackGrid = Freeze(new SolidColorBrush(Color.FromArgb(0x30, 0x80, 0x80, 0x80)));
+    private static readonly Brush FallbackLabel = Freeze(new SolidColorBrush(Color.FromRgb(0x8A, 0x8A, 0x8A)));
+
+    /// <summary>Цвета сетки и подписей — из системной темы (светлой или тёмной).</summary>
+    protected Brush LabelBrush => TryFindResource("TextFillColorSecondaryBrush") as Brush ?? FallbackLabel;
+    protected Pen GridPen
+    {
+        get
+        {
+            var p = new Pen(TryFindResource("DividerStrokeColorDefaultBrush") as Brush ?? FallbackGrid, 1);
+            p.Freeze();
+            return p;
+        }
+    }
     protected const double Left = 46, Right = 10, Top = 10, Bottom = 24;
 
     private static Brush Freeze(Brush b) { b.Freeze(); return b; }
-    private static Pen FreezePen(Pen p) { p.Freeze(); return p; }
 
     protected void Label(DrawingContext dc, string text, double x, double y, TextAlignment align)
     {
-        var ft = new FormattedText(text, CultureInfo.GetCultureInfo("ru-RU"), FlowDirection.LeftToRight, new Typeface("Segoe UI"), 11, LabelBrush,
+        var ft = new FormattedText(text, CultureInfo.GetCultureInfo("ru-RU"), FlowDirection.LeftToRight, new Typeface("Segoe UI Variable Text, Segoe UI"), 11, LabelBrush,
             VisualTreeHelper.GetDpi(this).PixelsPerDip);
         double dx = align switch { TextAlignment.Right => -ft.Width, TextAlignment.Center => -ft.Width / 2, _ => 0 };
         dc.DrawText(ft, new Point(x + dx, y - ft.Height / 2));
@@ -48,11 +58,12 @@ public abstract class ChartBase : FrameworkElement
 
     protected void Grid(DrawingContext dc, double w, double h, double yMax, string unit)
     {
+        var gridPen = GridPen;
         for (int i = 0; i <= 4; i++)
         {
             double v = yMax * i / 4;
             double y = Top + (h - Top - Bottom) * (1 - i / 4.0);
-            dc.DrawLine(GridPen, new Point(Left, y), new Point(w - Right, y));
+            dc.DrawLine(gridPen, new Point(Left, y), new Point(w - Right, y));
             Label(dc, v.ToString(v >= 10 ? "0" : "0.#", CultureInfo.GetCultureInfo("ru-RU")) + (i == 4 ? " " + unit : ""), Left - 6, y, TextAlignment.Right);
         }
     }
@@ -95,7 +106,7 @@ public sealed class FrameTimeChart : ChartBase
                 }
             }
             geo.Freeze();
-            var pen = new Pen(brush, 1.2);
+            var pen = new Pen(brush, 1.4) { LineJoin = PenLineJoin.Round };
             pen.Freeze();
             dc.DrawGeometry(null, pen, geo);
         }

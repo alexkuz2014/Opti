@@ -1,6 +1,10 @@
 using System.Text;
 using Opti.Cli;
 
+// Синтетический тест встроен: opti-cli.exe --bench …
+if (Opti.Bench.BenchProgram.IsBenchInvocation(args)) return Opti.Bench.BenchProgram.Run(args);
+Opti.Fixes.Backends.OptiPaths.MigrateLegacyData();
+
 Console.OutputEncoding = Encoding.UTF8;
 var a = new Args(args);
 

@@ -22,6 +22,34 @@ public sealed partial class HomeViewModel : PageViewModel
     [ObservableProperty] private string? _openSessionText;
     [ObservableProperty] private bool _hasOpenSession;
 
+    /// <summary>Свободное место на системном диске — подсказка открыть «Очистку».</summary>
+    public string? DiskText
+    {
+        get
+        {
+            try
+            {
+                var root = Path.GetPathRoot(Environment.SystemDirectory);
+                if (string.IsNullOrEmpty(root)) return null;
+                var d = new DriveInfo(root);
+                if (!d.IsReady || d.TotalSize == 0) return null;
+                double free = d.AvailableFreeSpace / 1e9, total = d.TotalSize / 1e9;
+                return $"Диск {root.TrimEnd('\\', '/')} — свободно {free:0} ГБ из {total:0} ГБ";
+            }
+            catch { return null; }
+        }
+    }
+    public bool DiskLow
+    {
+        get
+        {
+            try { var d = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory)!); return d.IsReady && d.AvailableFreeSpace < d.TotalSize * 0.15; }
+            catch { return false; }
+        }
+    }
+
+    [RelayCommand] private void OpenCleanup() => Main.Navigate(Main.Cleanup);
+
     public void Refresh()
     {
         var s = Main.Session;

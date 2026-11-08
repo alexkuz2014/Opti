@@ -1,14 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- Синтетический тест D3D11. Библиотека: запускается внутри Opti.exe и opti-cli.exe с ключом «bench». -->
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <AssemblyName>Opti.Bench</AssemblyName>
     <RootNamespace>Opti.Bench</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <RuntimeIdentifier Condition="'$(PublishForWindows)' == 'true'">win-x64</RuntimeIdentifier>
-    <SelfContained Condition="'$(PublishForWindows)' == 'true'">true</SelfContained>
-    <PublishSingleFile Condition="'$(PublishForWindows)' == 'true'">true</PublishSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Opti.Core\Opti.Core.csproj" />
