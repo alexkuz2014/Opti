@@ -9,6 +9,33 @@
             <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
             <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
 
+            <!-- Фирменные цвета Opti (из логотипа): синий → бирюзовый, зелёная точка «готово».
+                 Ключи Accent* переопределяют системный акцент темы Fluent, поэтому весь интерфейс в цветах бренда.
+                 Цвет акцентного текста зависит от темы — его задаёт App.ApplyBrandTheme(). -->
+            <Color x:Key="BrandBlue">#1565FF</Color>
+            <Color x:Key="BrandCyan">#19E3F0</Color>
+            <Color x:Key="BrandGreen">#2EE59D</Color>
+            <Color x:Key="BrandNight">#050A18</Color>
+            <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#1A72FF"/>
+            <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#3A88FF"/>
+            <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#155FD6"/>
+            <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="BrandGreenBrush" Color="{StaticResource BrandGreen}"/>
+            <LinearGradientBrush x:Key="BrandGradientBrush" StartPoint="0,1" EndPoint="1,0">
+                <GradientStop Color="#1565FF" Offset="0"/>
+                <GradientStop Color="#16B4F6" Offset="1"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BrandGradientHoverBrush" StartPoint="0,1" EndPoint="1,0">
+                <GradientStop Color="#2B77FF" Offset="0"/>
+                <GradientStop Color="#2CC6FA" Offset="1"/>
+            </LinearGradientBrush>
+            <!-- Тёмная «баннерная» поверхность — одинаковая в светлой и тёмной теме -->
+            <LinearGradientBrush x:Key="BrandHeroBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#050A18" Offset="0"/>
+                <GradientStop Color="#081833" Offset="0.6"/>
+                <GradientStop Color="#0A2A55" Offset="1"/>
+            </LinearGradientBrush>
+
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
             <c:InverseBoolToVisibilityConverter x:Key="InvBoolToVis"/>
             <c:StringToVisibilityConverter x:Key="StrToVis"/>
@@ -55,6 +82,20 @@
                 <Setter Property="FontSize" Value="11.5"/>
             </Style>
 
+            <!-- Текст на тёмном фирменном баннере -->
+            <Style x:Key="HeroTitle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+                <Setter Property="FontSize" Value="26"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="#F4F8FF"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+            </Style>
+            <Style x:Key="HeroText" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="#B4C3DB"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="LineHeight" Value="20"/>
+            </Style>
+
             <!-- Поверхности -->
             <Style x:Key="Card" TargetType="Border">
                 <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
@@ -80,7 +121,7 @@
             <!-- Главная кнопка: системный акцентный цвет -->
             <Style x:Key="AccentButton" TargetType="Button">
                 <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
-                <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+                <Setter Property="Background" Value="{StaticResource BrandGradientBrush}"/>
                 <Setter Property="Padding" Value="20,8"/>
                 <Setter Property="MinHeight" Value="34"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
@@ -89,12 +130,12 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}"/>
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrandGradientHoverBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentFillColorTertiaryBrush}"/>

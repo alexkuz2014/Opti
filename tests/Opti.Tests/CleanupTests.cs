@@ -84,4 +84,36 @@ public sealed class CleanupTests : IDisposable
         Assert.Equal("3 МБ", SizeFormat.Bytes(3L << 20));
         Assert.Equal("1,5 ГБ", SizeFormat.Bytes((3L << 30) / 2).Replace('.', ','));
     }
+
+    [Fact]
+    public async Task LargeVideos_AreListedBiggestFirst_NothingDeleted()
+    {
+        Make("v/small.mp4", 100, TimeSpan.Zero);
+        var big = Make("v/game.mkv", 3000, TimeSpan.FromDays(40));
+        var bigger = Make("v/deep/stream.mp4", 5000, TimeSpan.Zero);
+        Make("v/archive.zip", 9000, TimeSpan.Zero); // не видео
+        var t = new LargeFilesTarget("v", "", "", () => new[] { Path.Combine(_root, "v"), Path.Combine(_root, "v") }, minBytes: 1000);
+        var est = await t.EstimateAsync();
+        Assert.Equal(2, est.Files);
+        Assert.Equal(8000, est.Bytes);
+        Assert.Equal(new[] { bigger, big }, t.Details.Select(d => d.Path));
+        Assert.Equal(0, (await t.CleanAsync()).Deleted);
+        Assert.True(File.Exists(big) && File.Exists(bigger));
+        Assert.NotNull(t.ManualUri);
+    }
+
+    [Fact]
+    public async Task ManualTarget_WarnsOnlyAboveThreshold()
+    {
+        Make("dl/setup.exe", 4000, TimeSpan.Zero);
+        var dir = Path.Combine(_root, "dl");
+        ICleanupTarget t = new ManualCleanupTarget("downloads", "", "", () => new[] { dir }, () => dir, warnAboveBytes: 3000, warnText: "много");
+        Assert.Equal(dir, t.ManualUri);
+        Assert.Equal("Открыть папку", t.ManualActionText);
+        var est = await t.EstimateAsync();
+        Assert.True(est.Bytes > t.WarnAboveBytes);
+        Assert.Equal("много", t.WarnText);
+        Assert.Equal(0, (await t.CleanAsync()).Deleted);
+        Assert.True(File.Exists(Path.Combine(dir, "setup.exe")));
+    }
 }

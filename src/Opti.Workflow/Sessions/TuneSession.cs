@@ -38,6 +38,13 @@ public sealed class TuneSession
     /// <summary>Автоматический цикл: тест → исправления → (перезагрузка) → тест → результат без лишних вопросов.</summary>
     public bool AutoMode { get; set; }
     public string? GameProcess { get; set; }
+    /// <summary>Автоцикл без замеров: только применить выбранное (результат не доказан замером).</summary>
+    public bool SkipMeasure { get; set; }
+    /// <summary>Исправления, выбранные перед автоциклом (null — рекомендованные по плану).</summary>
+    public List<string>? AutoFixIds { get; set; }
+    /// <summary>Число и длительность прогонов, выбранные перед запуском (null — из настроек). «После» повторяет «до».</summary>
+    public int? MeasureRuns { get; set; }
+    public int? MeasureDurationSec { get; set; }
 
     public SystemProfile? Profile { get; set; }
     public List<Finding> Findings { get; set; } = new();

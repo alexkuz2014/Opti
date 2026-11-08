@@ -15,6 +15,9 @@
         <DataTemplate DataType="{x:Type vm:ApplyViewModel}"><v:ApplyView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CompareViewModel}"><v:CompareView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CleanupViewModel}"><v:CleanupView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DriversViewModel}"><v:DriversView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SoftwareViewModel}"><v:SoftwareView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:AutoSetupViewModel}"><v:AutoSetupView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:HistoryViewModel}"><v:HistoryView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><v:SettingsView/></DataTemplate>
     </Window.Resources>
@@ -26,21 +29,27 @@
 
         <!-- Навигация -->
         <DockPanel Margin="0,12,0,12">
-            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="22,6,0,22">
-                <Image Source="pack://application:,,,/Assets/opti.png" Width="22" Height="22"/>
-                <TextBlock Text="Opti" FontFamily="{StaticResource DisplayFont}" FontSize="17" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="20,4,0,24">
+                <Image Source="pack://application:,,,/Assets/opti.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality"/>
+                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Opti" FontFamily="{StaticResource DisplayFont}" FontSize="19" FontWeight="Bold"/>
+                    <TextBlock Text="диагностика · исправление · замер" Style="{StaticResource Caption}" FontSize="10.5"/>
+                </StackPanel>
             </StackPanel>
-            <TextBlock DockPanel.Dock="Bottom" Text="{Binding WindowTitle}" Style="{StaticResource Caption}" Margin="22,0,0,4"/>
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="22,0,0,4">
+                <Ellipse Width="7" Height="7" Fill="{StaticResource BrandGreenBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding WindowTitle}" Style="{StaticResource Caption}"/>
+            </StackPanel>
             <ItemsControl ItemsSource="{Binding Nav}" Focusable="False">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Button Style="{StaticResource NavButton}" IsEnabled="{Binding IsEnabled}" CommandParameter="{Binding}"
                                 Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}">
                             <Grid>
-                                <Border x:Name="Pill" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left" Margin="-12,0,0,0"
-                                        Background="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Hidden"/>
+                                <Border x:Name="Pill" Width="3" Height="18" CornerRadius="1.5" HorizontalAlignment="Left" Margin="-12,0,0,0"
+                                        Background="{StaticResource BrandGradientBrush}" Visibility="Hidden"/>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Icon}" Style="{StaticResource Icon}" Width="30"/>
+                                    <TextBlock x:Name="NavIcon" Text="{Binding Icon}" Style="{StaticResource Icon}" Width="30"/>
                                     <TextBlock x:Name="NavTitle" Text="{Binding Title}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Grid>
@@ -49,6 +58,7 @@
                             <DataTrigger Binding="{Binding IsActive}" Value="True">
                                 <Setter TargetName="Pill" Property="Visibility" Value="Visible"/>
                                 <Setter TargetName="NavTitle" Property="FontWeight" Value="SemiBold"/>
+                                <Setter TargetName="NavIcon" Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
                             </DataTrigger>
                         </DataTemplate.Triggers>
                     </DataTemplate>

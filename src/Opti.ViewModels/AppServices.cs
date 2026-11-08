@@ -23,6 +23,8 @@ public interface IAppServices
     string ResumeExePath { get; }
     void RestartComputer();
     void OpenPath(string pathOrUrl);
+    /// <summary>Показать файл в Проводнике (выделенным).</summary>
+    void RevealFile(string path) => OpenPath(Path.GetDirectoryName(path) ?? path);
     Task<bool> ConfirmAsync(string title, string message);
     Task<UpdateInfo?> CheckForUpdatesAsync();
     /// <summary>Категории бережной очистки.</summary>

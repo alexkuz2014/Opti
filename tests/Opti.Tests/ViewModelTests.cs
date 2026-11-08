@@ -248,6 +248,10 @@ public sealed class ViewModelTests : IDisposable
         Assert.Contains("исправлен", main.Analysis.AutoFixText);
 
         await main.Analysis.AutoFixCommand.ExecuteAsync(null);
+        var setup = Assert.IsType<AutoSetupViewModel>(main.CurrentPage);
+        Assert.Equal(TestLevel.Full, setup.SelectedLevel.Level);
+        Assert.True(setup.SelectedCount > 0);
+        await setup.StartCommand.ExecuteAsync(null);
         var cmp = await WaitForPage<CompareViewModel>(main);
         var s = main.Session!;
         Assert.True(s.AutoMode);
@@ -265,6 +269,7 @@ public sealed class ViewModelTests : IDisposable
         var main = new MainViewModel(svc);
         await main.Home.AnalyzeCommand.ExecuteAsync(null);
         await main.Analysis.AutoFixCommand.ExecuteAsync(null);
+        await ((AutoSetupViewModel)main.CurrentPage).StartCommand.ExecuteAsync(null);
         var apply = await WaitForPage<ApplyViewModel>(main);
         Assert.True(apply.RebootRequired);
 
@@ -275,6 +280,96 @@ public sealed class ViewModelTests : IDisposable
         await main2.InitializeAsync();
         await WaitForPage<CompareViewModel>(main2);
         Assert.Equal(svc.Settings.MeasureRuns, main2.Session!.After.Count);
+    }
+
+    [Fact]
+    public async Task AutoFix_WithoutTest_AppliesOnlyChosenFixes()
+    {
+        var svc = new FakeServices(_dir, "laptop-optimus", _ => 8.0);
+        var main = new MainViewModel(svc);
+        await main.Home.AnalyzeCommand.ExecuteAsync(null);
+        await main.Analysis.AutoFixCommand.ExecuteAsync(null);
+        var setup = (AutoSetupViewModel)main.CurrentPage;
+        setup.SelectedLevel = setup.Levels.First(l => l.Level == TestLevel.None);
+        Assert.False(setup.ShowTestSettings);
+        setup.ClearAllCommand.Execute(null);
+        Assert.False(setup.StartCommand.CanExecute(null));
+        setup.Fixes.First(f => f.Id == FixIds.DisplayMaxHz).IsSelected = true;
+        await setup.StartCommand.ExecuteAsync(null);
+
+        var apply = await WaitForPage<ApplyViewModel>(main);
+        var s = main.Session!;
+        Assert.True(s.SkipMeasure);
+        Assert.Empty(s.Before);
+        Assert.Equal(new[] { FixIds.DisplayMaxHz }, s.AppliedFixIds);
+        Assert.Contains("Замер пропущен", apply.NextText);
+    }
+
+    [Fact]
+    public async Task AutoFix_QuickTest_UsesChosenRunsAndDuration()
+    {
+        var svc = new FakeServices(_dir, "laptop-optimus", n => n < 2 ? 8.5 : 7.0);
+        var main = new MainViewModel(svc);
+        await main.Home.AnalyzeCommand.ExecuteAsync(null);
+        await main.Analysis.AutoFixCommand.ExecuteAsync(null);
+        var setup = (AutoSetupViewModel)main.CurrentPage;
+        setup.SelectedLevel = setup.Levels.First(l => l.Level == TestLevel.Quick);
+        Assert.Equal(2, setup.Runs);
+        Assert.Equal(20, setup.Duration);
+        await setup.StartCommand.ExecuteAsync(null);
+        await WaitForPage<CompareViewModel>(main);
+        var s = main.Session!;
+        Assert.Equal(2, s.Before.Count);
+        Assert.Equal(2, s.After.Count);
+        Assert.Equal(20, s.MeasureDurationSec);
+    }
+
+    [Fact]
+    public async Task DriversPage_EnabledAfterAnalysis_ShowsAttentionAndLinks()
+    {
+        var svc = new FakeServices(_dir, "laptop-optimus", _ => 8.0);
+        var main = new MainViewModel(svc);
+        var nav = main.Nav.First(n => n.Title == "Драйверы");
+        Assert.False(nav.IsEnabled);
+        await main.Home.OpenDriversCommand.ExecuteAsync(null); // без анализа — запускает анализ сам
+        Assert.True(nav.IsEnabled);
+        Assert.Same(main.Drivers, main.CurrentPage);
+        Assert.Contains("требуют внимания 2", main.Drivers.Summary);
+        Assert.Equal("Поддержка ASUS", main.Drivers.OemTitle);
+        main.Drivers.OnlyAttention = true;
+        var rows = main.Drivers.Groups.SelectMany(g => g.Rows).ToList();
+        Assert.Equal(2, rows.Count);
+        Assert.All(rows, r => Assert.True(r.NeedsAttention));
+        main.Drivers.OpenLinkCommand.Execute(rows[0].Url);
+        Assert.Contains(rows[0].Url, svc.Opened);
+    }
+
+    [Fact]
+    public async Task Cleanup_SplitsManualItems_AndWarnsAboveThreshold()
+    {
+        var svc = new FakeServices(_dir, "desktop-rtx", _ => 8.0);
+        var dl = Directory.CreateDirectory(Path.Combine(_dir, "Downloads")).FullName;
+        File.WriteAllBytes(Path.Combine(dl, "big.iso"), new byte[5000]);
+        svc.Cleanup.Add(new Opti.Workflow.Cleanup.ManualCleanupTarget("downloads", "Загрузки", "", () => new[] { dl }, () => dl, warnAboveBytes: 4000, warnText: "разберите"));
+        svc.Cleanup.Add(new Opti.Workflow.Cleanup.FolderCleanupTarget("tmp", "Временные", "", () => Array.Empty<string>(), TimeSpan.Zero));
+        var main = new MainViewModel(svc);
+        await main.Cleanup.EstimateAsync();
+        var manual = Assert.Single(main.Cleanup.ManualItems);
+        Assert.Single(main.Cleanup.AutoItems);
+        Assert.Equal("разберите", manual.Warning);
+        Assert.Equal("Открыть папку", manual.ManualActionText);
+        main.Cleanup.OpenManualCommand.Execute(manual);
+        Assert.Contains(dl, svc.Opened);
+    }
+
+    [Fact]
+    public void SoftwarePage_OpensOfficialSite()
+    {
+        var svc = new FakeServices(_dir, "desktop-rtx", _ => 8.0);
+        var main = new MainViewModel(svc);
+        var wiztree = main.Software.Categories.SelectMany(c => c.Items).First(i => i.Name == "WizTree");
+        main.Software.OpenCommand.Execute(wiztree);
+        Assert.Equal("https://diskanalyzer.com/", Assert.Single(svc.Opened));
     }
 
     [Fact]

@@ -36,6 +36,8 @@ public sealed partial class MainViewModel : ObservableObject
         History = new HistoryViewModel(this);
         SettingsPage = new SettingsViewModel(this);
         Cleanup = new CleanupViewModel(this);
+        Drivers = new DriversViewModel(this);
+        Software = new SoftwareViewModel(this);
         Nav = new ObservableCollection<NavItem>
         {
             // Значки — глифы шрифта Segoe Fluent Icons / Segoe MDL2 Assets
@@ -43,7 +45,9 @@ public sealed partial class MainViewModel : ObservableObject
             new() { Title = "Анализ", Icon = "\uE9D9", Page = () => Analysis, IsEnabled = false },
             new() { Title = "Исправления", Icon = "\uE90F", Page = () => Strategy, IsEnabled = false },
             new() { Title = "Результат", Icon = "\uE9D2", Page = () => Compare ?? (PageViewModel)Home, IsEnabled = false },
+            new() { Title = "Драйверы", Icon = "\uE950", Page = () => Drivers, IsEnabled = false },
             new() { Title = "Очистка", Icon = "\uEA99", Page = () => Cleanup },
+            new() { Title = "Программы", Icon = "\uE71D", Page = () => Software },
             new() { Title = "История", Icon = "\uE81C", Page = () => History },
             new() { Title = "Настройки", Icon = "\uE713", Page = () => SettingsPage },
         };
@@ -58,6 +62,8 @@ public sealed partial class MainViewModel : ObservableObject
     public HistoryViewModel History { get; }
     public SettingsViewModel SettingsPage { get; }
     public CleanupViewModel Cleanup { get; }
+    public DriversViewModel Drivers { get; }
+    public SoftwareViewModel Software { get; }
     public CompareViewModel? Compare { get; private set; }
     public ObservableCollection<NavItem> Nav { get; }
     public string WindowTitle => $"Opti {Services.AppVersion}";
@@ -74,6 +80,7 @@ public sealed partial class MainViewModel : ObservableObject
         Nav[1].IsEnabled = value?.Profile is not null;
         Nav[2].IsEnabled = value?.Profile is not null;
         Nav[3].IsEnabled = Compare is not null;
+        Nav[4].IsEnabled = value?.Profile is not null;
         Home.Refresh();
     }
 
@@ -181,36 +188,49 @@ public sealed partial class MainViewModel : ObservableObject
     public IReadOnlyList<Opti.Core.Fixes.IFix> RecommendedFixes(TuneSession s) =>
         Services.Workflow.BuildPlan(s).Fixes.Where(f => f.Selected && !f.ApplySeparately).Select(f => f.Fix).ToList();
 
-    /// <summary>«Исправить автоматически»: тест → исправления → (перезагрузка) → тест → результат.</summary>
-    public async Task StartAutoFlowAsync()
+    /// <summary>«Исправить автоматически»: сначала страница настройки (что исправлять, какой тест или без теста).</summary>
+    public Task StartAutoFlowAsync()
     {
         var s = Session ?? throw new InvalidOperationException("Сначала анализ.");
-        var fixes = RecommendedFixes(s);
-        if (fixes.Count == 0)
+        if (RecommendedFixes(s).Count == 0 && AutoSetupViewModel.Candidates(this, s).Count == 0)
         {
             ShowMessage("Автоматически исправлять нечего — посмотрите советы в отчёте.");
-            return;
+            return Task.CompletedTask;
         }
-        bool reboot = fixes.Any(f => f.RequiresReboot);
-        var msg = $"Opti сделает всё сам:\n\n1. Синтетический тест (~2 мин, на весь экран).\n2. Применит {fixes.Count} рекомендованных исправлений:\n   • " +
-                  string.Join("\n   • ", fixes.Select(f => f.Title)) +
-                  (reboot ? "\n3. Попросит перезагрузку и продолжит сам после входа." : "") +
-                  $"\n{(reboot ? 4 : 3)}. Повторит тест и покажет результат.\n\nПеред изменениями создаётся точка восстановления, всё можно откатить. Начать?";
-        if (!await Services.ConfirmAsync("Исправить автоматически", msg)) return;
+        Navigate(new AutoSetupViewModel(this, s));
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Запуск автоцикла с выбранными параметрами.</summary>
+    public async Task RunAutoFlowAsync(TuneSession s)
+    {
         s.AutoMode = true;
         Services.Workflow.Store.Save(s);
-        Navigate(s.Before.Count > 0 ? await ApplyRecommendedNavigateAsync(s) : MeasureViewModel.ForBefore(this, auto: true));
+        Session = s;
+        if (s.SkipMeasure || s.Before.Count > 0) Navigate(await ApplyRecommendedNavigateAsync(s));
+        else Navigate(MeasureViewModel.ForBefore(this, auto: true));
     }
+
+    /// <summary>Исправления автоцикла: выбранные на странице настройки или рекомендованные.</summary>
+    public IReadOnlyList<Opti.Core.Fixes.IFix> AutoFixes(TuneSession s) =>
+        s.AutoFixIds is { } ids
+            ? Services.Workflow.Catalog.Where(f => ids.Contains(f.Id, StringComparer.OrdinalIgnoreCase)).ToList()
+            : RecommendedFixes(s);
 
     /// <summary>Шаг автоцикла после замера «до».</summary>
     public async Task ApplyRecommendedAsync() => Navigate(await ApplyRecommendedNavigateAsync(Session!));
 
     private async Task<PageViewModel> ApplyRecommendedNavigateAsync(TuneSession s)
     {
-        var fixes = RecommendedFixes(s);
+        var fixes = AutoFixes(s);
         var report = await Task.Run(() => Services.Workflow.Apply(s, fixes, Services.ResumeExePath));
         Session = s;
-        if (!report.RebootRequired) return MeasureViewModel.ForAfter(this, auto: true);
-        return new ApplyViewModel(this, report);
+        if (!report.RebootRequired && !s.SkipMeasure) return MeasureViewModel.ForAfter(this, auto: true);
+        var vm = new ApplyViewModel(this, report);
+        if (s.SkipMeasure)
+            vm.NextText = report.RebootRequired
+                ? "Нужна перезагрузка. Замер пропущен — эффект не проверен; при желании сделайте замер позже."
+                : "Готово. Замер пропущен, поэтому эффект не доказан. Любое изменение можно откатить в «Истории».";
+        return vm;
     }
 }

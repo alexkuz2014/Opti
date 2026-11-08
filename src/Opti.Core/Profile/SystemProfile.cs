@@ -35,6 +35,10 @@ public sealed class SystemProfile
     public List<ProblemDevice> ProblemDevices { get; set; } = new();
     public ChipsetDriversInfo Chipset { get; set; } = new();
     public InputInfo Input { get; set; } = new();
+    /// <summary>Драйверы ключевых устройств (видео, сеть, звук, чипсет, Bluetooth…).</summary>
+    public List<DriverInfo> Drivers { get; set; } = new();
+    /// <summary>Значения реестра из аудита (см. RegistryAuditCatalog): Id правила → значение (null — значения нет).</summary>
+    public Dictionary<string, string?> RegistryAudit { get; set; } = new();
 
     /// <summary>Ошибки коллекторов: что не удалось собрать и почему.</summary>
     public List<string> CollectorErrors { get; set; } = new();
@@ -54,6 +58,9 @@ public sealed class DeviceInfo
     public string? BiosVersion { get; set; }
     public DateTime? BiosDate { get; set; }
     public bool IsVirtualMachine { get; set; }
+    /// <summary>Производитель и модель материнской платы (Win32_BaseBoard) — для ссылок на драйверы.</summary>
+    public string? BoardManufacturer { get; set; }
+    public string? BoardProduct { get; set; }
 }
 
 public sealed class OsInfo
@@ -381,4 +388,24 @@ public sealed class InputInfo
     public int? StickyKeysFlags { get; set; }
     /// <summary>HKCU\Control Panel\Accessibility\Keyboard Response\Flags (залипание фильтрации ввода).</summary>
     public int? FilterKeysFlags { get; set; }
+}
+
+public enum DriverCategory { Display, Network, Audio, Chipset, Storage, Bluetooth, Usb, Input, Other }
+
+/// <summary>Установленный драйвер устройства (Win32_PnPSignedDriver).</summary>
+public sealed class DriverInfo
+{
+    public string DeviceName { get; set; } = "";
+    public DriverCategory Category { get; set; }
+    /// <summary>Производитель устройства (по PnP ID или полю Manufacturer).</summary>
+    public string? Manufacturer { get; set; }
+    /// <summary>Кто выпустил драйвер (DriverProviderName): «Microsoft» у стандартных драйверов Windows.</summary>
+    public string? Provider { get; set; }
+    public string? Version { get; set; }
+    public DateTime? Date { get; set; }
+    public string? HardwareId { get; set; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsGenericMicrosoft => Provider is { } pr && pr.Contains("Microsoft", StringComparison.OrdinalIgnoreCase)
+                                      && !(Manufacturer ?? "").Contains("Microsoft", StringComparison.OrdinalIgnoreCase);
 }
