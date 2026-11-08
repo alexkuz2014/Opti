@@ -112,6 +112,7 @@ public sealed class HvciDetector : DetectorBase
                           "Некоторые античиты (например, Vanguard, FACEIT) требуют, чтобы она была включена.",
             Evidence = { "Win32_DeviceGuard: HVCI работает" },
             ManualSteps = { "Если решите отключить: «Безопасность Windows» → «Безопасность устройства» → «Изоляция ядра» → «Целостность памяти». Требуется перезагрузка." },
+            Links = { Sources.HvciGaming },
         };
     }
 }
@@ -209,6 +210,7 @@ public sealed class GameSettingsDetector : DetectorBase
                     $"Оптимизация VRR: {(g.VrrOptimizationsEnabled is null ? "по умолчанию" : g.VrrOptimizationsEnabled.Value ? "вкл" : "выкл")}",
                 },
                 FixIds = { FixIds.WindowedOptimizations },
+                Links = { Sources.WindowedGames },
             };
     }
 }
@@ -229,6 +231,7 @@ public sealed class HagsAbCandidateDetector : DetectorBase
                           "Единого правильного значения нет, поэтому программа проверит оба варианта A/B-замером и оставит лучший.",
             Evidence = { $"HAGS сейчас: {(p.Graphics.HagsEnabled == true ? "включено" : p.Graphics.HagsEnabled == false ? "выключено" : "неизвестно")}" },
             FixIds = { FixIds.HagsAb },
+            Links = { Sources.Hags },
         };
     }
 }

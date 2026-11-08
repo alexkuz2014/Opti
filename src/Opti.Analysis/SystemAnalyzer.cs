@@ -23,7 +23,7 @@ public static class SystemAnalyzer
         {
             new DeviceCollector(), new OsCollector(), new CpuCollector(), new GpuDisplayCollector(), new MemoryCollector(),
             new DiskCollector(), new PowerCollector(), new ThermalCollector(), new TimersAndSecurityCollector(),
-            new GraphicsSettingsCollector(), new BackgroundCollector(), new ObsCollector(obsConfigDir), new NetworkCollector(), new GamesCollector(),
+            new GraphicsSettingsCollector(), new BackgroundCollector(), new ObsCollector(obsConfigDir), new NetworkCollector(), new GamesCollector(), new ExtrasCollector(),
         };
     }
 

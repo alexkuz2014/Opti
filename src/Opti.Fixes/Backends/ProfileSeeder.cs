@@ -65,6 +65,16 @@ public static class ProfileSeeder
         foreach (var s in p.Background.StartupItems.Where(s => s.ApprovedKey is not null))
             r.Seed(s.ApprovedKey!, new StateValue(true, "Binary", (s.Enabled ? "02" : "03") + new string('0', 22)));
 
+        if (p.Input.MouseAcceleration is { } accel)
+        {
+            r.Seed(Targets.Reg(MouseAccelOffFix.Key, "MouseSpeed"), StateValue.Str(accel ? "1" : "0"));
+            r.Seed(Targets.Reg(MouseAccelOffFix.Key, "MouseThreshold1"), StateValue.Str(accel ? "6" : "0"));
+            r.Seed(Targets.Reg(MouseAccelOffFix.Key, "MouseThreshold2"), StateValue.Str(accel ? "10" : "0"));
+        }
+        if (p.Input.StickyKeysFlags is { } sk) r.Seed(Targets.Reg(AccessibilityHotkeysOffFix.StickyKey, "Flags"), StateValue.Str(sk.ToString()));
+        if (p.Input.FilterKeysFlags is { } fk) r.Seed(Targets.Reg(AccessibilityHotkeysOffFix.FilterKey, "Flags"), StateValue.Str(fk.ToString()));
+        if (p.Memory.PageFileDisabled == true) r.Seed(Targets.Reg(PageFileAutoFix.Key, "PagingFiles"), new StateValue(true, "MultiString", ""));
+
         var bcd = map[ChangeType.Bcd];
         if (p.Timers.UsePlatformClock is { } upc) bcd.Seed(Targets.Bcd("useplatformclock"), StateValue.Str(upc ? "Yes" : "No"));
         if (p.Timers.UsePlatformTick is { } upt) bcd.Seed(Targets.Bcd("useplatformtick"), StateValue.Str(upt ? "Yes" : "No"));

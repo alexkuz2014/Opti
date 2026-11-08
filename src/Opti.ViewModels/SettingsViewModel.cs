@@ -15,6 +15,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     [ObservableProperty] private int _measureRuns;
     [ObservableProperty] private int _measureDuration;
     [ObservableProperty] private int _measureWarmup;
+    [ObservableProperty] private int _syntheticDuration;
     [ObservableProperty] private string? _presentMonPath;
     [ObservableProperty] private string? _obsConfigDir;
     [ObservableProperty] private string? _networkTarget;
@@ -31,6 +32,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         MeasureRuns = s.MeasureRuns;
         MeasureDuration = s.MeasureDurationSec;
         MeasureWarmup = s.MeasureWarmupSec;
+        SyntheticDuration = s.SyntheticDurationSec;
         PresentMonPath = s.PresentMonPath;
         ObsConfigDir = s.ObsConfigDir;
         NetworkTarget = s.NetworkTarget;
@@ -49,6 +51,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         s.MeasureRuns = Math.Clamp(MeasureRuns, 1, 10);
         s.MeasureDurationSec = Math.Clamp(MeasureDuration, 10, 600);
         s.MeasureWarmupSec = Math.Clamp(MeasureWarmup, 0, 120);
+        s.SyntheticDurationSec = Math.Clamp(SyntheticDuration, 10, 300);
         s.PresentMonPath = string.IsNullOrWhiteSpace(PresentMonPath) ? null : PresentMonPath.Trim('"', ' ');
         s.ObsConfigDir = string.IsNullOrWhiteSpace(ObsConfigDir) ? null : ObsConfigDir.Trim('"', ' ');
         s.NetworkTarget = string.IsNullOrWhiteSpace(NetworkTarget) ? "1.1.1.1" : NetworkTarget.Trim();

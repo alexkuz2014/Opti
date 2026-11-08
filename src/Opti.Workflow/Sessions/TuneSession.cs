@@ -34,7 +34,9 @@ public sealed class TuneSession
     public UserGoal Goal { get; set; }
     public SessionStage Stage { get; set; } = SessionStage.Analyzed;
     public SessionOutcome Outcome { get; set; }
-    public MeasureMode MeasureMode { get; set; } = MeasureMode.Game;
+    public MeasureMode MeasureMode { get; set; } = MeasureMode.Synthetic;
+    /// <summary>Автоматический цикл: тест → исправления → (перезагрузка) → тест → результат без лишних вопросов.</summary>
+    public bool AutoMode { get; set; }
     public string? GameProcess { get; set; }
 
     public SystemProfile? Profile { get; set; }

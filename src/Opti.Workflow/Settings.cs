@@ -15,6 +15,8 @@ public sealed class OptiSettings
     public int MeasureRuns { get; set; } = 3;
     public int MeasureDurationSec { get; set; } = 60;
     public int MeasureWarmupSec { get; set; } = 10;
+    /// <summary>Длительность прогона синтетического теста: сцена одинаковая, поэтому хватает 30 секунд.</summary>
+    public int SyntheticDurationSec { get; set; } = 30;
     /// <summary>Путь к PresentMon.exe. Если пусто — ищется рядом с программой.</summary>
     public string? PresentMonPath { get; set; }
     public string NetworkTarget { get; set; } = "1.1.1.1";

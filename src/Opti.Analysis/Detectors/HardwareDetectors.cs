@@ -27,6 +27,7 @@ public sealed class RamBelowRatedDetector : DetectorBase
                 "Найдите пункт XMP / DOCP / EXPO и выберите Profile 1, сохраните (F10).",
                 "Если компьютер не стартует — BIOS сам сбросит настройку через несколько попыток, либо сбросьте CMOS.",
             },
+            Links = { Sources.IntelXmp },
         };
     }
 }
@@ -127,7 +128,8 @@ public sealed class DiskFullDetector : DetectorBase
             Explanation = "Когда на системном диске меньше 10 % свободного места, Windows хуже управляет файлом подкачки и обновлениями, а SSD замедляет запись. " +
                           "Освободите место стандартной «Очисткой диска» и удалите ненужные игры/файлы.",
             Evidence = { $"{d.DriveLetter}: свободно {d.FreeGb:0.#} ГБ из {d.SizeGb:0} ГБ ({100 - d.UsedPercent:0.#} %)" },
-            ManualSteps = { "Запустите «Очистку диска» (cleanmgr) → «Очистить системные файлы».", "Проверьте папку «Загрузки» и старые игры." },
+            ManualSteps = { "Откройте раздел «Очистка» в Opti — он бережно удалит временные файлы и кеш.", "Проверьте папку «Загрузки» и старые игры." },
+            Links = { Sources.FreeUpSpace },
         };
     }
 }

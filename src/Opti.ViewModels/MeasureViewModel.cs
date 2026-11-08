@@ -14,14 +14,15 @@ public sealed class ModeOption
     public required MeasureMode Mode { get; init; }
     public required string Title { get; init; }
     public required string Description { get; init; }
+    public bool Recommended { get; init; }
     public bool Available { get; init; } = true;
-    public string AvailabilityText => Available ? "" : "недоступно";
 }
 
-/// <summary>Замер «до», «после» и варианты A/B. Один и тот же экран, разное продолжение.</summary>
+/// <summary>Замер «до», «после» и варианты A/B. Синтетический тест — по умолчанию: воспроизводим и не требует игры.</summary>
 public sealed partial class MeasureViewModel : PageViewModel
 {
     private CancellationTokenSource? _cts;
+    private bool _autoStarted;
 
     private MeasureViewModel(MainViewModel main, MeasurePhase phase) : base(main)
     {
@@ -29,19 +30,21 @@ public sealed partial class MeasureViewModel : PageViewModel
         var svc = main.Services;
         Modes = new[]
         {
-            new ModeOption { Mode = MeasureMode.Game, Title = "Реальная игра", Description = "Вы играете, программа записывает кадры через ETW. Стойте на месте или повторяйте один и тот же отрезок.", Available = svc.IsModeAvailable(MeasureMode.Game) },
-            new ModeOption { Mode = MeasureMode.Synthetic, Title = "Синтетический тест Opti", Description = "Своя D3D11-сцена с фиксированной нагрузкой: полностью воспроизводимо, игра не нужна.", Available = svc.IsModeAvailable(MeasureMode.Synthetic) },
-            new ModeOption { Mode = MeasureMode.PresentMon, Title = "Игра через PresentMon", Description = "Дополнительно: режим вывода (Independent Flip) и задержка. Нужен PresentMon рядом с программой.", Available = svc.IsModeAvailable(MeasureMode.PresentMon) },
+            new ModeOption { Mode = MeasureMode.Synthetic, Title = "Синтетический тест", Recommended = true, Available = svc.IsModeAvailable(MeasureMode.Synthetic),
+                Description = "Своя 3D-сцена с постоянной нагрузкой. Около двух минут, игра не нужна, результат воспроизводим." },
+            new ModeOption { Mode = MeasureMode.Game, Title = "Своя игра", Available = svc.IsModeAvailable(MeasureMode.Game),
+                Description = "Вы играете, Opti записывает кадры. Повторяйте один и тот же отрезок — иначе сравнение будет шумным." },
         };
         var s = main.Session;
-        var sessionMode = s?.MeasureMode ?? MeasureMode.Game;
-        _selectedMode = Modes.FirstOrDefault(m => m.Mode == sessionMode && m.Available) ?? Modes.First(m => m.Available || m.Mode == MeasureMode.Game);
-        _runs = svc.Settings.MeasureRuns;
-        _duration = svc.Settings.MeasureDurationSec;
-        _warmup = svc.Settings.MeasureWarmupSec;
-        _processName = s?.GameProcess;
         // «После» и вариант B — строго в тех же условиях, что «до» / A
         ModeLocked = phase is MeasurePhase.After or MeasurePhase.AbB;
+        var wanted = ModeLocked || phase == MeasurePhase.AbA ? s?.MeasureMode ?? MeasureMode.Synthetic : MeasureMode.Synthetic;
+        _selectedMode = Modes.FirstOrDefault(m => m.Mode == wanted && m.Available) ?? Modes.FirstOrDefault(m => m.Available) ?? Modes[0];
+        _runs = svc.Settings.MeasureRuns;
+        _warmup = svc.Settings.MeasureWarmupSec;
+        _duration = svc.Settings.MeasureDurationSec;
+        ApplyModeDefaults();
+        _processName = s?.GameProcess;
         var previous = phase switch
         {
             MeasurePhase.After => s?.Before,
@@ -51,48 +54,83 @@ public sealed partial class MeasureViewModel : PageViewModel
         if (previous is { Count: > 0 }) _runs = Math.Max(1, previous.Count);
     }
 
-    public static MeasureViewModel ForBefore(MainViewModel m) => new(m, MeasurePhase.Before);
-    public static MeasureViewModel ForAfter(MainViewModel m) => new(m, MeasurePhase.After);
+    public static MeasureViewModel ForBefore(MainViewModel m, bool auto = false) => new(m, MeasurePhase.Before) { AutoRun = auto };
+    public static MeasureViewModel ForAfter(MainViewModel m, bool auto = false) => new(m, MeasurePhase.After) { AutoRun = auto };
     public static MeasureViewModel ForAbA(MainViewModel m) => new(m, MeasurePhase.AbA);
     public static MeasureViewModel ForAbB(MainViewModel m) => new(m, MeasurePhase.AbB);
 
     public MeasurePhase Phase { get; }
+    /// <summary>Запуститься сразу при показе и само перейти дальше (автоматический цикл).</summary>
+    public bool AutoRun { get; init; }
+
     public override string Title => Phase switch
     {
-        MeasurePhase.Before => "Замер «ДО»",
-        MeasurePhase.After => "Замер «ПОСЛЕ»",
-        MeasurePhase.AbA => "A/B: замер варианта A (как сейчас)",
-        _ => "A/B: замер варианта B (с изменением)",
+        MeasurePhase.Before => "Замер до изменений",
+        MeasurePhase.After => "Замер после изменений",
+        MeasurePhase.AbA => "A/B: вариант A",
+        _ => "A/B: вариант B",
     };
     public string Hint => Phase switch
     {
-        MeasurePhase.Before => "Запишите несколько прогонов в типичной для вас сцене. Те же условия понадобятся для замера «после».",
-        MeasurePhase.After => "Повторите тот же сценарий, что и в замере «до»: та же игра, настройки, сцена, питание от сети.",
-        _ => "Для честного A/B лучше синтетический тест: он не зависит от того, как вы играете.",
+        MeasurePhase.Before => "Чтобы честно показать результат, сначала нужен замер. Синтетический тест сделает всё сам.",
+        MeasurePhase.After => "Тот же тест, что и до изменений, — так сравнение будет честным.",
+        MeasurePhase.AbA => "Сначала замер текущего состояния.",
+        _ => "Теперь тот же замер с изменённой настройкой.",
     };
     public IReadOnlyList<ModeOption> Modes { get; }
     public bool ModeLocked { get; }
-    public bool ModeEditable => !ModeLocked;
+    public bool ModeEditable => !ModeLocked && !AutoRun;
+    public bool CanSkip => Phase == MeasurePhase.Before && !AutoRun;
     public string FinishText => Phase switch
     {
-        MeasurePhase.Before => "Готово → стратегия",
-        MeasurePhase.After => "Готово → сравнение",
-        MeasurePhase.AbA => "Готово → применить вариант B",
-        _ => "Готово → решение A/B",
+        MeasurePhase.Before => "Дальше",
+        MeasurePhase.After => "Показать результат",
+        MeasurePhase.AbA => "Применить вариант B",
+        _ => "Показать решение",
     };
-    public bool CanSkip => Phase == MeasurePhase.Before;
+    public string EstimateText
+    {
+        get
+        {
+            int perRun = Duration + Warmup + (SelectedMode.Mode == MeasureMode.Synthetic ? 3 : 8);
+            var min = Math.Max(1, (int)Math.Round(Runs * perRun / 60.0));
+            return $"≈ {min} мин · {Runs} × {Duration} с";
+        }
+    }
 
-    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(StartCommand))] private ModeOption _selectedMode;
-    [ObservableProperty] private int _runs;
-    [ObservableProperty] private int _duration;
-    [ObservableProperty] private int _warmup;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(StartCommand))] [NotifyPropertyChangedFor(nameof(EstimateText), nameof(IsGameMode))] private ModeOption _selectedMode;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(EstimateText))] private int _runs;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(EstimateText))] private int _duration;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(EstimateText))] private int _warmup;
     [ObservableProperty] private string? _processName;
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(FinishCommand))] private bool _isRunning;
     [ObservableProperty] private double _progress;
     [ObservableProperty] private string? _status;
     [ObservableProperty] private IReadOnlyList<double> _liveFrameTimes = Array.Empty<double>();
     [ObservableProperty] private string? _liveFps;
+    [ObservableProperty] private bool _showAdvanced;
+    public bool IsGameMode => SelectedMode.Mode == MeasureMode.Game;
     public ObservableCollection<RunSummary> Completed { get; } = new();
+
+    partial void OnSelectedModeChanged(ModeOption value)
+    {
+        if (!IsRunning) ApplyModeDefaults();
+    }
+
+    private void ApplyModeDefaults()
+    {
+        var st = Main.Services.Settings;
+        if (SelectedMode.Mode == MeasureMode.Synthetic) { Duration = st.SyntheticDurationSec; Warmup = 5; }
+        else { Duration = st.MeasureDurationSec; Warmup = st.MeasureWarmupSec; }
+    }
+
+    public override async void OnShown()
+    {
+        if (!AutoRun || _autoStarted) return;
+        _autoStarted = true;
+        await StartCommand.ExecuteAsync(null);
+        if (Completed.Count > 0 && FinishCommand.CanExecute(null)) await FinishCommand.ExecuteAsync(null);
+    }
 
     private bool CanStart() => !IsRunning && SelectedMode.Available;
     private bool CanFinish() => !IsRunning && Completed.Count > 0;
@@ -108,13 +146,13 @@ public sealed partial class MeasureViewModel : PageViewModel
             int toDo = Math.Max(1, Runs - Completed.Count);
             for (int i = 0; i < toDo; i++)
             {
-                if (SelectedMode.Mode != MeasureMode.Synthetic)
+                if (SelectedMode.Mode == MeasureMode.Game)
                     for (int c = 5; c > 0; c--)
                     {
-                        Status = $"Переключитесь в игру — прогон {Completed.Count + 1}/{Runs} начнётся через {c} с";
+                        Status = $"Переключитесь в игру — прогон {Completed.Count + 1} из {Runs} начнётся через {c} с";
                         await Task.Delay(1000, _cts.Token);
                     }
-                Status = $"Прогон {Completed.Count + 1}/{Runs}";
+                Status = $"Прогон {Completed.Count + 1} из {Runs}";
                 var progress = new Progress<MeasureProgress>(p =>
                 {
                     Progress = p.TotalSec > 0 ? 100 * p.ElapsedSec / p.TotalSec : 0;
@@ -123,18 +161,19 @@ public sealed partial class MeasureViewModel : PageViewModel
                         LiveFrameTimes = p.RecentFrameTimesMs;
                         LiveFps = $"{1000.0 / p.RecentFrameTimesMs.Average():0} FPS";
                     }
-                    Status = $"Прогон {Completed.Count + 1}/{Runs}: {(p.Warmup ? "прогрев" : "запись")} {p.ElapsedSec:0}/{p.TotalSec:0} с" + (p.Process is null ? "" : $" · {p.Process}");
+                    Status = $"Прогон {Completed.Count + 1} из {Runs} · {(p.Warmup ? "прогрев" : "запись")} {p.ElapsedSec:0} / {p.TotalSec:0} с";
                 });
                 var label = Phase switch { MeasurePhase.Before => "до", MeasurePhase.After => "после", MeasurePhase.AbA => "A", _ => "B" };
-                var run = await runner.RunAsync(new MeasureRequest($"{label} #{Completed.Count + 1}", Duration, SelectedMode.Mode == MeasureMode.Synthetic ? Math.Min(Warmup, 5) : Warmup,
-                    string.IsNullOrWhiteSpace(ProcessName) ? null : ProcessName, SelectedMode.Mode == MeasureMode.Synthetic ? "синтетика" : "игра"), progress, _cts.Token);
+                var run = await runner.RunAsync(new MeasureRequest($"{label} #{Completed.Count + 1}", Duration, Warmup,
+                    string.IsNullOrWhiteSpace(ProcessName) || SelectedMode.Mode == MeasureMode.Synthetic ? null : ProcessName,
+                    SelectedMode.Mode == MeasureMode.Synthetic ? "синтетика" : "игра"), progress, _cts.Token);
                 Completed.Add(new RunSummary(run));
-                ProcessName ??= SelectedMode.Mode == MeasureMode.Synthetic ? null : run.Conditions.ProcessName;
+                if (SelectedMode.Mode == MeasureMode.Game) ProcessName ??= run.Conditions.ProcessName;
                 FinishCommand.NotifyCanExecuteChanged();
             }
-            Status = "Замер завершён.";
+            Status = "Готово";
         }
-        catch (OperationCanceledException) { Status = "Замер остановлен."; }
+        catch (OperationCanceledException) { Status = "Остановлено"; }
         catch (Exception ex) { Status = null; Main.ShowMessage(ex.Message, error: true); }
         finally
         {
@@ -152,6 +191,8 @@ public sealed partial class MeasureViewModel : PageViewModel
         FinishCommand.NotifyCanExecuteChanged();
     }
 
+    [RelayCommand] private void ToggleAdvanced() => ShowAdvanced = !ShowAdvanced;
+
     [RelayCommand(CanExecute = nameof(CanFinish))]
     private async Task FinishAsync()
     {
@@ -166,8 +207,12 @@ public sealed partial class MeasureViewModel : PageViewModel
                     s.MeasureMode = SelectedMode.Mode;
                     s.GameProcess = SelectedMode.Mode == MeasureMode.Synthetic ? null : runs[0].Conditions.ProcessName;
                     wf.RecordBefore(s, runs);
-                    Main.Strategy.Load(s);
-                    Main.Navigate(Main.Strategy);
+                    if (s.AutoMode) await Main.ApplyRecommendedAsync();
+                    else
+                    {
+                        Main.Strategy.Load(s);
+                        Main.Navigate(Main.Strategy);
+                    }
                     break;
                 case MeasurePhase.After:
                     wf.RecordAfter(s, runs);

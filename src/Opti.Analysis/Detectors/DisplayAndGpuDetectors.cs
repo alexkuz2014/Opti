@@ -22,6 +22,7 @@ public sealed class DisplayLowHzDetector : DetectorBase
                           "Сколько бы FPS ни выдавала игра, вы видите не больше, чем частота экрана. Это самое дешёвое и заметное исправление.",
             Evidence = low.Select(d => $"{d.FriendlyName ?? d.DeviceName}: {d.Width}×{d.Height}, сейчас {d.CurrentHz} Гц, доступно {d.MaxHzAtCurrentResolution} Гц").ToList(),
             FixIds = { FixIds.DisplayMaxHz },
+            Links = { Sources.RefreshRate },
         };
     }
 }

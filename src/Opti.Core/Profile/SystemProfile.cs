@@ -31,6 +31,10 @@ public sealed class SystemProfile
     public NetworkQuality? NetQuality { get; set; }
     public DpcLatencyInfo? Dpc { get; set; }
     public List<GameInfo> Games { get; set; } = new();
+    /// <summary>Устройства с ошибками (нет драйвера, отключены, конфликт).</summary>
+    public List<ProblemDevice> ProblemDevices { get; set; } = new();
+    public ChipsetDriversInfo Chipset { get; set; } = new();
+    public InputInfo Input { get; set; } = new();
 
     /// <summary>Ошибки коллекторов: что не удалось собрать и почему.</summary>
     public List<string> CollectorErrors { get; set; } = new();
@@ -61,6 +65,10 @@ public sealed class OsInfo
     public int Ubr { get; set; }
     /// <summary>Название модифицированной сборки (ReviOS, AtlasOS…), если обнаружена.</summary>
     public string? ModifiedBuild { get; set; }
+    /// <summary>Дата установки Windows (InstallDate в реестре).</summary>
+    public DateTime? InstallDate { get; set; }
+    /// <summary>Windows ждёт перезагрузку для завершения обновлений.</summary>
+    public bool? PendingReboot { get; set; }
 
     [JsonIgnore] public bool IsWindows11 => Build >= 22000;
     /// <summary>Windows 11 24H2 и новее.</summary>
@@ -96,6 +104,8 @@ public sealed class GpuInfo
     public bool DrivesDisplay { get; set; }
     public string? Luid { get; set; }
     public string? PnpDeviceId { get; set; }
+    /// <summary>Видеокарта работает на «Базовом видеоадаптере Майкрософт» — драйвер производителя не установлен.</summary>
+    public bool UsingBasicDriver { get; set; }
 }
 
 public sealed class HybridGraphicsInfo
@@ -147,6 +157,8 @@ public sealed class MemoryInfo
     /// <summary>Предполагаемое число активных каналов, если удалось определить.</summary>
     public int? ChannelsPopulated { get; set; }
     public List<ProcessUsage> TopConsumers { get; set; } = new();
+    /// <summary>Файл подкачки отключён полностью.</summary>
+    public bool? PageFileDisabled { get; set; }
 
     [JsonIgnore] public double AvailablePercent => TotalMb > 0 ? 100.0 * AvailableMb / TotalMb : 0;
 }
@@ -328,4 +340,45 @@ public sealed class GameInfo
     /// </summary>
     public Dictionary<string, int> ExeGpuPreferences { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public bool IsOnline { get; set; }
+}
+
+public sealed class ProblemDevice
+{
+    public string Name { get; set; } = "";
+    public string? DeviceClass { get; set; }
+    /// <summary>ConfigManagerErrorCode: 28 — драйвер не установлен, 22 — отключено, 10 — не запускается…</summary>
+    public int ErrorCode { get; set; }
+    public string? PnpDeviceId { get; set; }
+
+    public string ErrorText => ErrorCode switch
+    {
+        1 => "устройство настроено неправильно",
+        10 => "устройство не запускается",
+        12 => "не хватает ресурсов",
+        18 => "нужно переустановить драйвер",
+        22 => "устройство отключено",
+        24 => "устройство отсутствует или не работает",
+        28 => "драйвер не установлен",
+        31 => "устройство работает неправильно",
+        43 => "устройство сообщило о сбое",
+        _ => $"код ошибки {ErrorCode}",
+    };
+}
+
+public sealed class ChipsetDriversInfo
+{
+    /// <summary>AMD PPM Provisioning File Driver (ставится с драйвером чипсета AMD).</summary>
+    public bool? AmdPpmDriver { get; set; }
+    /// <summary>AMD 3D V-Cache Performance Optimizer (нужен двухкристальным X3D).</summary>
+    public bool? AmdVCacheOptimizer { get; set; }
+}
+
+public sealed class InputInfo
+{
+    /// <summary>«Повышенная точность установки указателя» (ускорение мыши).</summary>
+    public bool? MouseAcceleration { get; set; }
+    /// <summary>HKCU\Control Panel\Accessibility\StickyKeys\Flags.</summary>
+    public int? StickyKeysFlags { get; set; }
+    /// <summary>HKCU\Control Panel\Accessibility\Keyboard Response\Flags (залипание фильтрации ввода).</summary>
+    public int? FilterKeysFlags { get; set; }
 }

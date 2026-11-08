@@ -52,6 +52,15 @@ public static class DetectorCatalog
         new HagsAbCandidateDetector(),
         new TimerResolutionAbCandidateDetector(),
         new WeakHardwareDetector(),
+        new GpuDriverMissingDetector(),
+        new ProblemDevicesDetector(),
+        new MonitorOnIgpuDetector(),
+        new FreshInstallDetector(),
+        new AmdX3dDriverDetector(),
+        new IntelHybridWin10Detector(),
+        new PendingRebootDetector(),
+        new PageFileDisabledDetector(),
+        new InputDetector(),
     };
 
     /// <summary>Запускает все детекторы и сортирует находки по важности.</summary>

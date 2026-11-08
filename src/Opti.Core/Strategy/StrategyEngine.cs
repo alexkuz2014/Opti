@@ -149,6 +149,10 @@ public sealed class StrategyEngine
                 p.Selected = false;
                 p.Notes.Add("Имеет смысл в основном для задержки и плавности.");
                 break;
+            case FixIds.MouseAccelOff when goal != UserGoal.LowLatency:
+                p.Selected = false;
+                p.Notes.Add("Меняет ощущение мыши и на рабочем столе — отмечено по умолчанию только для цели «Минимальная задержка».");
+                break;
             case FixIds.PowerThrottlingOff:
                 if (goal is not (UserGoal.MaxFps or UserGoal.LowLatency)) p.Selected = false;
                 if (profile.Device.IsLaptop) p.Notes.Add("На ноутбуке повышает нагрев и расход батареи.");

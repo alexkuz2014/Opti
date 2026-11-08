@@ -65,6 +65,9 @@ public sealed class ViewModelTests : IDisposable
         public void OpenPath(string pathOrUrl) => Opened.Add(pathOrUrl);
         public Task<bool> ConfirmAsync(string title, string message) => Task.FromResult(ConfirmAnswer);
         public Task<UpdateInfo?> CheckForUpdatesAsync() => Task.FromResult<UpdateInfo?>(new UpdateInfo("9.9.9", "https://example.org", true));
+        public List<Opti.Workflow.Cleanup.ICleanupTarget> Cleanup { get; } = new();
+        public IReadOnlyList<Opti.Workflow.Cleanup.ICleanupTarget> CleanupTargets() => Cleanup;
+        public string? StartupNotice => null;
     }
 
     [Fact]
@@ -221,6 +224,96 @@ public sealed class ViewModelTests : IDisposable
         var apply = (ApplyViewModel)main.CurrentPage;
         Assert.Contains(apply.Log, l => l.Status == "применено");
         Assert.False(svc.Map[ChangeType.Bcd].Read(Targets.Bcd("useplatformclock")).Exists);
+    }
+
+    private static async Task<T> WaitForPage<T>(MainViewModel main, int timeoutMs = 10000) where T : PageViewModel
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (sw.ElapsedMilliseconds < timeoutMs)
+        {
+            if (main.CurrentPage is T t) return t;
+            await Task.Delay(20);
+        }
+        throw new TimeoutException($"Страница {typeof(T).Name} не открылась, сейчас {main.CurrentPage.GetType().Name}");
+    }
+
+    [Fact]
+    public async Task AutoFix_RunsWholeCycleWithoutQuestions()
+    {
+        var svc = new FakeServices(_dir, "laptop-optimus", n => n < 2 ? 8.5 : 7.0);
+        var main = new MainViewModel(svc);
+        main.Home.SelectedGoal = GoalOption.All.First(g => g.Goal == Core.Strategy.UserGoal.Streaming);
+        await main.Home.AnalyzeCommand.ExecuteAsync(null);
+        Assert.True(main.Analysis.CanAutoFix);
+        Assert.Contains("исправлен", main.Analysis.AutoFixText);
+
+        await main.Analysis.AutoFixCommand.ExecuteAsync(null);
+        var cmp = await WaitForPage<CompareViewModel>(main);
+        var s = main.Session!;
+        Assert.True(s.AutoMode);
+        Assert.Equal(MeasureMode.Synthetic, s.MeasureMode);
+        Assert.Equal(svc.Settings.MeasureRuns, s.Before.Count);
+        Assert.Equal(svc.Settings.MeasureRuns, s.After.Count);
+        Assert.Contains(FixIds.DisplayMaxHz, s.AppliedFixIds);
+        Assert.Contains(cmp.Cards, c => c.Name == "Средний FPS" && c.Color == Palette.Good);
+    }
+
+    [Fact]
+    public async Task AutoFix_WithReboot_ContinuesAfterRestart()
+    {
+        var svc = new FakeServices(_dir, "desktop-rtx", n => n < 2 ? 8.5 : 7.0);
+        var main = new MainViewModel(svc);
+        await main.Home.AnalyzeCommand.ExecuteAsync(null);
+        await main.Analysis.AutoFixCommand.ExecuteAsync(null);
+        var apply = await WaitForPage<ApplyViewModel>(main);
+        Assert.True(apply.RebootRequired);
+
+        var s = main.Session!;
+        s.AppliedAt = RebootHelper.LastBootTime.AddMinutes(-2);
+        svc.Workflow.Store.Save(s);
+        var main2 = new MainViewModel(svc);
+        await main2.InitializeAsync();
+        await WaitForPage<CompareViewModel>(main2);
+        Assert.Equal(svc.Settings.MeasureRuns, main2.Session!.After.Count);
+    }
+
+    [Fact]
+    public async Task Measure_DefaultsToSynthetic_WithShortDuration()
+    {
+        var svc = new FakeServices(_dir, "desktop-rtx", _ => 8.0);
+        var main = new MainViewModel(svc);
+        await main.Home.AnalyzeCommand.ExecuteAsync(null);
+        main.Analysis.MeasureBeforeCommand.Execute(null);
+        var m = (MeasureViewModel)main.CurrentPage;
+        Assert.Equal(MeasureMode.Synthetic, m.SelectedMode.Mode);
+        Assert.Equal(svc.Settings.SyntheticDurationSec, m.Duration);
+        Assert.DoesNotContain(m.Modes, x => x.Mode == MeasureMode.PresentMon);
+        m.SelectedMode = m.Modes.First(x => x.Mode == MeasureMode.Game);
+        Assert.Equal(svc.Settings.MeasureDurationSec, m.Duration);
+        Assert.True(m.IsGameMode);
+    }
+
+    [Fact]
+    public async Task Cleanup_EstimatesAndCleansSelected()
+    {
+        var svc = new FakeServices(_dir, "desktop-rtx", _ => 8.0);
+        var root = Directory.CreateDirectory(Path.Combine(_dir, "junk", "temp")).FullName;
+        for (int i = 0; i < 3; i++)
+        {
+            var f = Path.Combine(root, $"f{i}.tmp");
+            File.WriteAllBytes(f, new byte[2048]);
+            File.SetLastWriteTimeUtc(f, DateTime.UtcNow.AddDays(-5));
+        }
+        svc.Cleanup.Add(new Opti.Workflow.Cleanup.FolderCleanupTarget("t", "Временные", "", () => new[] { root }, TimeSpan.FromDays(1)));
+        svc.Cleanup.Add(new Opti.Workflow.Cleanup.FolderCleanupTarget("u", "Не отмечено", "", () => new[] { root }, TimeSpan.FromDays(1), defaultSelected: false));
+        var main = new MainViewModel(svc);
+        await main.Cleanup.EstimateCommand.ExecuteAsync(null);
+        Assert.Equal(6144, main.Cleanup.Items[0].Bytes);
+        Assert.Contains("6 КБ", main.Cleanup.TotalText);
+        Assert.True(main.Cleanup.CleanCommand.CanExecute(null));
+        await main.Cleanup.CleanCommand.ExecuteAsync(null);
+        Assert.Empty(Directory.GetFiles(root));
+        Assert.Contains("Освобождено 6 КБ", main.Cleanup.ResultText);
     }
 
     [Fact]

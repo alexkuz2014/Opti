@@ -70,7 +70,7 @@ public sealed partial class ApplyViewModel : PageViewModel
             Main.Navigate(Main.History);
             return;
         }
-        Main.Navigate(MeasureViewModel.ForAfter(Main));
+        Main.Navigate(MeasureViewModel.ForAfter(Main, auto: s.AutoMode));
     }
 
     [RelayCommand]

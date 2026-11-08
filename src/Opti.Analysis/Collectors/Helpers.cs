@@ -62,6 +62,15 @@ internal static class Reg
         foreach (var n in key.GetValueNames()) yield return (n, key.GetValue(n));
     }
 
+    public static bool KeyExists(string path)
+    {
+        int i = path.IndexOf('\\');
+        var hive = path[..i].ToUpperInvariant() == "HKLM" ? RegistryHive.LocalMachine : RegistryHive.CurrentUser;
+        using var root = RegistryKey.OpenBaseKey(hive, RegistryView.Registry64);
+        using var key = root.OpenSubKey(path[(i + 1)..]);
+        return key is not null;
+    }
+
     public static IEnumerable<string> SubKeys(string path)
     {
         int i = path.IndexOf('\\');

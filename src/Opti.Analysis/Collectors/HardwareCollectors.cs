@@ -117,7 +117,7 @@ public sealed class GpuDisplayCollector : ICollector
     public void Collect(SystemProfile p)
     {
         var adapters = DxgiNative.GetAdapters();
-        var wmi = Wmi.Query("SELECT Name, DriverVersion, DriverDate, PNPDeviceID FROM Win32_VideoController");
+        var wmi = Wmi.Query("SELECT Name, DriverVersion, DriverDate, PNPDeviceID, AdapterCompatibility FROM Win32_VideoController");
         var outputToAdapter = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var a in adapters.GroupBy(a => a.Luid).Select(g => g.First()))
@@ -147,6 +147,24 @@ public sealed class GpuDisplayCollector : ICollector
                 if (hags.Supported) { p.Graphics.HagsSupported = true; p.Graphics.HagsEnabled = hags.Enabled; }
                 else p.Graphics.HagsSupported ??= false;
             }
+        }
+
+        // Видеокарты на «Базовом видеоадаптере Майкрософт»: DXGI показывает их как адаптер Microsoft — берём из WMI
+        foreach (var w in wmi)
+        {
+            var pnp = w.Str("PNPDeviceID") ?? "";
+            var name = w.Str("Name") ?? "";
+            var compat = w.Str("AdapterCompatibility") ?? "";
+            bool basic = name.Contains("Basic Display", StringComparison.OrdinalIgnoreCase) || name.Contains("Базовый видеоадаптер", StringComparison.OrdinalIgnoreCase)
+                         || compat.Contains("Standard display types", StringComparison.OrdinalIgnoreCase) || compat.Contains("Стандартные видеоадаптеры", StringComparison.OrdinalIgnoreCase);
+            if (!basic || !pnp.StartsWith("PCI\\", StringComparison.OrdinalIgnoreCase)) continue;
+            var vendor = GpuClassifier.VendorFromPnp(pnp);
+            p.Gpus.Add(new GpuInfo
+            {
+                Name = name, Vendor = vendor, UsingBasicDriver = true, PnpDeviceId = pnp,
+                DriverVersion = w.Str("DriverVersion"), DriverDate = w.Date("DriverDate"),
+                IsIntegrated = vendor == GpuVendor.Intel, DrivesDisplay = true,
+            });
         }
 
         var targets = DisplayNative.GetTargets();

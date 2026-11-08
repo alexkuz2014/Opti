@@ -25,17 +25,24 @@ public interface IAppServices
     void OpenPath(string pathOrUrl);
     Task<bool> ConfirmAsync(string title, string message);
     Task<UpdateInfo?> CheckForUpdatesAsync();
+    /// <summary>Категории бережной очистки.</summary>
+    IReadOnlyList<Opti.Workflow.Cleanup.ICleanupTarget> CleanupTargets();
+    /// <summary>Сообщение о переносе данных из GameTune (если был перенос).</summary>
+    string? StartupNotice { get; }
 }
 
-/// <summary>Цвета темы для элементов списков (строки — WPF сам превращает их в кисти при привязке).</summary>
+/// <summary>
+/// Смысловые тона статусов. Интерфейс сопоставляет их с кистями системной темы (светлой или тёмной),
+/// поэтому ViewModel'и не знают конкретных цветов.
+/// </summary>
 public static class Palette
 {
-    public const string Good = "#4CC38A";
-    public const string Bad = "#F2766B";
-    public const string Warn = "#F0B54A";
-    public const string Neutral = "#9AA2AE";
-    public const string Accent = "#5B9BFF";
-    public const string Critical = "#F2766B";
-    public const string Important = "#F0B54A";
-    public const string Advice = "#7D8696";
+    public const string Good = "good";
+    public const string Bad = "bad";
+    public const string Warn = "warn";
+    public const string Neutral = "neutral";
+    public const string Accent = "accent";
+    public const string Critical = "bad";
+    public const string Important = "warn";
+    public const string Advice = "neutral";
 }

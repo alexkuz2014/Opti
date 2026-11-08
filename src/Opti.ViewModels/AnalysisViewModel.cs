@@ -18,6 +18,10 @@ public sealed partial class AnalysisViewModel : PageViewModel
     public ObservableCollection<string> Errors { get; } = new();
     [ObservableProperty] private string? _deviceText;
     [ObservableProperty] private string? _summary;
+    [ObservableProperty] private int _recommendedCount;
+    [ObservableProperty] private string? _autoFixText;
+    public bool CanAutoFix => RecommendedCount > 0;
+    partial void OnRecommendedCountChanged(int value) => OnPropertyChanged(nameof(CanAutoFix));
 
     public void Load(TuneSession s, List<string> collectorErrors)
     {
@@ -35,12 +39,23 @@ public sealed partial class AnalysisViewModel : PageViewModel
         ProfileLines.Add($"Питание: {(p.Power.OnAcPower == true ? "от сети" : p.Power.OnAcPower == false ? "от батареи" : "?")}; игр найдено: {p.Games.Count}");
         Errors.Clear();
         foreach (var e in collectorErrors.Concat(p.CollectorErrors).Distinct()) Errors.Add(e);
+        RecommendedCount = Main.RecommendedFixes(s).Count;
+        AutoFixText = RecommendedCount == 0 ? "Автоматически исправлять нечего"
+            : $"{RecommendedCount} {Plural(RecommendedCount, "исправление", "исправления", "исправлений")} · тест до и после · всё откатывается";
         int crit = s.Findings.Count(f => f.Severity == Severity.Critical), imp = s.Findings.Count(f => f.Severity == Severity.Important);
         int hw = s.Findings.Count(f => f.IsHardwareLimitation);
         Summary = s.Findings.Count == 0 ? "Явных проблем не найдено." :
             $"Найдено {s.Findings.Count}: критичных {crit}, важных {imp}, советов {s.Findings.Count - crit - imp}." +
             (hw > 0 ? $" {hw} — ограничения железа, программно не исправляются." : "");
     }
+
+    public static string Plural(int n, string one, string few, string many)
+    {
+        int m10 = n % 10, m100 = n % 100;
+        return m10 == 1 && m100 != 11 ? one : m10 is >= 2 and <= 4 && (m100 < 12 || m100 > 14) ? few : many;
+    }
+
+    [RelayCommand] private Task AutoFixAsync() => Main.StartAutoFlowAsync();
 
     [RelayCommand] private void MeasureBefore() => Main.Navigate(MeasureViewModel.ForBefore(Main));
 

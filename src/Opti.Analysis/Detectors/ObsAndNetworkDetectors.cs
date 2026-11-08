@@ -20,6 +20,7 @@ public sealed class ObsDisplayCaptureHybridDetector : DetectorBase
                           "Это сильно роняет FPS игры и даёт рывки в записи. «Захват игры» берёт кадр прямо из игры и этой проблемы не имеет.",
             Evidence = obs.SceneFilesWithDisplayCapture.Select(f => $"Источник «Захват экрана» в коллекции сцен: {Path.GetFileName(f)}").ToList(),
             FixIds = { FixIds.ObsGameCapture },
+            Links = { Sources.ObsLaptops },
         };
     }
 }
@@ -162,6 +163,7 @@ public sealed class BufferbloatDetector : DetectorBase
             Evidence = { $"Пинг до {q.Target}: в простое {q.IdlePingMs:0} мс, под нагрузкой {loaded:0} мс (+{loaded - q.IdlePingMs:0} мс)" },
             IsHardwareLimitation = true,
             ManualSteps = { "В настройках роутера найдите SQM / Smart Queue Management / Adaptive QoS и включите, указав скорость тарифа ~90 %." },
+            Links = { Sources.Bufferbloat },
         };
     }
 }

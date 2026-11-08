@@ -35,14 +35,17 @@ public sealed partial class MainViewModel : ObservableObject
         Strategy = new StrategyViewModel(this);
         History = new HistoryViewModel(this);
         SettingsPage = new SettingsViewModel(this);
+        Cleanup = new CleanupViewModel(this);
         Nav = new ObservableCollection<NavItem>
         {
-            new() { Title = "Главная", Icon = "⌂", Page = () => Home },
-            new() { Title = "Анализ", Icon = "🔍", Page = () => Analysis, IsEnabled = false },
-            new() { Title = "Стратегия", Icon = "☑", Page = () => Strategy, IsEnabled = false },
-            new() { Title = "Сравнение", Icon = "📊", Page = () => Compare ?? (PageViewModel)Home, IsEnabled = false },
-            new() { Title = "История", Icon = "🕘", Page = () => History },
-            new() { Title = "Настройки", Icon = "⚙", Page = () => SettingsPage },
+            // Значки — глифы шрифта Segoe Fluent Icons / Segoe MDL2 Assets
+            new() { Title = "Главная", Icon = "\uE80F", Page = () => Home },
+            new() { Title = "Анализ", Icon = "\uE9D9", Page = () => Analysis, IsEnabled = false },
+            new() { Title = "Исправления", Icon = "\uE90F", Page = () => Strategy, IsEnabled = false },
+            new() { Title = "Результат", Icon = "\uE9D2", Page = () => Compare ?? (PageViewModel)Home, IsEnabled = false },
+            new() { Title = "Очистка", Icon = "\uEA99", Page = () => Cleanup },
+            new() { Title = "История", Icon = "\uE81C", Page = () => History },
+            new() { Title = "Настройки", Icon = "\uE713", Page = () => SettingsPage },
         };
         _currentPage = Home;
         Nav[0].IsActive = true;
@@ -54,6 +57,7 @@ public sealed partial class MainViewModel : ObservableObject
     public StrategyViewModel Strategy { get; }
     public HistoryViewModel History { get; }
     public SettingsViewModel SettingsPage { get; }
+    public CleanupViewModel Cleanup { get; }
     public CompareViewModel? Compare { get; private set; }
     public ObservableCollection<NavItem> Nav { get; }
     public string WindowTitle => $"Opti {Services.AppVersion}";
@@ -135,9 +139,18 @@ public sealed partial class MainViewModel : ObservableObject
                 Toast = null;
                 if (check is not null)
                 {
-                    var apply = new ApplyViewModel(this, report: null) { PostReboot = check };
-                    apply.FillPostReboot(check);
-                    Navigate(apply);
+                    Session = open;
+                    if (open.AutoMode && check.Healthy && open.Before.Count > 0)
+                    {
+                        ShowMessage($"Перезагрузка выполнена, все изменения на месте ({check.Verified}). Продолжаю: замер после изменений.");
+                        Navigate(MeasureViewModel.ForAfter(this, auto: true));
+                    }
+                    else
+                    {
+                        var apply = new ApplyViewModel(this, report: null) { PostReboot = check };
+                        apply.FillPostReboot(check);
+                        Navigate(apply);
+                    }
                 }
             }
             else if (open.Stage >= SessionStage.Applied)
@@ -146,6 +159,8 @@ public sealed partial class MainViewModel : ObservableObject
             }
             Session = open;
         }
+
+        if (Services.StartupNotice is { } notice) ShowMessage(notice);
 
         if (Services.Settings.CheckForUpdates)
         {
@@ -159,4 +174,43 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     public UserGoal SelectedGoal => Home.SelectedGoal?.Goal ?? Services.Settings.DefaultGoal;
+
+    // ---------------- Автоматический цикл ----------------
+
+    /// <summary>Рекомендованные исправления без спорных (A/B) — то, что применяет автоматический режим.</summary>
+    public IReadOnlyList<Opti.Core.Fixes.IFix> RecommendedFixes(TuneSession s) =>
+        Services.Workflow.BuildPlan(s).Fixes.Where(f => f.Selected && !f.ApplySeparately).Select(f => f.Fix).ToList();
+
+    /// <summary>«Исправить автоматически»: тест → исправления → (перезагрузка) → тест → результат.</summary>
+    public async Task StartAutoFlowAsync()
+    {
+        var s = Session ?? throw new InvalidOperationException("Сначала анализ.");
+        var fixes = RecommendedFixes(s);
+        if (fixes.Count == 0)
+        {
+            ShowMessage("Автоматически исправлять нечего — посмотрите советы в отчёте.");
+            return;
+        }
+        bool reboot = fixes.Any(f => f.RequiresReboot);
+        var msg = $"Opti сделает всё сам:\n\n1. Синтетический тест (~2 мин, на весь экран).\n2. Применит {fixes.Count} рекомендованных исправлений:\n   • " +
+                  string.Join("\n   • ", fixes.Select(f => f.Title)) +
+                  (reboot ? "\n3. Попросит перезагрузку и продолжит сам после входа." : "") +
+                  $"\n{(reboot ? 4 : 3)}. Повторит тест и покажет результат.\n\nПеред изменениями создаётся точка восстановления, всё можно откатить. Начать?";
+        if (!await Services.ConfirmAsync("Исправить автоматически", msg)) return;
+        s.AutoMode = true;
+        Services.Workflow.Store.Save(s);
+        Navigate(s.Before.Count > 0 ? await ApplyRecommendedNavigateAsync(s) : MeasureViewModel.ForBefore(this, auto: true));
+    }
+
+    /// <summary>Шаг автоцикла после замера «до».</summary>
+    public async Task ApplyRecommendedAsync() => Navigate(await ApplyRecommendedNavigateAsync(Session!));
+
+    private async Task<PageViewModel> ApplyRecommendedNavigateAsync(TuneSession s)
+    {
+        var fixes = RecommendedFixes(s);
+        var report = await Task.Run(() => Services.Workflow.Apply(s, fixes, Services.ResumeExePath));
+        Session = s;
+        if (!report.RebootRequired) return MeasureViewModel.ForAfter(this, auto: true);
+        return new ApplyViewModel(this, report);
+    }
 }

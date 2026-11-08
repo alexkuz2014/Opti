@@ -55,6 +55,9 @@ public static class FixCatalog
         new ObsNoAdminFix(),
         new StartupDisableFix(),
         new NetAdapterPowerOffFix(),
+        new MouseAccelOffFix(),
+        new AccessibilityHotkeysOffFix(),
+        new PageFileAutoFix(),
     };
 
     public static IFix? Find(string id) => All().FirstOrDefault(f => string.Equals(f.Id, id, StringComparison.OrdinalIgnoreCase));

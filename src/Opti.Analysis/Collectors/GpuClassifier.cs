@@ -17,6 +17,13 @@ public static class GpuClassifier
            : GpuVendor.Other,
     };
 
+    /// <summary>Производитель по PNPDeviceID вида PCI\VEN_10DE&amp;DEV_…</summary>
+    public static GpuVendor VendorFromPnp(string pnp)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(pnp, @"VEN_([0-9A-Fa-f]{4})");
+        return m.Success ? Vendor(Convert.ToUInt32(m.Groups[1].Value, 16), "") : GpuVendor.Unknown;
+    }
+
     public static bool IsIntegrated(GpuVendor vendor, string name, long dedicatedVramMb)
     {
         var n = name.ToLowerInvariant();

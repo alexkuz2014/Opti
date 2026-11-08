@@ -18,4 +18,7 @@ public static class FixIds
     public const string ObsNoAdmin = "OBS_NO_ADMIN";
     public const string StartupDisable = "STARTUP_DISABLE";
     public const string NetAdapterPowerOff = "NET_ADAPTER_POWER_OFF";
+    public const string MouseAccelOff = "MOUSE_ACCEL_OFF";
+    public const string AccessibilityHotkeysOff = "ACCESSIBILITY_HOTKEYS_OFF";
+    public const string PageFileAuto = "PAGEFILE_AUTO";
 }
