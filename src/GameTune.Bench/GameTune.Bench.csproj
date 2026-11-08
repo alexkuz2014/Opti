@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>GameTune.Bench</AssemblyName>
+    <RootNamespace>GameTune.Bench</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifier Condition="'$(PublishForWindows)' == 'true'">win-x64</RuntimeIdentifier>
+    <SelfContained Condition="'$(PublishForWindows)' == 'true'">true</SelfContained>
+    <PublishSingleFile Condition="'$(PublishForWindows)' == 'true'">true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GameTune.Core\GameTune.Core.csproj" />
+    <ProjectReference Include="..\GameTune.Measure\GameTune.Measure.csproj" />
+    <ProjectReference Include="..\GameTune.Native\GameTune.Native.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Vortice.Direct3D11" Version="3.5.0" />
+    <PackageReference Include="Vortice.D3DCompiler" Version="3.5.0" />
+  </ItemGroup>
+</Project>

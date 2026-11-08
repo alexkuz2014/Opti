@@ -20,8 +20,16 @@ public sealed class MeasurementRun
     public RunConditions Conditions { get; init; } = new();
     /// <summary>Интервалы между кадрами, мс (MsBetweenPresents), без прогрева.</summary>
     public List<double> FrameTimesMs { get; init; } = new();
+    /// <summary>Источник данных: ETW, PresentMon или GameTune.Bench.</summary>
+    public string? Source { get; set; }
     /// <summary>Доля кадров в режиме Independent Flip (0..1), если известна.</summary>
     public double? IndependentFlipShare { get; set; }
+    /// <summary>Режим вывода → число кадров (из PresentMon).</summary>
+    public Dictionary<string, int> PresentModes { get; set; } = new();
+    /// <summary>Средняя оценка задержки ПК (PC latency), мс — если PresentMon/Reflex её отдают.</summary>
+    public double? AvgPcLatencyMs { get; set; }
+    /// <summary>Средняя задержка «конец рендера → экран» (MsUntilDisplayed / DisplayLatency), мс.</summary>
+    public double? AvgDisplayLatencyMs { get; set; }
     public bool ThermalThrottled { get; set; }
     public List<string> Warnings { get; init; } = new();
 

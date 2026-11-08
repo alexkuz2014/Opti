@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>GameTune.Workflow</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GameTune.Core\GameTune.Core.csproj" />
+    <ProjectReference Include="..\GameTune.Analysis\GameTune.Analysis.csproj" />
+    <ProjectReference Include="..\GameTune.Fixes\GameTune.Fixes.csproj" />
+    <ProjectReference Include="..\GameTune.Measure\GameTune.Measure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.1" />
+  </ItemGroup>
+</Project>

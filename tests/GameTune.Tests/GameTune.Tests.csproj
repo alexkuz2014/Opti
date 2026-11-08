@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\src\GameTune.Analysis\GameTune.Analysis.csproj" />
     <ProjectReference Include="..\..\src\GameTune.Fixes\GameTune.Fixes.csproj" />
     <ProjectReference Include="..\..\src\GameTune.Measure\GameTune.Measure.csproj" />
+    <ProjectReference Include="..\..\src\GameTune.Workflow\GameTune.Workflow.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Profiles\*.json" CopyToOutputDirectory="PreserveNewest" />

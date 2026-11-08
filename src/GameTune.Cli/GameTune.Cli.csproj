@@ -14,5 +14,6 @@
     <ProjectReference Include="..\GameTune.Analysis\GameTune.Analysis.csproj" />
     <ProjectReference Include="..\GameTune.Fixes\GameTune.Fixes.csproj" />
     <ProjectReference Include="..\GameTune.Measure\GameTune.Measure.csproj" />
+    <ProjectReference Include="..\GameTune.Workflow\GameTune.Workflow.csproj" />
   </ItemGroup>
 </Project>
