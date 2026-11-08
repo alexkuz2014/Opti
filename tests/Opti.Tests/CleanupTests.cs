@@ -96,7 +96,7 @@ public sealed class CleanupTests : IDisposable
         var est = await t.EstimateAsync();
         Assert.Equal(2, est.Files);
         Assert.Equal(8000, est.Bytes);
-        Assert.Equal(new[] { bigger, big }, t.Details.Select(d => d.Path));
+        Assert.Equal(new[] { Path.GetFullPath(bigger), Path.GetFullPath(big) }, t.Details.Select(d => Path.GetFullPath(d.Path)));
         Assert.Equal(0, (await t.CleanAsync()).Deleted);
         Assert.True(File.Exists(big) && File.Exists(bigger));
         Assert.NotNull(t.ManualUri);
