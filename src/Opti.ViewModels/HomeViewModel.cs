@@ -49,6 +49,19 @@ public sealed partial class HomeViewModel : PageViewModel
     }
 
     [RelayCommand] private void OpenCleanup() => Main.Navigate(Main.Cleanup);
+    [RelayCommand] private void OpenSoftware() => Main.Navigate(Main.Software);
+
+    /// <summary>Драйверы проверяются в составе анализа: если его ещё не было — запускаем.</summary>
+    [RelayCommand]
+    private async Task OpenDriversAsync()
+    {
+        if (Main.Session?.Profile is null)
+        {
+            await AnalyzeAsync();
+            if (Main.Session?.Profile is null) return;
+        }
+        Main.Navigate(Main.Drivers);
+    }
 
     public void Refresh()
     {

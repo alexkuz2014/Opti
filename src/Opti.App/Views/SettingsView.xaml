@@ -9,7 +9,7 @@
         </Style>
     </UserControl.Resources>
     <ScrollViewer>
-        <StackPanel Margin="40,32,40,40" MaxWidth="920" HorizontalAlignment="Left">
+        <StackPanel Margin="{StaticResource PageMargin}" MaxWidth="{StaticResource ContentMaxWidth}" HorizontalAlignment="Left">
             <TextBlock Text="Настройки" Style="{StaticResource PageTitle}"/>
 
             <TextBlock Text="Цель по умолчанию" Style="{StaticResource SectionTitle}"/>

@@ -21,4 +21,6 @@ public static class FixIds
     public const string MouseAccelOff = "MOUSE_ACCEL_OFF";
     public const string AccessibilityHotkeysOff = "ACCESSIBILITY_HOTKEYS_OFF";
     public const string PageFileAuto = "PAGEFILE_AUTO";
+    public const string RegistryPerfDefaults = "REG_PERF_DEFAULTS";
+    public const string RegistrySecurityDefaults = "REG_SECURITY_DEFAULTS";
 }

@@ -42,7 +42,7 @@ public sealed class FindingItem
     public FindingItem(Finding f)
     {
         Finding = f;
-        SeverityText = f.Severity switch { Severity.Critical => "КРИТИЧНО", Severity.Important => "ВАЖНО", _ => "СОВЕТ" };
+        SeverityText = f.Severity switch { Severity.Critical => "критично", Severity.Important => "важно", _ => "совет" };
         Color = f.Severity switch { Severity.Critical => Palette.Critical, Severity.Important => Palette.Important, _ => Palette.Advice };
     }
     public Finding Finding { get; }

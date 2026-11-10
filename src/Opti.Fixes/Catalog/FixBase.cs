@@ -58,6 +58,8 @@ public static class FixCatalog
         new MouseAccelOffFix(),
         new AccessibilityHotkeysOffFix(),
         new PageFileAutoFix(),
+        new RegistryPerfDefaultsFix(),
+        new RegistrySecurityDefaultsFix(),
     };
 
     public static IFix? Find(string id) => All().FirstOrDefault(f => string.Equals(f.Id, id, StringComparison.OrdinalIgnoreCase));

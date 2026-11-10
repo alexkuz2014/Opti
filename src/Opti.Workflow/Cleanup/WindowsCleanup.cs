@@ -70,11 +70,77 @@ public sealed class DeliveryOptimizationTarget : ICleanupTarget
     }
 }
 
+/// <summary>
+/// Точки восстановления (теневые копии). Размер — через WMI; удаляет сама Windows в «Защите системы»,
+/// потому что это откат системы и решать должен человек.
+/// </summary>
+[SupportedOSPlatform("windows")]
+public sealed class RestorePointsTarget : ICleanupTarget
+{
+    public string Id => "restore-points";
+    public string Title => "Точки восстановления (откаты системы)";
+    public string Description => "Снимки системы для отката. Нужны, если после обновления или драйвера что-то сломается. " +
+                                 "Удалить старые: «Защита системы» → «Настроить» → «Удалить» (последняя точка тоже удалится).";
+    public bool DefaultSelected => false;
+    public string? Caution => null;
+    public string? ManualUri => "SystemPropertiesProtection.exe";
+    public string ManualActionText => "Защита системы";
+    public long? WarnAboveBytes => 15L << 30;
+    public string? WarnText => "Точки занимают больше 15 ГБ. Если система работает стабильно, старые можно удалить, а лимит в «Настроить» уменьшить до 5–10 %.";
+
+    public Task<CleanupEstimate> EstimateAsync(CancellationToken ct = default) => Task.Run(() =>
+    {
+        long used = 0; int count = 0;
+        try
+        {
+            using var s = new System.Management.ManagementObjectSearcher("SELECT UsedSpace FROM Win32_ShadowStorage");
+            foreach (var o in s.Get()) used += Convert.ToInt64(o["UsedSpace"]);
+            using var c = new System.Management.ManagementObjectSearcher("SELECT ID FROM Win32_ShadowCopy");
+            count = c.Get().Count;
+        }
+        catch { /* служба теневого копирования недоступна */ }
+        return new CleanupEstimate(used, count);
+    }, ct);
+
+    public Task<CleanupResult> CleanAsync(CancellationToken ct = default) => Task.FromResult(new CleanupResult());
+}
+
 public static class CleanupCatalog
 {
     private static string Local => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
     private static string Win => Environment.GetFolderPath(Environment.SpecialFolder.Windows);
     private static string ProgramData => Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+    private static string Roaming => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+    private static string SystemRoot => Path.GetPathRoot(Win) ?? @"C:\";
+
+    /// <summary>Папка «Загрузки» (может быть перенесена пользователем на другой диск).</summary>
+    [SupportedOSPlatform("windows")]
+    public static string DownloadsDir
+    {
+        get
+        {
+            try
+            {
+                using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders");
+                if (k?.GetValue("{374DE290-123F-4565-9164-39C4925E467B}") is string p && !string.IsNullOrWhiteSpace(p))
+                    return Environment.ExpandEnvironmentVariables(p);
+            }
+            catch { }
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        }
+    }
+
+    /// <summary>Подпапки в корне (C:\NVIDIA\*, C:\AMD\*): сам корень не трогаем.</summary>
+    private static IEnumerable<string> SubDirs(string dir)
+    {
+        if (!Directory.Exists(dir)) return Array.Empty<string>();
+        try { return Directory.GetDirectories(dir); } catch { return Array.Empty<string>(); }
+    }
+
+    private static IEnumerable<string> Under(string dir, Func<string, bool> nameFilter) =>
+        SubDirs(dir).Where(d => nameFilter(Path.GetFileName(d)));
+
+    private static readonly string[] LogExtensions = { ".log", ".cab", ".etl", ".old" };
 
     /// <summary>Подпапки профилей браузеров на основе Chromium: …\User Data\Default|Profile N\{Cache,Code Cache,GPUCache}.</summary>
     private static IEnumerable<string> ChromiumCaches(string userData)
@@ -107,16 +173,43 @@ public static class CleanupCatalog
         new FolderCleanupTarget("shader-cache", "Кеш шейдеров (DirectX, NVIDIA, AMD)", "Скомпилированные шейдеры игр. Помогает, если после обновления драйвера игры стали фризить.",
             () => new[] { Path.Combine(Local, "D3DSCache"), Path.Combine(Local, @"NVIDIA\DXCache"), Path.Combine(Local, @"NVIDIA\GLCache"), Path.Combine(Local, @"AMD\DxCache"), Path.Combine(Local, @"AMD\DxcCache"), Path.Combine(Local, @"AMD\VkCache") },
             TimeSpan.FromDays(1), defaultSelected: false, caution: "Первый запуск каждой игры после очистки будет с подтормаживаниями, пока кеш не наполнится заново."),
-        new FolderCleanupTarget("browser-cache", "Кеш браузеров", "Только кеш Chrome, Edge, Brave и Firefox: пароли, история, вкладки и расширения не затрагиваются.",
+        new FolderCleanupTarget("browser-cache", "Кеш браузеров", "Только кеш Chrome, Edge, Brave, Яндекс, Opera, Vivaldi и Firefox: пароли, история, вкладки и расширения не затрагиваются.",
             () => ChromiumCaches(Path.Combine(Local, @"Google\Chrome\User Data"))
                 .Concat(ChromiumCaches(Path.Combine(Local, @"Microsoft\Edge\User Data")))
                 .Concat(ChromiumCaches(Path.Combine(Local, @"BraveSoftware\Brave-Browser\User Data")))
+                .Concat(ChromiumCaches(Path.Combine(Local, @"Yandex\YandexBrowser\User Data")))
+                .Concat(ChromiumCaches(Path.Combine(Local, @"Vivaldi\User Data")))
+                .Concat(new[] { Path.Combine(Local, @"Opera Software\Opera Stable\Cache"), Path.Combine(Local, @"Opera Software\Opera GX Stable\Cache") })
                 .Concat(Directory.Exists(Path.Combine(Local, @"Mozilla\Firefox\Profiles"))
                     ? Directory.EnumerateDirectories(Path.Combine(Local, @"Mozilla\Firefox\Profiles")).Select(p => Path.Combine(p, "cache2")) : Array.Empty<string>()),
             TimeSpan.FromHours(1), defaultSelected: false, caution: "Закройте браузеры перед очисткой — открытые файлы будут пропущены. Сайты первый раз загрузятся чуть медленнее."),
-        new FolderCleanupTarget("dumps", "Дампы памяти", "Файлы, которые Windows создаёт при синих экранах.",
-            () => new[] { Path.Combine(Win, "Minidump"), Path.Combine(Win, "LiveKernelReports") }, TimeSpan.FromDays(7), defaultSelected: false,
+        new FolderCleanupTarget("dumps", "Дампы памяти", "Файлы, которые Windows и программы создают при сбоях и синих экранах.",
+            () => new[] { Path.Combine(Win, "Minidump"), Path.Combine(Win, "LiveKernelReports"), Path.Combine(Local, "CrashDumps") }, TimeSpan.FromDays(7), defaultSelected: false,
             caution: "Нужны для диагностики синих экранов. Удаляйте, только если сбоев больше нет."),
+        new FolderCleanupTarget("driver-installers", "Распакованные установщики драйверов", "Папки C:\\NVIDIA и C:\\AMD: туда драйверы распаковываются перед установкой и остаются навсегда.",
+            () => SubDirs(Path.Combine(SystemRoot, "NVIDIA")).Concat(SubDirs(Path.Combine(SystemRoot, "AMD"))), TimeSpan.FromDays(7)),
+        new FolderCleanupTarget("windows-logs", "Журналы обслуживания Windows", "Старые журналы установки обновлений и компонентов (CBS, DISM) старше 30 дней.",
+            () => new[] { Path.Combine(Win, @"Logs\CBS"), Path.Combine(Win, @"Logs\DISM"), Path.Combine(Win, @"Logs\MoSetup") }, TimeSpan.FromDays(30),
+            fileFilter: f => LogExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase)),
+        new FolderCleanupTarget("app-caches", "Кеш Discord, Steam, Epic, Spotify, Teams", "Временный кеш интерфейса программ: картинки, веб-страницы, видео. Аккаунты, чаты и игры не затрагиваются.",
+            () => new[] { "Cache", "Code Cache", "GPUCache" }.Select(c => Path.Combine(Roaming, "discord", c))
+                .Concat(new[]
+                {
+                    Path.Combine(Local, @"Steam\htmlcache"), Path.Combine(Local, @"Spotify\Data"),
+                    Path.Combine(Roaming, @"Microsoft\Teams\Cache"), Path.Combine(Roaming, @"Microsoft\Teams\Service Worker\CacheStorage"),
+                })
+                .Concat(Under(Path.Combine(Local, @"EpicGamesLauncher\Saved"), n => n.StartsWith("webcache", StringComparison.OrdinalIgnoreCase))),
+            TimeSpan.FromHours(6), defaultSelected: false, caution: "Закройте эти программы перед очисткой — открытые файлы будут пропущены."),
+        new ManualCleanupTarget("downloads", "Папка «Загрузки»", "Установщики, архивы и файлы, скачанные из интернета. Opti её не очищает — разберите вручную, отсортировав по размеру.",
+            () => new[] { DownloadsDir }, () => DownloadsDir, warnAboveBytes: 5L << 30,
+            warnText: "«Загрузки» весят больше 5 ГБ. Обычно там старые установщики и архивы — их можно удалить, нужное переложите в «Документы»."),
+        new LargeFilesTarget("large-videos", "Тяжёлые видео (больше 1 ГБ)", "Записи игр (OBS, NVIDIA, Xbox Game Bar) и фильмы в «Видео», «Загрузках» и на рабочем столе. Ниже — самые большие; откройте и удалите ненужные.",
+            () => new[]
+            {
+                Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), DownloadsDir,
+                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            }, 1L << 30),
+        new RestorePointsTarget(),
         new ManualCleanupTarget("windows-old", "Предыдущая установка Windows (Windows.old)", "Остаётся после обновления или переустановки с сохранением файлов. Удаляет сама Windows: «Параметры» → «Память» → «Временные файлы».",
             () => new[] { Path.Combine(Path.GetPathRoot(Win)!, "Windows.old") }, "ms-settings:storagesense"),
     };

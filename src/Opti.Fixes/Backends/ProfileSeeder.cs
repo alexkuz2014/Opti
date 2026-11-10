@@ -75,6 +75,10 @@ public static class ProfileSeeder
         if (p.Input.FilterKeysFlags is { } fk) r.Seed(Targets.Reg(AccessibilityHotkeysOffFix.FilterKey, "Flags"), StateValue.Str(fk.ToString()));
         if (p.Memory.PageFileDisabled == true) r.Seed(Targets.Reg(PageFileAutoFix.Key, "PagingFiles"), new StateValue(true, "MultiString", ""));
 
+        foreach (var rule in Opti.Core.Registry.RegistryAuditCatalog.All)
+            if (p.RegistryAudit.TryGetValue(rule.Id, out var rv) && rv is not null)
+                r.Seed(Targets.Reg(rule.Key, rule.ValueName), uint.TryParse(rv, out var dw) ? StateValue.DWord(dw) : StateValue.Str(rv));
+
         var bcd = map[ChangeType.Bcd];
         if (p.Timers.UsePlatformClock is { } upc) bcd.Seed(Targets.Bcd("useplatformclock"), StateValue.Str(upc ? "Yes" : "No"));
         if (p.Timers.UsePlatformTick is { } upt) bcd.Seed(Targets.Bcd("useplatformtick"), StateValue.Str(upt ? "Yes" : "No"));

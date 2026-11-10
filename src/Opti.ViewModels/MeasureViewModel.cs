@@ -44,6 +44,9 @@ public sealed partial class MeasureViewModel : PageViewModel
         _warmup = svc.Settings.MeasureWarmupSec;
         _duration = svc.Settings.MeasureDurationSec;
         ApplyModeDefaults();
+        // Параметры, выбранные на странице настройки автоцикла
+        if (s?.MeasureRuns is { } r) _runs = Math.Clamp(r, 1, 10);
+        if (s?.MeasureDurationSec is { } dur && _selectedMode.Mode == MeasureMode.Synthetic) _duration = Math.Clamp(dur, 10, 300);
         _processName = s?.GameProcess;
         var previous = phase switch
         {

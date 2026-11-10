@@ -116,7 +116,7 @@ public sealed class StrategyEngine
                 planned.Selected = false;
                 planned.Notes.Add("На системном диске включён BitLocker: изменение BCD может запросить ключ восстановления. Подготовьте ключ или приостановите BitLocker.");
             }
-            if (device.IsModifiedOs && fix.Category is FixCategory.Timers or FixCategory.Experimental
+            if (device.IsModifiedOs && fix.Category is FixCategory.Timers or FixCategory.Experimental or FixCategory.Registry
                 || device.IsModifiedOs && fix.Id == FixIds.MpoReset)
             {
                 planned.Selected = false;

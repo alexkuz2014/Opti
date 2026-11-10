@@ -23,10 +23,18 @@ public interface IAppServices
     string ResumeExePath { get; }
     void RestartComputer();
     void OpenPath(string pathOrUrl);
+    /// <summary>Показать файл в Проводнике (выделенным).</summary>
+    void RevealFile(string path) => OpenPath(Path.GetDirectoryName(path) ?? path);
     Task<bool> ConfirmAsync(string title, string message);
     Task<UpdateInfo?> CheckForUpdatesAsync();
     /// <summary>Категории бережной очистки.</summary>
     IReadOnlyList<Opti.Workflow.Cleanup.ICleanupTarget> CleanupTargets();
+    /// <summary>Твики удобства (контекстное меню, Проводник, «Пуск»…).</summary>
+    Opti.Fixes.Services.TweakService Tweaks { get; }
+    /// <summary>Сборка Windows (0 — неизвестно).</summary>
+    int OsBuild => 0;
+    /// <summary>Перезапуск Проводника, чтобы твики вступили в силу без выхода из системы.</summary>
+    void RestartExplorer() { }
     /// <summary>Сообщение о переносе данных из GameTune (если был перенос).</summary>
     string? StartupNotice { get; }
 }

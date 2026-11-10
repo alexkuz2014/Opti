@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Opti.App.Services;
 using Opti.Fixes.Backends;
@@ -25,12 +26,33 @@ public partial class App : Application
             Shutdown(1);
             return;
         }
+        ApplyBrandTheme();
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, _) => Dispatcher.BeginInvoke(ApplyBrandTheme);
         var vm = new MainViewModel(_services);
         var window = new MainWindow { DataContext = vm };
         MainWindow = window;
         window.Show();
         try { await vm.InitializeAsync(); }
         catch (Exception ex) { Log(ex); vm.ShowMessage("Ошибка при запуске: " + ex.Message, error: true); }
+    }
+
+    /// <summary>
+    /// Акцентный текст и ссылки в цветах бренда с достаточным контрастом: на светлом фоне — тёмно-синий,
+    /// на тёмном — светло-бирюзовый. Заливки (кнопки, переключатели) одинаковые в обеих темах.
+    /// </summary>
+    private void ApplyBrandTheme()
+    {
+        bool light = true;
+        try
+        {
+            using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            light = k?.GetValue("AppsUseLightTheme") is not int v || v != 0;
+        }
+        catch { /* оставляем светлую */ }
+        var text = light ? Color.FromRgb(0x0B, 0x5C, 0xD6) : Color.FromRgb(0x4F, 0xD3, 0xF7);
+        Resources["AccentTextFillColorPrimaryBrush"] = new SolidColorBrush(text);
+        Resources["AccentTextFillColorSecondaryBrush"] = new SolidColorBrush(text) { Opacity = 0.9 };
+        Resources["AccentTextFillColorTertiaryBrush"] = new SolidColorBrush(text) { Opacity = 0.8 };
     }
 
     protected override void OnExit(ExitEventArgs e)
