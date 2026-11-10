@@ -32,9 +32,24 @@ public static partial class DriverAdvisor
             return DriverStatus.Generic;
         var maxAge = d.Category == DriverCategory.Display ? GpuMaxAge : OtherMaxAge;
         // Даты 2006/1968 у встроенных драйверов Windows условные — по ним возраст не оценить
-        if (d.Date is { } date && date.Year > 2008 && now - date > maxAge && !d.IsGenericMicrosoft) return DriverStatus.Old;
+        if (d.Date is { } date && date.Year > 2008 && !d.IsGenericMicrosoft)
+        {
+            // Видеокарты, снятые с поддержки: «старый» — только если старее последнего выпущенного драйвера
+            bool old = d.Category == DriverCategory.Display
+                ? Opti.Core.Hardware.GpuSupport.IsDriverOutdated(GpuVendorOf(d), d.DeviceName, date, now, maxAge)
+                : now - date > maxAge;
+            if (old) return DriverStatus.Old;
+        }
         return DriverStatus.Ok;
     }
+
+    private static GpuVendor GpuVendorOf(DriverInfo d) => VendorOf(d) switch
+    {
+        ChipVendor.Nvidia => GpuVendor.Nvidia,
+        ChipVendor.Amd => GpuVendor.Amd,
+        ChipVendor.Intel => GpuVendor.Intel,
+        _ => GpuVendor.Unknown,
+    };
 
     public enum ChipVendor { Unknown, Nvidia, Amd, Intel, Realtek, Qualcomm, MediaTek, Broadcom, Samsung, Asmedia, Marvell }
 

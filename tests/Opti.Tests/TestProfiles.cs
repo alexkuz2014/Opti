@@ -8,7 +8,7 @@ namespace Opti.Tests;
 internal static class TestProfiles
 {
     public static readonly DateTimeOffset Now = new(2026, 11, 8, 12, 0, 0, TimeSpan.FromHours(3));
-    public static readonly string[] All = { "laptop-optimus", "desktop-rtx", "laptop-igpu", "weak-pc", "revios", "fresh-install" };
+    public static readonly string[] All = { "laptop-optimus", "desktop-rtx", "laptop-igpu", "weak-pc", "revios", "fresh-install", "old-gaming-pc" };
 
     public static SystemProfile Load(string name) =>
         OptiJson.Deserialize<SystemProfile>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Profiles", name + ".json")));

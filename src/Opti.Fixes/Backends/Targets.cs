@@ -17,6 +17,9 @@ public static class Targets
     public static string PowerAc(string scheme, string subgroup, string setting) => string.Join(Sep, scheme, subgroup, setting, "AC");
     /// <summary>Параметр сетевого адаптера: «adapterName|AllowComputerToTurnOffDevice».</summary>
     public static string NetAdapter(string adapter, string property) => adapter + Sep + property;
+    /// <summary>Расширенное свойство драйвера сетевой карты по ключевому слову реестра (*EEE и т. п.).</summary>
+    public const string AdvancedPrefix = "adv:";
+    public static string NetAdapterAdvanced(string adapter, string registryKeyword) => adapter + Sep + AdvancedPrefix + registryKeyword;
     /// <summary>Частота экрана: «\\.\DISPLAY1|refresh».</summary>
     public static string DisplayRefresh(string device) => device + Sep + "refresh";
 

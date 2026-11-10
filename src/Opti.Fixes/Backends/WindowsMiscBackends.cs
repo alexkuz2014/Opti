@@ -40,6 +40,15 @@ public sealed class WindowsNetAdapterBackend : IStateBackend
     public StateValue Read(string target)
     {
         var (name, prop) = Split(target);
+        if (prop.StartsWith(Targets.AdvancedPrefix, StringComparison.Ordinal))
+        {
+            var kw = prop[Targets.AdvancedPrefix.Length..];
+            var a = _runner.RunPowerShell($"$p = Get-NetAdapterAdvancedProperty -Name {ProcessRunner.PsQuote(name)} -RegistryKeyword {ProcessRunner.PsQuote(kw)} -ErrorAction SilentlyContinue; " +
+                                          "if ($p) { [string]($p.RegistryValue | Select-Object -First 1) }");
+            if (!a.Ok) throw new IOException(a.StdErr.Trim());
+            var av = a.StdOut.Trim();
+            return av.Length == 0 ? StateValue.Missing : StateValue.Str(av);
+        }
         var r = _runner.RunPowerShell($"(Get-NetAdapterPowerManagement -Name {ProcessRunner.PsQuote(name)}).{prop}");
         if (!r.Ok) throw new IOException(r.StdErr.Trim());
         var v = r.StdOut.Trim();
@@ -49,6 +58,16 @@ public sealed class WindowsNetAdapterBackend : IStateBackend
     public void Write(string target, StateValue value)
     {
         var (name, prop) = Split(target);
+        if (prop.StartsWith(Targets.AdvancedPrefix, StringComparison.Ordinal))
+        {
+            // Свойства не было — возвращать нечего; значение проверяем, чтобы в команду не попало ничего лишнего
+            if (!value.Exists || value.Value is null || !value.Value.All(char.IsLetterOrDigit)) return;
+            var kw = prop[Targets.AdvancedPrefix.Length..];
+            // -NoRestart: без него адаптер перезапускается и сеть пропадает на несколько секунд. Вступает в силу после перезагрузки.
+            var a = _runner.RunPowerShell($"Set-NetAdapterAdvancedProperty -Name {ProcessRunner.PsQuote(name)} -RegistryKeyword {ProcessRunner.PsQuote(kw)} -RegistryValue {ProcessRunner.PsQuote(value.Value)} -NoRestart");
+            if (!a.Ok) throw new IOException(a.StdErr.Trim());
+            return;
+        }
         if (!value.Exists || value.Value is not ("Enabled" or "Disabled")) return;
         var r = _runner.RunPowerShell($"Set-NetAdapterPowerManagement -Name {ProcessRunner.PsQuote(name)} -{prop} {value.Value} -NoRestart");
         if (!r.Ok) throw new IOException(r.StdErr.Trim());
@@ -57,6 +76,12 @@ public sealed class WindowsNetAdapterBackend : IStateBackend
     private static (string, string) Split(string target)
     {
         var (name, prop) = Targets.Split2(target);
+        if (prop.StartsWith(Targets.AdvancedPrefix, StringComparison.Ordinal))
+        {
+            var kw = prop[Targets.AdvancedPrefix.Length..];
+            if (kw.Length == 0 || !kw.All(c => char.IsLetterOrDigit(c) || c == '*')) throw new NotSupportedException($"Свойство адаптера {prop} не поддерживается");
+            return (name, prop);
+        }
         if (!Allowed.Contains(prop)) throw new NotSupportedException($"Свойство адаптера {prop} не поддерживается");
         return (name, prop);
     }

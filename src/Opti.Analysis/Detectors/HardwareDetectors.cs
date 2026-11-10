@@ -172,9 +172,10 @@ public sealed class DiskHealthDetector : DetectorBase
                 Id = "DISK_TRIM_OFF",
                 Title = "TRIM для SSD отключён",
                 Severity = Severity.Advice,
-                Explanation = "Без TRIM скорость записи SSD со временем падает. Включается командой «fsutil behavior set DisableDeleteNotify 0».",
+                Explanation = "Без TRIM SSD не знает, какие блоки свободны: скорость записи со временем падает, а износ растёт. " +
+                              "В Windows TRIM включён по умолчанию — его отключают «оптимизаторы».",
                 Evidence = noTrim.Select(d => $"{d.Model}: TRIM выключен").ToList(),
-                ManualSteps = { "Командная строка от администратора: fsutil behavior set DisableDeleteNotify 0" },
+                FixIds = { Opti.Core.Fixes.FixIds.TrimOn },
             };
     }
 }

@@ -60,6 +60,9 @@ public static class FixCatalog
         new PageFileAutoFix(),
         new RegistryPerfDefaultsFix(),
         new RegistrySecurityDefaultsFix(),
+        new NagleOffFix(),
+        new NetEeeOffFix(),
+        new TrimOnFix(),
     };
 
     public static IFix? Find(string id) => All().FirstOrDefault(f => string.Equals(f.Id, id, StringComparison.OrdinalIgnoreCase));

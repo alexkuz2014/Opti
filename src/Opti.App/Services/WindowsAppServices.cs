@@ -55,7 +55,7 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
     public string ResumeExePath => Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "Opti.exe");
 
     public Task<AnalysisResult> AnalyzeAsync(IProgress<string> progress, CancellationToken ct) =>
-        Task.Run(() => SystemAnalyzer.Collect(SystemAnalyzer.DefaultCollectors(Settings.ObsConfigDir), progress.Report), ct);
+        Task.Run(() => SystemAnalyzer.Collect(SystemAnalyzer.DefaultCollectors(Settings.ObsConfigDir, Settings.NetworkCheckInAnalysis ? Settings.NetworkTarget : null), progress.Report), ct);
 
     public bool IsModeAvailable(MeasureMode mode) => mode switch
     {

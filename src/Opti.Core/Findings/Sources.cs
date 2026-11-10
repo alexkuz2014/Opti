@@ -22,4 +22,10 @@ public static class Sources
     public const string WindowsUpdate = "ms-settings:windowsupdate";
     public const string DisplaySettings = "ms-settings:display";
     public const string MouseSettings = "ms-settings:mousetouchpad";
+    public const string WindowsLifecycle = "https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro";
+    public const string Windows10EndOfSupport = "https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro";
+    public const string TcpAckFrequency = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/registry-entry-control-tcp-acknowledgment-behavior";
+    public const string TcpAutoTuning = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/receive-window-auto-tuning-for-http";
+    public const string WifiSettings = "ms-settings:network-wifi";
+    public const string ProxySettings = "ms-settings:network-proxy";
 }

@@ -1,0 +1,46 @@
+{
+  "label": "Старый игровой ПК: i7-6700 + GTX 1080, Windows 10 без обновлений год, игры на HDD, кабель на 100 Мбит/с, торренты, сетевые «твики»",
+  "device": { "isLaptop": false, "hasBattery": false, "manufacturer": "ASUS", "model": "All Series", "boardManufacturer": "ASUSTeK COMPUTER INC.", "boardProduct": "Z170-A" },
+  "os": { "productName": "Windows 10 Home", "edition": "Core", "displayVersion": "22H2", "build": 19045, "ubr": 6332, "installDate": "2019-03-02T00:00:00", "lastUpdateInstalled": "2025-09-10T00:00:00" },
+  "cpu": { "name": "Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz", "vendor": "Intel", "cores": 4, "threads": 8, "maxClockMhz": 3400 },
+  "gpus": [
+    { "name": "NVIDIA GeForce GTX 1080", "vendor": "Nvidia", "driverVersion": "32.0.15.8157", "driverDate": "2025-10-10T00:00:00", "dedicatedVramMb": 8192, "isIntegrated": false, "drivesDisplay": true }
+  ],
+  "hybrid": { "isHybrid": false },
+  "displays": [ { "deviceName": "\\\\.\\DISPLAY1", "friendlyName": "ASUS VG248", "width": 1920, "height": 1080, "currentHz": 144, "maxHzAtCurrentResolution": 144, "isPrimary": true, "isInternal": false, "adapterName": "NVIDIA GeForce GTX 1080" } ],
+  "memory": {
+    "totalMb": 16300, "availableMb": 9800,
+    "modules": [
+      { "capacityMb": 8192, "ratedSpeed": 2133, "configuredSpeed": 2133, "slot": "DIMM_A2" },
+      { "capacityMb": 8192, "ratedSpeed": 2133, "configuredSpeed": 2133, "slot": "DIMM_B2" }
+    ],
+    "channelsPopulated": 2
+  },
+  "disks": [
+    { "model": "Samsung SSD 850 EVO 250GB", "mediaType": "Ssd", "isSystem": true, "driveLetter": "C:", "driveLetters": [ "C:" ], "sizeGb": 250, "freeGb": 70, "healthStatus": "Healthy", "trimEnabled": false },
+    { "model": "ST2000DM006", "mediaType": "Hdd", "isSystem": false, "driveLetters": [ "D:" ], "sizeGb": 2000, "freeGb": 600, "healthStatus": "Healthy" }
+  ],
+  "power": { "onAcPower": true, "activeSchemeGuid": "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", "acMaxProcessorState": 100, "acCoreParkingMinCores": 100, "availableSchemeGuids": [ "381b4222-f694-41f0-9685-ff5bb260df2e", "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" ] },
+  "timers": {},
+  "security": { "vbsRunning": false, "hvciRunning": false, "bitLockerOnSystemDrive": false },
+  "graphics": { "hagsSupported": true, "hagsEnabled": false, "gameModeEnabled": true, "gameDvrEnabled": false },
+  "background": {
+    "startupItems": [],
+    "heavyProcesses": [
+      { "name": "chrome", "pid": 4120, "workingSetMb": 900, "cpuPercent": 11.5 },
+      { "name": "chrome", "pid": 4188, "workingSetMb": 400, "cpuPercent": 16.0 },
+      { "name": "WmiPrvSE", "pid": 900, "workingSetMb": 40, "cpuPercent": 30.0 }
+    ],
+    "networkHeavyApps": [ "qBittorrent" ]
+  },
+  "network": [
+    { "name": "Ethernet", "description": "Intel(R) Ethernet Connection (2) I219-V", "kind": "Ethernet", "isUp": true, "linkSpeedMbps": 100, "allowComputerToTurnOff": false,
+      "interfaceGuid": "{4D36E972-0000-4000-8000-00AA00BB00CC}", "energySavingKeywords": [ "*EEE", "EEELinkAdvertisement" ], "nagleDisabled": false }
+  ],
+  "netSettings": { "activeVpnAdapters": [ "WireGuard Tunnel" ], "proxyEnabled": false, "tcpAutoTuning": "Disabled" },
+  "netQuality": { "target": "1.1.1.1", "idlePingMs": 38, "idleJitterMs": 4, "packetLossPercent": 10, "gateway": "192.168.1.1", "gatewayPingMs": 0.6, "gatewayJitterMs": 0.2, "gatewayLossPercent": 0 },
+  "games": [
+    { "name": "World of Warcraft", "launcher": "Other", "installDir": "D:\\Games\\World of Warcraft", "executables": [ "D:\\Games\\World of Warcraft\\_retail_\\Wow.exe" ], "isOnline": true },
+    { "name": "Cyberpunk 2077", "launcher": "Steam", "installDir": "D:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077", "executables": [], "isOnline": false }
+  ]
+}

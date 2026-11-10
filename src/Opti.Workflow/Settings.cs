@@ -20,6 +20,8 @@ public sealed class OptiSettings
     /// <summary>Путь к PresentMon.exe. Если пусто — ищется рядом с программой.</summary>
     public string? PresentMonPath { get; set; }
     public string NetworkTarget { get; set; } = "1.1.1.1";
+    /// <summary>Во время анализа коротко пинговать роутер и NetworkTarget (несколько секунд, без нагрузки на канал).</summary>
+    public bool NetworkCheckInAnalysis { get; set; } = true;
     /// <summary>Откатывать изменения, если замер не показал улучшения (принцип 2 ТЗ). Иначе — только пометка.</summary>
     public bool RollbackWhenNoEffect { get; set; }
     /// <summary>Проверять наличие новой версии на GitHub (только уведомление, ничего не скачивается).</summary>

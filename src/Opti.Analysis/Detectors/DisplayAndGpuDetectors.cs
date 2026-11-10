@@ -95,7 +95,9 @@ public sealed class DriverOldDetector : DetectorBase
 
     protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
     {
-        var old = p.Gpus.Where(g => !g.IsSoftware && g.DriverDate is { } d && ctx.Now - d > MaxAge).ToList();
+        // Для видеокарт, снятых с поддержки, возраст драйвера сравнивается с последним выпущенным — см. GPU_LEGACY
+        var old = p.Gpus.Where(g => !g.IsSoftware && g.DriverDate is { } d
+                                    && Opti.Core.Hardware.GpuSupport.IsDriverOutdated(g.Vendor, g.Name, d, ctx.Now, MaxAge)).ToList();
         if (old.Count == 0) yield break;
         var f = new Finding
         {
