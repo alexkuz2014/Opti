@@ -25,11 +25,27 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
         scheduler.CancelLegacy();
         Settings = OptiSettings.Load();
         _journal = new SqliteChangeJournal(OptiPaths.JournalPath);
-        Workflow = new TuneWorkflow(Settings, new SessionStore(), WindowsBackends.Create(), _journal,
+        var backends = WindowsBackends.Create();
+        Workflow = new TuneWorkflow(Settings, new SessionStore(), backends, _journal,
             new WindowsRestorePointService(), scheduler, new WindowsCrashEventSource());
+        Tweaks = new TweakService(backends, _journal);
     }
 
     public TuneWorkflow Workflow { get; }
+    public TweakService Tweaks { get; }
+    public int OsBuild => Environment.OSVersion.Version.Build;
+
+    public void RestartExplorer()
+    {
+        try
+        {
+            foreach (var p in Process.GetProcessesByName("explorer")) { try { p.Kill(); p.WaitForExit(5000); } catch { } }
+            // Обычно Windows перезапускает оболочку сама; если нет — запускаем
+            Thread.Sleep(1500);
+            if (Process.GetProcessesByName("explorer").Length == 0) Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = true });
+        }
+        catch (Exception ex) { MessageBox.Show(ex.Message, "Opti", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    }
     public OptiSettings Settings { get; }
     public IChangeJournal Journal => _journal;
     public string AppVersion => AppInfo.Version;
@@ -55,6 +71,12 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
     public void OpenPath(string pathOrUrl)
     {
         try { Process.Start(new ProcessStartInfo(pathOrUrl) { UseShellExecute = true }); }
+        catch (Exception ex) { MessageBox.Show(ex.Message, "Opti", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    }
+
+    public void RevealFile(string path)
+    {
+        try { Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true }); }
         catch (Exception ex) { MessageBox.Show(ex.Message, "Opti", MessageBoxButton.OK, MessageBoxImage.Warning); }
     }
 

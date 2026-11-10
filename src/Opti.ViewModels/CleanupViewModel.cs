@@ -18,6 +18,11 @@ public sealed partial class CleanupItem : ObservableObject
     public string? Caution => Target.Caution;
     public bool IsManual => Target.ManualUri is not null;
     public bool IsAutomatic => !IsManual;
+    public string ManualActionText => Target.ManualActionText;
+    public ObservableCollection<CleanupDetail> Details { get; } = new();
+    /// <summary>Рекомендация показывается, только когда размер превысил порог (например, «Загрузки» больше 5 ГБ).</summary>
+    public string? Warning => Target.WarnAboveBytes is { } t && Bytes > t ? Target.WarnText : null;
+    partial void OnBytesChanged(long value) => OnPropertyChanged(nameof(Warning));
 
     [ObservableProperty] private bool _isChecked;
     [ObservableProperty] private long _bytes;
@@ -33,6 +38,10 @@ public sealed partial class CleanupViewModel : PageViewModel
     public override string Title => "Очистка";
 
     public ObservableCollection<CleanupItem> Items { get; } = new();
+    /// <summary>Очищается автоматически (с галочками).</summary>
+    public ObservableCollection<CleanupItem> AutoItems { get; } = new();
+    /// <summary>Решает человек: «Загрузки», тяжёлые видео, точки восстановления, Windows.old.</summary>
+    public ObservableCollection<CleanupItem> ManualItems { get; } = new();
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(CleanCommand))] private bool _isBusy;
     [ObservableProperty] private string? _totalText;
     [ObservableProperty] private string? _resultText;
@@ -53,6 +62,7 @@ public sealed partial class CleanupViewModel : PageViewModel
                 var item = new CleanupItem(t);
                 item.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(CleanupItem.IsChecked) or nameof(CleanupItem.Bytes)) UpdateTotal(); };
                 Items.Add(item);
+                (item.IsManual ? ManualItems : AutoItems).Add(item);
             }
         IsBusy = true;
         try
@@ -60,7 +70,14 @@ public sealed partial class CleanupViewModel : PageViewModel
             await Task.WhenAll(Items.Select(async i =>
             {
                 i.SizeText = "…";
-                try { var e = await i.Target.EstimateAsync(); i.Bytes = e.Bytes; i.SizeText = e.Bytes == 0 ? "пусто" : SizeFormat.Bytes(e.Bytes); }
+                try
+                {
+                    var e = await i.Target.EstimateAsync();
+                    i.Bytes = e.Bytes;
+                    i.SizeText = e.Bytes == 0 ? (i.Target is LargeFilesTarget ? "не найдено" : "пусто") : SizeFormat.Bytes(e.Bytes);
+                    i.Details.Clear();
+                    foreach (var d in i.Target.Details) i.Details.Add(d);
+                }
                 catch { i.Bytes = 0; i.SizeText = "нет доступа"; }
                 i.Measured = true;
             }));
@@ -113,6 +130,16 @@ public sealed partial class CleanupViewModel : PageViewModel
     [RelayCommand]
     private void OpenManual(CleanupItem item)
     {
-        if (item.Target.ManualUri is { } uri) Main.Services.OpenPath(uri);
+        if (item.Target.ManualUri is { } uri && uri.Length > 0) Main.Services.OpenPath(uri);
+    }
+
+    [RelayCommand] private void RevealFile(CleanupDetail d) => Main.Services.RevealFile(d.Path);
+
+    /// <summary>Выбрать всё (кроме ручных пунктов) или вернуть выбор по умолчанию.</summary>
+    [RelayCommand]
+    private void SelectAll()
+    {
+        bool all = Items.Where(i => i.IsAutomatic).All(i => i.IsChecked);
+        foreach (var i in Items.Where(i => i.IsAutomatic)) i.IsChecked = all ? i.Target.DefaultSelected : true;
     }
 }

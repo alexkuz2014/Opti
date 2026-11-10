@@ -14,6 +14,42 @@ public sealed partial class AnalysisViewModel : PageViewModel
     public override string Title => "Отчёт анализа";
 
     public ObservableCollection<FindingItem> Findings { get; } = new();
+    private List<FindingItem> _all = new();
+
+    /// <summary>Фильтр списка: null — всё; иначе critical / important / advice / fixable.</summary>
+    [ObservableProperty] private string? _filter;
+    [ObservableProperty] private int _criticalCount;
+    [ObservableProperty] private int _importantCount;
+    [ObservableProperty] private int _adviceCount;
+    [ObservableProperty] private int _fixableCount;
+    public bool FilterCritical { get => Filter == "critical"; set => Filter = value ? "critical" : null; }
+    public bool FilterImportant { get => Filter == "important"; set => Filter = value ? "important" : null; }
+    public bool FilterAdvice { get => Filter == "advice"; set => Filter = value ? "advice" : null; }
+    public bool FilterFixable { get => Filter == "fixable"; set => Filter = value ? "fixable" : null; }
+    public bool IsFiltered => Filter is not null;
+
+    partial void OnFilterChanged(string? value)
+    {
+        OnPropertyChanged(nameof(FilterCritical)); OnPropertyChanged(nameof(FilterImportant));
+        OnPropertyChanged(nameof(FilterAdvice)); OnPropertyChanged(nameof(FilterFixable)); OnPropertyChanged(nameof(IsFiltered));
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        Findings.Clear();
+        foreach (var f in _all.Where(f => Filter switch
+                 {
+                     "critical" => f.Finding.Severity == Severity.Critical,
+                     "important" => f.Finding.Severity == Severity.Important,
+                     "advice" => f.Finding.Severity == Severity.Advice,
+                     "fixable" => f.HasFix,
+                     _ => true,
+                 }))
+            Findings.Add(f);
+    }
+
+    [RelayCommand] private void ClearFilter() => Filter = null;
     public ObservableCollection<string> ProfileLines { get; } = new();
     public ObservableCollection<string> Errors { get; } = new();
     [ObservableProperty] private string? _deviceText;
@@ -25,8 +61,12 @@ public sealed partial class AnalysisViewModel : PageViewModel
 
     public void Load(TuneSession s, List<string> collectorErrors)
     {
-        Findings.Clear();
-        foreach (var f in s.Findings) Findings.Add(new FindingItem(f));
+        _all = s.Findings.Select(f => new FindingItem(f)).ToList();
+        CriticalCount = _all.Count(f => f.Finding.Severity == Severity.Critical);
+        ImportantCount = _all.Count(f => f.Finding.Severity == Severity.Important);
+        AdviceCount = _all.Count(f => f.Finding.Severity == Severity.Advice);
+        FixableCount = _all.Count(f => f.HasFix);
+        if (Filter is null) ApplyFilter(); else Filter = null;
         var p = s.Profile!;
         DeviceText = $"{p.Device.Manufacturer} {p.Device.Model} — {DeviceClassification.From(p).Describe()}";
         ProfileLines.Clear();

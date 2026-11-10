@@ -15,6 +15,8 @@ public enum FixCategory
     Network = 6,
     Timers = 7,
     Experimental = 8,
+    /// <summary>Возврат стандартных значений реестра после «оптимизаторов».</summary>
+    Registry = 9,
 }
 
 public interface IFix

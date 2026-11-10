@@ -61,6 +61,8 @@ public static class DetectorCatalog
         new PendingRebootDetector(),
         new PageFileDisabledDetector(),
         new InputDetector(),
+        new DriverAuditDetector(),
+        new RegistryAuditDetector(),
     };
 
     /// <summary>Запускает все детекторы и сортирует находки по важности.</summary>
