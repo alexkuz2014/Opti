@@ -31,6 +31,10 @@ public partial class App : Application
         var vm = new MainViewModel(_services);
         var window = new MainWindow { DataContext = vm };
         MainWindow = window;
+#if DEV
+        window.Title = "Opti DEV";
+        Services.DevExport.Start(_services, text => Dispatcher.BeginInvoke(() => window.Title = "Opti DEV — " + text));
+#endif
         window.Show();
         try { await vm.InitializeAsync(); }
         catch (Exception ex) { Log(ex); vm.ShowMessage("Ошибка при запуске: " + ex.Message, error: true); }
@@ -57,6 +61,9 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+#if DEV
+        Services.DevExport.Write("выход");
+#endif
         _services?.Dispose();
         base.OnExit(e);
     }
@@ -64,6 +71,9 @@ public partial class App : Application
     private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log(e.Exception);
+#if DEV
+        Services.DevExport.Write("ошибка: " + e.Exception.GetType().Name);
+#endif
         MessageBox.Show("Непредвиденная ошибка: " + e.Exception.Message + "\n\nПодробности записаны в журнал: " + OptiPaths.LogsDir,
             "Opti", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;

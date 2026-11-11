@@ -148,7 +148,7 @@ public sealed class BackgroundCpuHogDetector : DetectorBase
     /// <summary>Сам Opti и то, что он запускает для сбора данных, а также ядро системы.</summary>
     private static readonly HashSet<string> Ignored = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Opti", "opti-cli", "dotnet", "powershell", "pwsh", "conhost", "WmiPrvSE", "cmd", "nvidia-smi", "dxdiag", "bcdedit", "powercfg",
+        "Opti", "Opti.Dev", "opti-cli", "dotnet", "powershell", "pwsh", "conhost", "WmiPrvSE", "cmd", "nvidia-smi", "dxdiag", "bcdedit", "powercfg",
         "System", "Idle", "Registry", "Memory Compression", "dwm", "csrss", "svchost", "explorer", "Taskmgr",
     };
 

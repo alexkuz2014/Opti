@@ -22,7 +22,7 @@ public sealed class EtwPresentCapture : IDisposable
     private const int D3D9PresentStart = 1;
 
     private static readonly HashSet<string> IgnoredProcesses = new(StringComparer.OrdinalIgnoreCase)
-        { "dwm", "explorer", "obs64", "discord", "steamwebhelper", "msedgewebview2", "chrome", "msedge", "firefox", "Opti", "opti" };
+        { "dwm", "explorer", "obs64", "discord", "steamwebhelper", "msedgewebview2", "chrome", "msedge", "firefox", "Opti", "Opti.Dev", "opti" };
 
     private readonly object _lock = new();
     private readonly Dictionary<int, List<double>> _presents = new();

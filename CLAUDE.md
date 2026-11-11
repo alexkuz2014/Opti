@@ -9,7 +9,10 @@ dotnet test                      # 227 тестов, xUnit, ~20 с; работа
 dotnet build src/Opti.Cli        # CLI
 dotnet build src/Opti.App        # WPF; в Linux собирается (EnableWindowsTargeting), но не запускается
 build/publish.sh [версия]        # win-x64 single-file → artifacts/Opti.exe, opti-cli.exe, SHA256SUMS.txt
+DEV=1 build/publish.sh           # + artifacts/Opti.Dev.exe: ведёт dev.zip рядом с exe (Workflow/Dev/DevBundle, App/Services/DevExport, #if DEV)
 ```
+
+win-x64 публикация из Linux работает (~1 мин, exe ~69 МБ). Dev-сборка отличается только константой DEV (`-p:DevBuild=true`, отдельный obj/dev); в Opti.exe кода dev.zip нет. Имя процесса dev-сборки `Opti.Dev` добавлено в списки игнорируемых процессов.
 
 Нужен .NET 10 SDK. В облачном контейнере его нет по умолчанию: `apt-get install -y dotnet-sdk-10.0` (dot.net/builds.dotnet.microsoft.com закрыты прокси, apt работает).
 
