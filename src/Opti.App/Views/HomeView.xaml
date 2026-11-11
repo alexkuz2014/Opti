@@ -1,36 +1,16 @@
 <UserControl x:Class="Opti.App.Views.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="{StaticResource PageMargin}" MaxWidth="{StaticResource ContentMaxWidth}" HorizontalAlignment="Left">
-            <!-- Фирменный баннер: тёмная поверхность с логотипом в обеих темах -->
-            <Border CornerRadius="12" Background="{StaticResource BrandHeroBrush}" ClipToBounds="True">
-                <Grid>
-                    <Ellipse Width="420" Height="420" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,-120,0" IsHitTestVisible="False">
-                        <Ellipse.Fill>
-                            <RadialGradientBrush>
-                                <GradientStop Color="#5519B4F6" Offset="0"/>
-                                <GradientStop Color="#001565FF" Offset="1"/>
-                            </RadialGradientBrush>
-                        </Ellipse.Fill>
-                    </Ellipse>
-                    <DockPanel Margin="28,24,28,26">
-                        <Image DockPanel.Dock="Right" Source="pack://application:,,,/Assets/opti.png" Width="112" Height="112" VerticalAlignment="Center"
-                               Margin="24,0,8,0" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <StackPanel>
-                            <Image Source="pack://application:,,,/Assets/opti-wordmark.png" Height="54" HorizontalAlignment="Left" Margin="-14,-8,0,6"
-                                   RenderOptions.BitmapScalingMode="HighQuality"/>
-                            <TextBlock Text="Найдём, что тормозит" Style="{StaticResource HeroTitle}"/>
-                            <TextBlock Style="{StaticResource HeroText}" MaxWidth="560" HorizontalAlignment="Left" Margin="0,6,0,0"
-                                       Text="Opti проверит компьютер, драйверы и реестр, исправит только то, что действительно мешает, и покажет результат честным замером. Любое изменение можно откатить."/>
-                        </StackPanel>
-                    </DockPanel>
-                </Grid>
-            </Border>
+            <TextBlock Text="Найдём, что тормозит" Style="{StaticResource PageTitle}"/>
+            <TextBlock Style="{StaticResource Secondary}"
+                       Text="Opti проверит компьютер и сеть, исправит только то, что мешает, и покажет результат замером. Любое изменение можно откатить."/>
 
-            <Border Style="{StaticResource Card}" Margin="0,24,0,0" Visibility="{Binding HasOpenSession, Converter={StaticResource BoolToVis}}">
+            <!-- Незавершённая сессия -->
+            <Border Style="{StaticResource Card}" Margin="0,20,0,0" Visibility="{Binding HasOpenSession, Converter={StaticResource BoolToVis}}">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource AccentButton}" Content="Продолжить" Command="{Binding ContinueSessionCommand}" VerticalAlignment="Center" Margin="0"/>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource AccentButton}" Content="Продолжить" Command="{Binding ContinueSessionCommand}" VerticalAlignment="Center" Margin="12,0,0,0"/>
                     <TextBlock Text="&#xE823;" Style="{StaticResource Icon}" Margin="0,0,14,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="Незавершённая сессия" Style="{StaticResource Strong}"/>
@@ -39,67 +19,100 @@
                 </DockPanel>
             </Border>
 
-            <TextBlock Text="Что важнее" Style="{StaticResource SectionTitle}"/>
-            <ListBox Style="{StaticResource ChoiceList}" ItemsSource="{Binding Goals}" SelectedItem="{Binding SelectedGoal}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Width="150">
-                            <TextBlock Text="{Binding Icon}" Style="{StaticResource Icon}" FontSize="20" HorizontalAlignment="Left"
-                                       Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10"/>
-                            <TextBlock Text="{Binding Title}" Style="{StaticResource Strong}"/>
-                            <TextBlock Text="{Binding Description}" Style="{StaticResource Caption}" Margin="0,2,0,0"/>
+            <!-- Главное действие: цель и запуск анализа в одной карточке -->
+            <Border Style="{StaticResource Card}" Margin="0,20,0,0" Padding="20,18,20,20">
+                <StackPanel>
+                    <TextBlock Text="Что для вас важнее" Style="{StaticResource Strong}" Margin="0,0,0,10"/>
+                    <!-- Пять целей всегда в одну строку равной ширины: без «висящей» пятой карточки -->
+                    <ListBox Style="{StaticResource ChoiceList}" ItemsSource="{Binding Goals}" SelectedItem="{Binding SelectedGoal}" Margin="0,0,-8,0"
+                             IsEnabled="{Binding IsIdle}">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Icon}" Style="{StaticResource Icon}" FontSize="18" HorizontalAlignment="Left"
+                                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource Strong}"/>
+                                    <TextBlock Text="{Binding Description}" Style="{StaticResource Caption}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <DockPanel Margin="0,8,0,0">
+                        <Button DockPanel.Dock="Left" Style="{StaticResource AccentButton}" Content="Проанализировать" Padding="28,10" FontSize="15" Command="{Binding AnalyzeCommand}"
+                                Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}"/>
+                        <Button DockPanel.Dock="Left" Content="Отмена" Command="{Binding CancelAnalysisCommand}" Margin="0,0,12,0" VerticalAlignment="Center"
+                                Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock Text="30–60 секунд · только чтение · ничего не меняется" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}"/>
+                        <!-- Ход анализа: на месте кнопки, с номером шага -->
+                        <StackPanel VerticalAlignment="Center" Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}">
+                            <ProgressBar Value="{Binding ProgressValue, Mode=OneWay}" Maximum="{Binding ProgressMax, Mode=OneWay}"
+                                         IsIndeterminate="{Binding ProgressUnknown, Mode=OneWay}" Height="4"/>
+                            <TextBlock Text="{Binding ProgressText}" Style="{StaticResource Caption}" Margin="0,6,0,0"/>
                         </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
 
-            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                <Button Style="{StaticResource AccentButton}" Content="Проанализировать" Padding="24,9" Command="{Binding AnalyzeCommand}"/>
-                <Button Content="Отмена" Command="{Binding CancelAnalysisCommand}" Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}"/>
-            </StackPanel>
-            <StackPanel Margin="0,16,0,0" Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}">
-                <ProgressBar IsIndeterminate="True" Width="360" HorizontalAlignment="Left"/>
-                <TextBlock Text="{Binding ProgressText}" Style="{StaticResource Caption}" Margin="0,8,0,0"/>
-                <TextBlock Text="30–60 секунд, только чтение — ничего не меняется." Style="{StaticResource Caption}"/>
-            </StackPanel>
+            <!-- Изменения Opti, которые сейчас действуют -->
+            <Button Style="{StaticResource CardButton}" Margin="0,8,0,0" Command="{Binding OpenHistoryCommand}"
+                    Visibility="{Binding ActiveChangesText, Converter={StaticResource StrToVis}}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="&#xE76C;" Style="{StaticResource Icon}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Text="&#xE81C;" Style="{StaticResource Icon}" Margin="0,0,14,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                    <StackPanel>
+                        <TextBlock Text="{Binding ActiveChangesText}" Style="{StaticResource Strong}"/>
+                        <TextBlock Text="Посмотреть и откатить можно в «Истории»" Style="{StaticResource Caption}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Button>
 
-            <TextBlock Text="Ещё" Style="{StaticResource SectionTitle}"/>
-            <UniformGrid Columns="3">
-                <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+            <TextBlock Text="Инструменты" Style="{StaticResource SectionTitle}"/>
+            <UniformGrid Columns="2" Margin="0,0,-8,0">
+                <Button Style="{StaticResource CardButton}" Command="{Binding OpenCleanupCommand}">
                     <DockPanel>
-                        <Button DockPanel.Dock="Bottom" Content="Открыть" Command="{Binding OpenCleanupCommand}" HorizontalAlignment="Left" Margin="0,12,0,0"/>
-                        <TextBlock DockPanel.Dock="Top" Text="&#xEA99;" Style="{StaticResource Icon}" FontSize="20" HorizontalAlignment="Left" Margin="0,0,0,10"
-                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="&#xEA99;" Style="{StaticResource Icon}" FontSize="20" Margin="0,0,14,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
                         <StackPanel>
-                            <TextBlock Text="Бережная очистка" Style="{StaticResource Strong}"/>
+                            <TextBlock Text="Очистка" Style="{StaticResource Strong}"/>
                             <TextBlock Text="{Binding DiskText}" Style="{StaticResource Caption}"/>
-                            <TextBlock Text="Места мало — очистка может помочь." Style="{StaticResource Caption}" Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                            <TextBlock Text="Места мало — очистка поможет" Style="{StaticResource Caption}" Foreground="{DynamicResource SystemFillColorCautionBrush}"
                                        Visibility="{Binding DiskLow, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
                     </DockPanel>
-                </Border>
-                <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                </Button>
+                <Button Style="{StaticResource CardButton}" Command="{Binding OpenDriversCommand}" IsEnabled="{Binding IsIdle}">
                     <DockPanel>
-                        <Button DockPanel.Dock="Bottom" Content="Проверить" Command="{Binding OpenDriversCommand}" HorizontalAlignment="Left" Margin="0,12,0,0"/>
-                        <TextBlock DockPanel.Dock="Top" Text="&#xE950;" Style="{StaticResource Icon}" FontSize="20" HorizontalAlignment="Left" Margin="0,0,0,10"
-                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="&#xE950;" Style="{StaticResource Icon}" FontSize="20" Margin="0,0,14,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
                         <StackPanel>
                             <TextBlock Text="Драйверы" Style="{StaticResource Strong}"/>
-                            <TextBlock Text="Видео, сеть, звук, чипсет — со ссылками на официальные сайты." Style="{StaticResource Caption}"/>
+                            <TextBlock Text="Видео, сеть, звук, чипсет — со ссылками на официальные сайты" Style="{StaticResource Caption}"/>
                         </StackPanel>
                     </DockPanel>
-                </Border>
-                <Border Style="{StaticResource Card}" Margin="0">
+                </Button>
+                <Button Style="{StaticResource CardButton}" Command="{Binding OpenTweaksCommand}">
                     <DockPanel>
-                        <Button DockPanel.Dock="Bottom" Content="Открыть" Command="{Binding OpenSoftwareCommand}" HorizontalAlignment="Left" Margin="0,12,0,0"/>
-                        <TextBlock DockPanel.Dock="Top" Text="&#xE71D;" Style="{StaticResource Icon}" FontSize="20" HorizontalAlignment="Left" Margin="0,0,0,10"
-                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="&#xE7FC;" Style="{StaticResource Icon}" FontSize="20" Margin="0,0,14,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                        <StackPanel>
+                            <TextBlock Text="Твики" Style="{StaticResource Strong}"/>
+                            <TextBlock Text="Игры, фоновая нагрузка и удобство — каждый включается и выключается" Style="{StaticResource Caption}"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Button>
+                <Button Style="{StaticResource CardButton}" Command="{Binding OpenSoftwareCommand}">
+                    <DockPanel>
+                        <TextBlock Text="&#xE71D;" Style="{StaticResource Icon}" FontSize="20" Margin="0,0,14,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
                         <StackPanel>
                             <TextBlock Text="Полезные программы" Style="{StaticResource Strong}"/>
-                            <TextBlock Text="От WizTree до Discord — только официальные источники." Style="{StaticResource Caption}"/>
+                            <TextBlock Text="Проверенный софт — только официальные источники" Style="{StaticResource Caption}"/>
                         </StackPanel>
                     </DockPanel>
-                </Border>
+                </Button>
             </UniformGrid>
         </StackPanel>
     </ScrollViewer>

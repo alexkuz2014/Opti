@@ -30,13 +30,6 @@
                 <GradientStop Color="#2B77FF" Offset="0"/>
                 <GradientStop Color="#2CC6FA" Offset="1"/>
             </LinearGradientBrush>
-            <!-- Тёмная «баннерная» поверхность — одинаковая в светлой и тёмной теме -->
-            <LinearGradientBrush x:Key="BrandHeroBrush" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#050A18" Offset="0"/>
-                <GradientStop Color="#081833" Offset="0.6"/>
-                <GradientStop Color="#0A2A55" Offset="1"/>
-            </LinearGradientBrush>
-
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
             <c:InverseBoolToVisibilityConverter x:Key="InvBoolToVis"/>
             <c:StringToVisibilityConverter x:Key="StrToVis"/>
@@ -100,20 +93,6 @@
             <Style x:Key="Mono" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
                 <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
                 <Setter Property="FontSize" Value="11.5"/>
-            </Style>
-
-            <!-- Текст на тёмном фирменном баннере -->
-            <Style x:Key="HeroTitle" TargetType="TextBlock">
-                <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
-                <Setter Property="FontSize" Value="26"/>
-                <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Foreground" Value="#F4F8FF"/>
-                <Setter Property="TextWrapping" Value="Wrap"/>
-            </Style>
-            <Style x:Key="HeroText" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="#B4C3DB"/>
-                <Setter Property="TextWrapping" Value="Wrap"/>
-                <Setter Property="LineHeight" Value="20"/>
             </Style>
 
             <!-- Поверхности -->
@@ -348,6 +327,89 @@
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.4"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Карточка-кнопка: вся плитка нажимается (разделы на главной) -->
+            <Style x:Key="CardButton" TargetType="Button">
+                <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Margin" Value="0,0,8,8"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1" CornerRadius="{StaticResource RadiusCard}" Padding="16,14">
+                                <ContentPresenter/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource CardBackgroundFillColorSecondaryBrush}"/>
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ControlStrongStrokeColorDefaultBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Раскрывающаяся карточка. Свой шаблон вместо системного: заголовок растягивается на всю ширину,
+                 длинный текст переносится, плашка справа стоит ровно, нажимается вся строка заголовка. -->
+            <Style TargetType="Expander">
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Expander">
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1" CornerRadius="{StaticResource RadiusCard}">
+                                <DockPanel>
+                                    <ToggleButton DockPanel.Dock="Top" Cursor="Hand" FocusVisualStyle="{StaticResource FocusRing}"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border x:Name="Hb" Background="Transparent" Padding="16,12" CornerRadius="7">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Hb" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                        <DockPanel>
+                                            <TextBlock x:Name="Chevron" DockPanel.Dock="Right" Text="&#xE70D;" Style="{StaticResource Icon}" FontSize="11" Margin="14,0,0,0"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="False" VerticalAlignment="Center">
+                                                <ContentPresenter.Resources>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="TextWrapping" Value="Wrap"/>
+                                                    </Style>
+                                                </ContentPresenter.Resources>
+                                            </ContentPresenter>
+                                        </DockPanel>
+                                    </ToggleButton>
+                                    <ContentPresenter x:Name="ExpandSite" Visibility="Collapsed" Margin="16,2,16,14"/>
+                                </DockPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsExpanded" Value="True">
+                                    <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="Chevron" Property="Text" Value="&#xE70E;"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>

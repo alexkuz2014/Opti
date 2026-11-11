@@ -34,6 +34,7 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
     public TuneWorkflow Workflow { get; }
     public TweakService Tweaks { get; }
     public int OsBuild => Environment.OSVersion.Version.Build;
+    public int AnalysisStepCount => SystemAnalyzer.DefaultCollectors(null, Settings.NetworkCheckInAnalysis ? Settings.NetworkTarget : null).Count;
 
     public void RestartExplorer()
     {

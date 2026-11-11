@@ -101,6 +101,14 @@ public sealed partial class AnalysisViewModel : PageViewModel
 
     [RelayCommand] private Task AutoFixAsync() => Main.StartAutoFlowAsync();
 
+    /// <summary>Повторный анализ с той же целью — после ручных шагов (драйверы, обновления, кабель).</summary>
+    [RelayCommand]
+    private async Task ReanalyzeAsync()
+    {
+        Main.Navigate(Main.Home);
+        if (Main.Home.AnalyzeCommand.CanExecute(null)) await Main.Home.AnalyzeCommand.ExecuteAsync(null);
+    }
+
     [RelayCommand] private void MeasureBefore() => Main.Navigate(MeasureViewModel.ForBefore(Main));
 
     [RelayCommand]

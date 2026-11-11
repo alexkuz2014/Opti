@@ -17,8 +17,15 @@ public sealed partial class HomeViewModel : PageViewModel
     public IReadOnlyList<GoalOption> Goals => GoalOption.All;
 
     [ObservableProperty] private GoalOption? _selectedGoal;
-    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))] private bool _isAnalyzing;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))] [NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isAnalyzing;
+    public bool IsIdle => !IsAnalyzing;
     [ObservableProperty] private string? _progressText;
+    /// <summary>Номер текущего шага анализа и их общее число; если число неизвестно — полоса «бегущая».</summary>
+    [ObservableProperty] private double _progressValue;
+    public double ProgressMax => Math.Max(1, Main.Services.AnalysisStepCount);
+    public bool ProgressUnknown => Main.Services.AnalysisStepCount <= 0;
+    /// <summary>«Действует 5 изменений Opti» — или null, если Opti ничего не менял.</summary>
+    [ObservableProperty] private string? _activeChangesText;
     [ObservableProperty] private string? _openSessionText;
     [ObservableProperty] private bool _hasOpenSession;
 
@@ -50,6 +57,9 @@ public sealed partial class HomeViewModel : PageViewModel
 
     [RelayCommand] private void OpenCleanup() => Main.Navigate(Main.Cleanup);
     [RelayCommand] private void OpenSoftware() => Main.Navigate(Main.Software);
+    [RelayCommand] private void OpenTweaks() => Main.Navigate(Main.Tweaks);
+    [RelayCommand] private void OpenHistory() => Main.Navigate(Main.History);
+    public override void OnShown() => Refresh();
 
     /// <summary>Драйверы проверяются в составе анализа: если его ещё не было — запускаем.</summary>
     [RelayCommand]
@@ -77,6 +87,13 @@ public sealed partial class HomeViewModel : PageViewModel
             SessionStage.Compared => "Сравнение готово.",
             _ => null,
         };
+        try
+        {
+            int active = Main.Services.Journal.GetAll().Where(r => !r.RolledBack).Select(r => r.FixId).Distinct().Count();
+            ActiveChangesText = active == 0 ? null
+                : $"{AnalysisViewModel.Plural(active, "Действует", "Действуют", "Действует")} {active} {AnalysisViewModel.Plural(active, "изменение", "изменения", "изменений")} Opti";
+        }
+        catch { ActiveChangesText = null; }
     }
 
     private bool CanAnalyze() => !IsAnalyzing;
@@ -88,7 +105,14 @@ public sealed partial class HomeViewModel : PageViewModel
         _cts = new CancellationTokenSource();
         try
         {
-            var progress = new Progress<string>(s => ProgressText = "Собираю данные: " + s + "…");
+            int step = 0, total = Main.Services.AnalysisStepCount;
+            ProgressValue = 0;
+            var progress = new Progress<string>(s =>
+            {
+                step++;
+                ProgressValue = Math.Min(step, ProgressMax);
+                ProgressText = total > 0 ? $"Шаг {Math.Min(step, total)} из {total}: {s}…" : $"Собираю данные: {s}…";
+            });
             var result = await Main.Services.AnalyzeAsync(progress, _cts.Token);
             var session = Main.Services.Workflow.StartSession(result, SelectedGoal?.Goal ?? Main.Services.Settings.DefaultGoal);
             Main.Session = session;

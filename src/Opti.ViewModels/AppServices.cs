@@ -33,6 +33,8 @@ public interface IAppServices
     Opti.Fixes.Services.TweakService Tweaks { get; }
     /// <summary>Сборка Windows (0 — неизвестно).</summary>
     int OsBuild => 0;
+    /// <summary>Сколько шагов в анализе (для полосы прогресса); 0 — неизвестно.</summary>
+    int AnalysisStepCount => 0;
     /// <summary>Перезапуск Проводника, чтобы твики вступили в силу без выхода из системы.</summary>
     void RestartExplorer() { }
     /// <summary>Сообщение о переносе данных из GameTune (если был перенос).</summary>

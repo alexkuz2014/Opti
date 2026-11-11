@@ -117,6 +117,16 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Toast = text;
         ToastColor = error ? Palette.Bad : Palette.Accent;
+        // Обычное сообщение гаснет само; ошибку закрывает пользователь, чтобы успеть прочитать
+        int version = ++_toastVersion;
+        if (!error) _ = HideToastLaterAsync(version, text);
+    }
+
+    private int _toastVersion;
+    private async Task HideToastLaterAsync(int version, string text)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(Math.Clamp(4 + text.Length / 25.0, 5, 12)));
+        if (version == _toastVersion) Toast = null;
     }
 
     [RelayCommand] private void CloseToast() => Toast = null;
