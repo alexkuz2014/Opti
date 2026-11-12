@@ -82,7 +82,11 @@ public sealed class WindowsNetAdapterBackend : IStateBackend
             if (!rr.Ok) throw new IOException(rr.StdErr.Trim());
             return;
         }
-        var r = _runner.RunPowerShell($"Set-NetAdapterPowerManagement -Name {ProcessRunner.PsQuote(name)} -{prop} {value.Value} -NoRestart");
+        // AllowComputerToTurnOffDevice — не параметр командлета, а свойство объекта: меняем его и передаём объект обратно.
+        // Остальные (SelectiveSuspend, WakeOnMagicPacket, WakeOnPattern) — обычные параметры.
+        var r = prop.Equals("AllowComputerToTurnOffDevice", StringComparison.OrdinalIgnoreCase)
+            ? _runner.RunPowerShell($"$pm = Get-NetAdapterPowerManagement -Name {ProcessRunner.PsQuote(name)}; $pm.AllowComputerToTurnOffDevice = '{value.Value}'; $pm | Set-NetAdapterPowerManagement -NoRestart")
+            : _runner.RunPowerShell($"Set-NetAdapterPowerManagement -Name {ProcessRunner.PsQuote(name)} -{prop} {value.Value} -NoRestart");
         if (!r.Ok) throw new IOException(r.StdErr.Trim());
     }
 

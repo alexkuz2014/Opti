@@ -22,9 +22,10 @@ public sealed partial class ApplyViewModel : PageViewModel
             Log.Add(new LogItem
             {
                 Title = title,
-                Status = r.Outcome switch { FixOutcome.Applied => "применено", FixOutcome.Failed => "ошибка: " + r.Error, FixOutcome.NothingToChange => "уже в нужном состоянии", _ => "пропущено" },
+                Status = r.Outcome switch { FixOutcome.Applied => "применено", FixOutcome.Failed => "не применилось", FixOutcome.NothingToChange => "уже в нужном состоянии", _ => "пропущено" },
                 Color = r.Outcome switch { FixOutcome.Applied => Palette.Good, FixOutcome.Failed => Palette.Bad, _ => Palette.Neutral },
-                Details = r.Changes.Select(c => $"{c.Type} {c.Target}: {c.Before} → {c.After}").ToList(),
+                Details = (r.Outcome == FixOutcome.Failed && r.Error is not null ? new[] { "Причина: " + r.Error } : Array.Empty<string>())
+                    .Concat(r.Changes.Select(c => $"{c.Type} {c.Target}: {c.Before} → {c.After}")).ToList(),
             });
         }
         Headline = report.Results.Any(r => r.Outcome == FixOutcome.Failed)

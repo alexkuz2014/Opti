@@ -24,7 +24,8 @@ public sealed class DriftService
     public IReadOnlyList<DriftItem> Check()
     {
         var result = new List<DriftItem>();
-        var latest = _journal.GetAll().Where(r => !r.RolledBack)
+        // Файлы (сцены OBS и т. п.) программа-владелец переписывает сама при каждом запуске — это не «сброс»
+        var latest = _journal.GetAll().Where(r => !r.RolledBack && r.Type != ChangeType.File)
             .GroupBy(r => (r.Type, Target: r.Target.ToLowerInvariant()))
             .Select(g => g.OrderBy(r => r.Id).Last());
         foreach (var r in latest)

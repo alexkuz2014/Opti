@@ -10,14 +10,15 @@ public sealed partial class HomeViewModel : PageViewModel
 
     public HomeViewModel(MainViewModel main) : base(main)
     {
-        _selectedGoal = GoalOption.All.First(g => g.Goal == main.Services.Settings.DefaultGoal);
+        // Если в настройках выбрана цель не из трёх пресетов («Стрим», «Тихо»), ничего не подсвечиваем — будет использована она
+        _selectedGoal = GoalOption.Presets.FirstOrDefault(g => g.Goal == main.Services.Settings.DefaultGoal);
     }
 
     public override string Title => "Главная";
-    public IReadOnlyList<GoalOption> Goals => GoalOption.All;
+    public IReadOnlyList<GoalOption> Goals => GoalOption.Presets;
 
     [ObservableProperty] private GoalOption? _selectedGoal;
-    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))] [NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isAnalyzing;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))] [NotifyCanExecuteChangedFor(nameof(OptimizeCommand))] [NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isAnalyzing;
     public bool IsIdle => !IsAnalyzing;
     [ObservableProperty] private string? _progressText;
     /// <summary>Номер текущего шага анализа и их общее число; если число неизвестно — полоса «бегущая».</summary>
@@ -107,14 +108,18 @@ public sealed partial class HomeViewModel : PageViewModel
         {
             var svc = new Opti.Fixes.Services.DriftService(Main.Services.Workflow.BackendsForRollback, Main.Services.Journal);
             _drift = svc.Check();
-            int total = Main.Services.Journal.GetAll().Where(r => !r.RolledBack).Select(r => (r.Type, r.Target)).Distinct().Count();
+            int total = Main.Services.Journal.GetAll().Where(r => !r.RolledBack && r.Type != Opti.Core.Fixes.ChangeType.File).Select(r => (r.Type, r.Target)).Distinct().Count();
             DriftText = _drift.Count == 0 ? null
                 : $"{_drift.Count} из {total} настроек, которые менял Opti, изменились: {string.Join(", ", _drift.Select(d => Short(d.Record)).Distinct().Take(3))}. Обычно это обновление Windows или установка драйвера.";
         }
         catch { DriftText = null; }
     }
 
-    private static string Short(Opti.Core.Fixes.ChangeRecord r) => Opti.Core.Fixes.FixIds.Title(r.FixId);
+    private string Short(Opti.Core.Fixes.ChangeRecord r)
+    {
+        var t = Opti.Core.Fixes.FixIds.Title(r.FixId);
+        return t != r.FixId ? t : Main.Services.Workflow.Catalog.FirstOrDefault(f => f.Id == r.FixId)?.Title ?? t;
+    }
 
     [RelayCommand]
     private void RestoreDrift()
@@ -155,6 +160,32 @@ public sealed partial class HomeViewModel : PageViewModel
             IsAnalyzing = false;
             ProgressText = null;
         }
+    }
+
+    /// <summary>
+    /// «Оптимизировать» — всё одной кнопкой: анализ → быстрый тест → рекомендованные исправления (с точкой восстановления) →
+    /// перезагрузка, если нужна → повторный тест → результат. Применяется только то, что отмечено в плане по умолчанию:
+    /// рискованное, спорное и требующее выбора остаётся на усмотрение пользователя в «Исправлениях».
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanAnalyze))]
+    private async Task OptimizeAsync()
+    {
+        var before = Main.Session;
+        await AnalyzeAsync();
+        var s = Main.Session;
+        if (s?.Profile is null || ReferenceEquals(s, before)) return;      // анализ отменён или не удался
+        var fixes = Main.RecommendedFixes(s);
+        if (fixes.Count == 0)
+        {
+            Main.ShowMessage("Автоматически исправлять нечего. Ниже — что можно сделать вручную.");
+            return;
+        }
+        s.AutoFixIds = fixes.Select(f => f.Id).ToList();
+        s.SkipMeasure = false;
+        s.MeasureRuns = 2;
+        s.MeasureDurationSec = 20;
+        try { await Main.RunAutoFlowAsync(s); }
+        catch (Exception ex) { Main.ShowMessage(ex.Message, error: true); }
     }
 
     [RelayCommand] private void CancelAnalysis() => _cts?.Cancel();

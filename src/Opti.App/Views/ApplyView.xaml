@@ -52,7 +52,7 @@
                             <ItemsControl ItemsSource="{Binding Details}" Margin="18,4,0,4">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding}" Style="{StaticResource Mono}" Margin="0,1"/>
+                                        <TextBlock Text="{Binding}" Style="{StaticResource Mono}" Margin="0,1" TextWrapping="Wrap"/>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

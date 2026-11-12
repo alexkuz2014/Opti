@@ -61,7 +61,6 @@
                 <Image Source="pack://application:,,,/Assets/opti.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality"/>
                 <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="Opti" FontFamily="{StaticResource DisplayFont}" FontSize="19" FontWeight="Bold"/>
-                    <TextBlock Text="диагностика · исправление · замер" Style="{StaticResource Caption}" FontSize="10.5"/>
                 </StackPanel>
             </StackPanel>
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="22,0,0,4">

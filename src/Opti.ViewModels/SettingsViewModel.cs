@@ -29,7 +29,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private void Reload()
     {
         var s = Main.Services.Settings;
-        DefaultGoal = GoalOption.All.First(g => g.Goal == s.DefaultGoal);
+        DefaultGoal = GoalOption.All.FirstOrDefault(g => g.Goal == s.DefaultGoal) ?? GoalOption.All[1];
         MeasureRuns = s.MeasureRuns;
         MeasureDuration = s.MeasureDurationSec;
         MeasureWarmup = s.MeasureWarmupSec;

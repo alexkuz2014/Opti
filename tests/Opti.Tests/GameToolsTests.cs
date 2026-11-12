@@ -559,6 +559,39 @@ public class GameToolsTests
         Assert.True(card.Split('\n').Length <= 20);
     }
 
+    // ---------- Находки первого запуска на Windows ----------
+
+    [Fact]
+    public void PowerShellError_IsReadableInsteadOfClixml()
+    {
+        const string raw = "#< CLIXML\r\n<Objs Version=\"1.1.0.1\" xmlns=\"http://schemas.microsoft.com/powershell/2004/04\"><S S=\"Error\">Set-NetAdapterPowerManagement : Не удается найти параметр, соответствующий имени параметра \"AllowComputerToTurnOffDevic_x000D__x000A_</S><S S=\"Error\">e\"._x000D__x000A_</S><S S=\"Error\">строка:1 знак:165_x000D__x000A_</S><S S=\"Error\">+ ... owerManagement -Name 'Ethernet' -AllowComputerToTurnOffDevice Disable ..._x000D__x000A_</S><S S=\"Error\">    + CategoryInfo          : InvalidArgument_x000D__x000A_</S></Objs>";
+        var clean = ProcessRunner.CleanPowerShellError(raw);
+        Assert.Equal("Set-NetAdapterPowerManagement : Не удается найти параметр, соответствующий имени параметра \"AllowComputerToTurnOffDevice\".", clean);
+        Assert.Equal("обычная ошибка", ProcessRunner.CleanPowerShellError("  обычная ошибка \r\n"));
+        Assert.Equal("", ProcessRunner.CleanPowerShellError(""));
+    }
+
+    [Fact]
+    public void Drift_IgnoresFilesRewrittenByTheirOwner()
+    {
+        var reg = Opti.Fixes.Backends.InMemoryBackend.CreateRegistry(out var map);
+        var journal = new Opti.Fixes.Journal.InMemoryChangeJournal();
+        var ctx = new ChangeContext(reg, journal, "s", FixIds.ObsGameCapture, new SystemProfile());
+        map[ChangeType.File].Seed("scene.json", StateValue.Str("old"));
+        ctx.Set(ChangeType.File, "scene.json", StateValue.Str("new"));
+        map[ChangeType.File].Seed("scene.json", StateValue.Str("rewritten by OBS"));   // OBS сохраняет сцену при каждом запуске
+        Assert.Empty(new Opti.Fixes.Services.DriftService(reg, journal).Check());
+    }
+
+    [Theory]
+    [InlineData(24, 250, 75)]      // 250 FPS → нагрузка втрое выше
+    [InlineData(24, 100, 24)]      // слабому ПК базовая нагрузка
+    [InlineData(24, 110, 24)]
+    [InlineData(24, 5000, 1500)]
+    [InlineData(3000, 400, 4000)]  // потолок
+    public void BenchLoad_ScalesTowardsTargetFps(double baseLoad, double fps, double expected) =>
+        Assert.Equal(expected, Opti.Workflow.Measuring.SyntheticRunner.ScaleLoad(baseLoad, fps));
+
     private static class FixCatalogHelper
     {
         public static EvidenceLevel Level(string id) => Opti.Fixes.Catalog.FixCatalog.Find(id)!.Evidence;

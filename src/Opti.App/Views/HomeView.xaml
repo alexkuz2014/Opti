@@ -5,7 +5,7 @@
         <StackPanel Margin="{StaticResource PageMargin}" MaxWidth="{StaticResource ContentMaxWidth}" HorizontalAlignment="Left">
             <TextBlock Text="Найдём, что тормозит" Style="{StaticResource PageTitle}"/>
             <TextBlock Style="{StaticResource Secondary}"
-                       Text="Opti проверит компьютер и сеть, исправит только то, что мешает, и покажет результат замером. Любое изменение можно откатить."/>
+                       Text="Одна кнопка: Opti проверит компьютер, исправит то, что мешает, и покажет результат."/>
 
             <!-- Незавершённая сессия -->
             <Border Style="{StaticResource Card}" Margin="0,20,0,0" Visibility="{Binding HasOpenSession, Converter={StaticResource BoolToVis}}">
@@ -32,8 +32,8 @@
             <!-- Главное действие: цель и запуск анализа в одной карточке -->
             <Border Style="{StaticResource Card}" Margin="0,20,0,0" Padding="20,18,20,20">
                 <StackPanel>
-                    <TextBlock Text="Что для вас важнее" Style="{StaticResource Strong}" Margin="0,0,0,10"/>
-                    <!-- Пять целей всегда в одну строку равной ширины: без «висящей» пятой карточки -->
+                    <TextBlock Text="Режим" Style="{StaticResource Strong}" Margin="0,0,0,10"/>
+                    <!-- Три пресета в одну строку равной ширины -->
                     <ListBox Style="{StaticResource ChoiceList}" ItemsSource="{Binding Goals}" SelectedItem="{Binding SelectedGoal}" Margin="0,0,-8,0"
                              IsEnabled="{Binding IsIdle}">
                         <ListBox.ItemsPanel>
@@ -54,11 +54,14 @@
                     </ListBox>
 
                     <DockPanel Margin="0,8,0,0">
-                        <Button DockPanel.Dock="Left" Style="{StaticResource AccentButton}" Content="Проанализировать" Padding="28,10" FontSize="15" Command="{Binding AnalyzeCommand}"
-                                Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}"/>
+                        <Button DockPanel.Dock="Left" Style="{StaticResource AccentButton}" Content="Оптимизировать" Padding="32,11" FontSize="15" Command="{Binding OptimizeCommand}"
+                                Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}"
+                                ToolTip="Проверка → быстрый тест → безопасные исправления → повторный тест. Всё откатывается"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Только проверить" Command="{Binding AnalyzeCommand}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}" ToolTip="Найти проблемы и ничего не менять"/>
                         <Button DockPanel.Dock="Left" Content="Отмена" Command="{Binding CancelAnalysisCommand}" Margin="0,0,12,0" VerticalAlignment="Center"
                                 Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}"/>
-                        <TextBlock Text="30–60 секунд · только чтение · ничего не меняется" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0"
+                        <TextBlock Text="Opti сам найдёт проблемы, исправит безопасное и покажет результат. Около 3 минут, всё откатывается" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0"
                                    Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}"/>
                         <!-- Ход анализа: на месте кнопки, с номером шага -->
                         <StackPanel VerticalAlignment="Center" Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}">

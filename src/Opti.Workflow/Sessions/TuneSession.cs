@@ -40,6 +40,8 @@ public sealed class TuneSession
     public string? GameProcess { get; set; }
     /// <summary>Автоцикл без замеров: только применить выбранное (результат не доказан замером).</summary>
     public bool SkipMeasure { get; set; }
+    /// <summary>Нагрузка синтетического теста, подобранная под этот ПК при первом прогоне: все прогоны сессии идут с ней.</summary>
+    public double? BenchGpuLoad { get; set; }
     /// <summary>Исправления, выбранные перед автоциклом (null — рекомендованные по плану).</summary>
     public List<string>? AutoFixIds { get; set; }
     /// <summary>Число и длительность прогонов, выбранные перед запуском (null — из настроек). «После» повторяет «до».</summary>
