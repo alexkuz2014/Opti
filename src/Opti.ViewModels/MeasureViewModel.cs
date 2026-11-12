@@ -146,6 +146,15 @@ public sealed partial class MeasureViewModel : PageViewModel
         try
         {
             var runner = Main.Services.CreateRunner(SelectedMode.Mode);
+            // Нагрузка синтетического теста подбирается один раз на сессию: «до» и «после» обязаны идти с одинаковой
+            var calibrated = runner as ILoadCalibrated;
+            if (calibrated is not null && Main.Session is { } cs)
+            {
+                bool legacy = cs.BenchGpuLoad is null && (cs.Before.Count > 0 || Phase != MeasurePhase.Before);
+                calibrated.AutoCalibrate = !legacy;
+                calibrated.CalibratedGpuLoad = cs.BenchGpuLoad;
+                if (!legacy && cs.BenchGpuLoad is null) Status = "Подбираю нагрузку теста под ваш компьютер…";
+            }
             int toDo = Math.Max(1, Runs - Completed.Count);
             for (int i = 0; i < toDo; i++)
             {
@@ -171,6 +180,7 @@ public sealed partial class MeasureViewModel : PageViewModel
                     string.IsNullOrWhiteSpace(ProcessName) || SelectedMode.Mode == MeasureMode.Synthetic ? null : ProcessName,
                     SelectedMode.Mode == MeasureMode.Synthetic ? "синтетика" : "игра"), progress, _cts.Token);
                 Completed.Add(new RunSummary(run));
+                if (calibrated?.CalibratedGpuLoad is { } load && Main.Session is { } ss) ss.BenchGpuLoad = load;
                 if (SelectedMode.Mode == MeasureMode.Game) ProcessName ??= run.Conditions.ProcessName;
                 FinishCommand.NotifyCanExecuteChanged();
             }

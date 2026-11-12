@@ -55,7 +55,7 @@ public static class GameProfiles
             tips.Add(new(TipImpact.Medium, $"Процессор {p.Cpu.Cores}-ядерный, а GTA V сильно зависит от процессора: параметры дальности прорисовки и теней дают здесь больше, чем снижение разрешения."));
 
         if (p.PrimaryDisplay is { CurrentHz: > 0 } d)
-            tips.Add(new(TipImpact.Medium, $"Лимит FPS по частоте монитора ({d.CurrentHz} Гц) — в игре или в драйвере. Движок GTA V капризен на очень высоком FPS (по отчётам игроков, возможны статтеры), а ровные кадры ощущаются лучше «максимума»."));
+            tips.Add(new(TipImpact.Medium, $"Лимит FPS около {FpsCap.Recommend(d.CurrentHz, d.VrrSupported)} (монитор {d.CurrentHz} Гц{(d.VrrSupported == true ? ", VRR: чуть ниже частоты" : "")}) — в игре или в драйвере. Движок GTA V капризен на очень высоком FPS (по отчётам игроков, возможны статтеры), а ровные кадры ощущаются лучше «максимума»."));
 
         var hddLetters = p.Disks.Where(x => x.MediaType == DiskMediaType.Hdd).SelectMany(x => x.DriveLetters).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (MatchGta5(p).Any(g => g.InstallDir is { Length: >= 2 } dir && hddLetters.Contains(dir[..2])))

@@ -24,6 +24,8 @@ public sealed class ReportData
 /// <summary>Самодостаточный HTML-отчёт (один файл, без внешних ресурсов), светлая и тёмная темы.</summary>
 public static class HtmlReport
 {
+    public static string DiagnosticCardText(Opti.Core.Profile.SystemProfile p, IReadOnlyList<Opti.Core.Findings.Finding> findings, string version) => DiagnosticCard.Build(p, findings, version);
+
     private static string E(string? s) => WebUtility.HtmlEncode(s ?? "");
     private static string F(double v, string fmt = "0.#") => double.IsNaN(v) ? "—" : v.ToString(fmt, CultureInfo.GetCultureInfo("ru-RU"));
 

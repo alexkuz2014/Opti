@@ -1,11 +1,11 @@
 # Opti — карта репозитория
 
-Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.6.0-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
+Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.8.0-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
 
 ## Команды
 
 ```bash
-dotnet test                      # 276 тестов, xUnit, ~20 с; работает в Linux
+dotnet test                      # 322 теста, xUnit, ~20 с; работает в Linux
 dotnet build src/Opti.Cli        # CLI
 dotnet build src/Opti.App        # WPF; в Linux собирается (EnableWindowsTargeting), но не запускается
 build/publish.sh [версия]        # win-x64 single-file → artifacts/Opti.exe, opti-cli.exe, SHA256SUMS.txt
@@ -24,8 +24,8 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 |---|---|
 | `Opti.Core` | Без зависимостей. `SystemProfile` (модель ПК), `Finding`/`IDetector`, справочники (`Os/WindowsLifecycle`, `Os/BootLimits`, `Games/GameProfiles`, `Games/GameStorage` (где лежат игры: тип диска и место), `Hardware/GpuSupport`, `Network/NetworkApps`, `Network/PingProbe`, `Drivers/`, `Registry/`, `Tweaks/`, `Software/`), `IFix`/`FixIds`/`ChangeContext`/`ChangeRecord`/`StateValue`, `IStateBackend`/`IChangeJournal`, `StrategyEngine`, `UserGoal`, `Sources` (ссылки на первоисточники) |
 | `Opti.Native` | P/Invoke (экран, DXGI, HAGS, питание), `ProcessRunner`, `ToolParsers` (разбор вывода bcdedit/powercfg/nvidia-smi и т. п.) |
-| `Opti.Analysis` | `Collectors/` — 19 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 61 детектор, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
-| `Opti.Fixes` | `Catalog/` — 25 исправлений (`FixBase`); `Backends/` — Windows-бэкенды + `InMemoryBackend`/`ProfileSeeder` для тестов; `Journal/` — SQLite и in-memory; `ApplyService`, `RollbackService`, точка восстановления |
+| `Opti.Analysis` | `Collectors/` — 19 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 65 детекторов, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
+| `Opti.Fixes` | `Catalog/` — 26 исправлений (`FixBase`); `Backends/` — Windows-бэкенды + `InMemoryBackend`/`ProfileSeeder` для тестов; `Journal/` — SQLite и in-memory; `ApplyService`, `RollbackService`, точка восстановления |
 | `Opti.Measure` | `Stats/` — `FrameMetrics`, блочный бутстреп, `Comparison` (вердикт лучше/шум/хуже); `Capture/` — ETW (кадры, DPC/ISR), PresentMon CSV, сеть, таймер |
 | `Opti.Bench` | Синтетический тест D3D11 (Vortice); встроен в `Opti.exe`, запускается ключом `--bench` |
 | `Opti.Workflow` | `TuneWorkflow` (сессия: анализ → план → до → применение → перезагрузка/resume → после → сравнение → откат; A/B), `Sessions/`, `Measuring/` (раннеры), `Game/` («Перед игрой» и приглушение фона через шов `IProcessControl`), `Cleanup/`, `Reports/` (HTML + SVG), `Settings`, `AppInfo`/`UpdateChecker` |
@@ -54,7 +54,7 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 ## Выпуск
 
 - CI (`ci.yml`): push в `main`/`opti-prototype` и PR → `dotnet test` + сборка App и Cli на Windows.
-- Релиз (`release.yml`): пуш в ветку `release` или тег `v*` → тесты → `build/publish.ps1` → GitHub Release; описание берётся из `docs/release-notes/v<версия>.md` (иначе `CHANGELOG.md`).
+- Релиз (`release.yml`) собирает и `Opti.Dev.exe` (`DEV=1`), он публикуется рядом с `Opti.exe`. Пуш в ветку `release` или тег `v*` → тесты → `build/publish.ps1` → GitHub Release; описание берётся из `docs/release-notes/v<версия>.md` (иначе `CHANGELOG.md`).
 - При смене версии: `Directory.Build.props`, `CHANGELOG.md`, `docs/release-notes/`, статус в README.
 
 ## Мелочи, о которые можно споткнуться
@@ -66,6 +66,12 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 - Метки надёжности (`EvidenceLevel`: Solid / Varies / Hypothesis) у исправлений и твиков: новый твик без измерений — только Hypothesis и выключен по умолчанию.
 - Из PC-Optimization-Hub/PC-Tuning сознательно не берём: xHCI IMOD через RWEverything (требует отключить защиту от уязвимых драйверов), разнесение прерываний по ядрам, режим MSI вручную, отключение виртуализации в BIOS (ломает античиты), dual-boot. Подсказки по BIOS/USB-топологии — только текстом.
 - Загрузка игр: `GameStorage` + детекторы `GAME_LOAD_TIPS`, `DISK_BUSY`, `GAME_DISK_FULL`. Проверено поиском: HDD→SSD заметно (20 % … 2–3×, зависит от игры), SATA→NVMe — секунды, кроме DirectStorage; `-StraightIntoFreemode` и `-novid` для CS2 не подтверждены — не советовать; сторонний фикс загрузки GTA Online правит файлы игры и грозит баном — не советовать. Исключения антивируса — только текстом.
+- «Максимум оптимизации» (`HomeViewModel.MaximumAsync`): анализ с целью LowLatency → автоцикл (`TuneSession.Maximum`) → после исправлений `MainViewModel.RunMaximumExtrasAsync` → `MaxOptimizer` (твики `TweakCatalog.MaxOptimizeIds` в сессии оптимизации, очистка `DefaultSelected` целей, драйверы через `WindowsUpdateDriverUpdater` — COM Windows Update Agent, видеодрайверы и EULA пропускаются) → автоперезагрузка с отсчётом (`ApplyViewModel.RunAutoRebootAsync`). Не добавлять в «Максимум» гипотезы, A/B и рискованное; драйверы с сайтов производителей Opti не качает.
+- Главная: кнопка «Оптимизировать» (`HomeViewModel.OptimizeAsync`) = анализ + автоцикл с рекомендованными исправлениями и быстрым тестом 2×20 с, без страницы настройки. На главной три пресета (`GoalOption.Presets`), все пять целей — в настройках (`GoalOption.All`).
+- Синтетический тест в интерфейсе подбирает нагрузку (`SyntheticRunner.AutoCalibrate`, цель ~80 FPS) и хранит её в `TuneSession.BenchGpuLoad`; CLI нагрузку не подбирает, чтобы отдельные запуски `measure` были сравнимы.
+- Найдено при первом запуске на Windows (исправлено, не повторять): `AllowComputerToTurnOffDevice` — свойство объекта `Get-NetAdapterPowerManagement`, а не параметр `Set-…`; stderr PowerShell приходит в CLIXML (`ProcessRunner.CleanPowerShellError`); системный шаблон `ListBox` в выключенном состоянии рисует белый фон — у `ChoiceList` свой шаблон; файлы (`ChangeType.File`) в проверке сброса не участвуют.
+- Контроль сброса: `DriftService` (Fixes/Services) сверяет последние действующие записи журнала с системой; восстановление только через `ChangeContext`. Показывается на главной и в `opti-cli verify`.
+- Из внешней спецификации сознательно не делали: USB-топологию (CfgMgr32, высокий риск ошибок вслепую), проверку MTU (для PPPoE 1492 ложные срабатывания), совет менять размер кэша шейдеров (доказательства слабые), запись `EnhancedPowerManagementEnabled` в ветки драйверов USB (чужие ключи драйвера), коррелятор причин фризов в ETW и тест опроса мыши (большие задачи, нужен отдельный этап).
 - Сознательно не делаем (антиочит и безопасность): приоритет процесса игры через IFEO, исключения Defender, отключение Defender/Update, правка файлов игры.
 - Советы по играм (`GameProfiles`) — только про настройки в самой игре и системную часть. Файлы игры (settings.xml и т. п.) Opti не меняет: решение владельца, пользователям это может не понравиться. Добавляя игру, ссылаться на обзоры, цифры без источника не писать.
 - Эвристики про «твики из роликов» проверены поиском: `msconfig → число процессоров` не ускоряет (Windows использует все ядра), MMCSS/Win32PrioritySeparation/NetworkThrottling дают нестабильный эффект, Ultimate Performance — единицы процентов, VBS/HVCI — около 5 % (до 10 %), HAGS — по-разному. Крупные выигрыши — настройки графики в игре и исправление неверной конфигурации.

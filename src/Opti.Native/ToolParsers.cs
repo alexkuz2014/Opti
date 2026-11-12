@@ -41,6 +41,13 @@ public static partial class ToolParsers
     public static bool ParseNvidiaThrottleActive(string output) =>
         output.Split('\n').Any(line => line.Split(',').Any(f => f.Trim().Equals("Active", StringComparison.OrdinalIgnoreCase)));
 
+    /// <summary>Ширина шины PCIe из «nvidia-smi --query-gpu=pcie.link.width.current,pcie.link.width.max --format=csv,noheader,nounits» (первая видеокарта).</summary>
+    public static (int Current, int Max)? ParseNvidiaPcieWidth(string output)
+    {
+        var parts = output.Split('\n', StringSplitOptions.RemoveEmptyEntries)[..^0].FirstOrDefault()?.Split(',').Select(x => x.Trim()).ToArray();
+        return parts is { Length: >= 2 } && int.TryParse(parts[0], out var cur) && int.TryParse(parts[1], out var max) ? (cur, max) : null;
+    }
+
     /// <summary>Размер BAR1 из «nvidia-smi -q -d MEMORY»; null — строки нет.</summary>
     public static int? ParseNvidiaBar1TotalMb(string output)
     {

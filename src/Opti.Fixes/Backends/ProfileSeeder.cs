@@ -95,6 +95,7 @@ public static class ProfileSeeder
                 r.Seed(Targets.Reg(NagleOffFix.InterfacesKey + guid, "TcpAckFrequency"), StateValue.DWord(1));
                 r.Seed(Targets.Reg(NagleOffFix.InterfacesKey + guid, "TCPNoDelay"), StateValue.DWord(1));
             }
+            if (n.RssEnabled is { } rss) map[ChangeType.NetAdapter].Seed(Targets.NetAdapter(n.Name, "Rss"), StateValue.Str(rss ? "Enabled" : "Disabled"));
             foreach (var kw in n.EnergySavingKeywords)
                 map[ChangeType.NetAdapter].Seed(Targets.NetAdapterAdvanced(n.Name, kw), StateValue.Str("1"));
         }

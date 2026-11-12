@@ -8,7 +8,15 @@ namespace Opti.Workflow.Measuring;
 
 /// <summary>Синтетический тест Opti (D3D11, встроен в программу): одна и та же сцена и длительность — полная воспроизводимость.</summary>
 [SupportedOSPlatform("windows")]
-public sealed class SyntheticRunner : IMeasureRunner
+/// <summary>Замер, который умеет подбирать нагрузку под ПК и запоминать её на всю сессию.</summary>
+public interface ILoadCalibrated
+{
+    /// <summary>Подбирать нагрузку перед первым прогоном, если она ещё не задана.</summary>
+    bool AutoCalibrate { get; set; }
+    double? CalibratedGpuLoad { get; set; }
+}
+
+public sealed class SyntheticRunner : IMeasureRunner, ILoadCalibrated
 {
     private readonly string _exe;
     private readonly string _prefixArgs;
@@ -28,12 +36,41 @@ public sealed class SyntheticRunner : IMeasureRunner
     /// <summary>Тест встроен в сам Opti.exe / opti-cli.exe: запускаем текущую программу с ключом --bench.</summary>
     public static string? Locate() => Environment.ProcessPath is { } p && File.Exists(p) ? p : null;
 
+    public bool AutoCalibrate { get; set; }
+    public double? CalibratedGpuLoad { get; set; }
+    /// <summary>К какой частоте кадров подбирать нагрузку: на 250+ FPS разница в 1–2 % тонет в шуме, около 80 каждый кадр «весит» больше.</summary>
+    public const double TargetFps = 80;
+    public const double MaxGpuLoad = 4000;
+
+    /// <summary>Нагрузка шейдера растёт линейно, поэтому новую считаем пропорцией; слабым ПК (меньше 110 FPS) оставляем базовую.</summary>
+    public static double ScaleLoad(double baseLoad, double measuredFps) =>
+        measuredFps <= 110 || double.IsNaN(measuredFps) ? baseLoad : Math.Min(MaxGpuLoad, Math.Round(baseLoad * measuredFps / TargetFps));
+
     public async Task<MeasurementRun> RunAsync(MeasureRequest req, IProgress<MeasureProgress>? progress = null, CancellationToken ct = default)
+    {
+        if (AutoCalibrate && CalibratedGpuLoad is null)
+        {
+            // Короткая проба на базовой нагрузке, затем вторая — на подобранной: если видеокарта всё ещё слишком быстра, добавляем ещё
+            double load = GpuLoad;
+            for (int i = 0; i < 2; i++)
+            {
+                var probe = await RunBenchAsync(new MeasureRequest("подбор нагрузки", 4, 2, null, "синтетика"), load, null, ct);
+                double fps = probe.FrameTimesMs.Count > 0 ? 1000.0 / probe.FrameTimesMs.Average() : double.NaN;
+                var next = ScaleLoad(load, fps);
+                if (next <= load) break;
+                load = next;
+            }
+            CalibratedGpuLoad = load;
+        }
+        return await RunBenchAsync(req, CalibratedGpuLoad ?? GpuLoad, progress, ct);
+    }
+
+    private async Task<MeasurementRun> RunBenchAsync(MeasureRequest req, double gpuLoad, IProgress<MeasureProgress>? progress, CancellationToken ct)
     {
         var outFile = Path.Combine(Path.GetTempPath(), $"opti-bench-{Guid.NewGuid():N}.json");
         var args = _prefixArgs + " " + string.Format(CultureInfo.InvariantCulture,
             "--out \"{0}\" --duration {1} --warmup {2} --instances {3} --gpu-load {4} --cpu-load {5} --label \"{6}\"",
-            outFile, req.DurationSec, req.WarmupSec, Instances, GpuLoad, CpuLoadMs, req.Label.Replace("\"", "'"));
+            outFile, req.DurationSec, req.WarmupSec, Instances, gpuLoad, CpuLoadMs, req.Label.Replace("\"", "'"));
         var probe = new ThrottleProbe();
         using var p = Process.Start(new ProcessStartInfo(_exe, args) { UseShellExecute = false })
                       ?? throw new InvalidOperationException("Не удалось запустить Opti.Bench");

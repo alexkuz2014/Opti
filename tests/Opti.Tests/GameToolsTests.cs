@@ -17,6 +17,14 @@ public class GameToolsTests
         public List<(int Pid, ProcPriority Prio)> PriorityCalls { get; } = new();
         public List<int> Closed { get; } = new();
         public HashSet<int> CannotClose { get; } = new();
+        public bool EfficiencySupported { get; set; }
+        public HashSet<int> Efficiency { get; } = new();
+        public bool TrySetEfficiency(int pid, bool on)
+        {
+            if (!EfficiencySupported) return false;
+            if (on) Efficiency.Add(pid); else Efficiency.Remove(pid);
+            return true;
+        }
         public IReadOnlyList<ProcInfo> List() => Procs.ToList();
         public bool TrySetPriority(int pid, ProcPriority priority)
         {
@@ -370,6 +378,219 @@ public class GameToolsTests
     }
 
     private static Opti.Analysis.AnalysisResult SystemAnalyzerFromProfile(SystemProfile p) => Opti.Analysis.SystemAnalyzer.FromProfile(p);
+
+    // ---------- Сброс настроек ----------
+
+    [Fact]
+    public void Drift_DetectsResetSetting_AndRestoreKeepsOriginalForRollback()
+    {
+        var p = TestProfiles.Load("laptop-optimus");
+        var reg = Opti.Fixes.Backends.ProfileSeeder.CreateEmulation(p, out var map);
+        var journal = new Opti.Fixes.Journal.InMemoryChangeJournal();
+        new Opti.Fixes.Services.ApplyService(reg, journal, null).Apply(p, new[] { Opti.Fixes.Catalog.FixCatalog.Find(FixIds.DisplayMaxHz)! }, Opti.Core.Strategy.UserGoal.MaxFps);
+
+        var drift = new Opti.Fixes.Services.DriftService(reg, journal);
+        Assert.Empty(drift.Check());
+
+        var key = journal.GetAll().Single(r => r.FixId == FixIds.DisplayMaxHz).Target;
+        map[ChangeType.Display].Seed(key, StateValue.Str("60"));                    // обновление драйвера сбросило частоту
+        var found = drift.Check();
+        Assert.Single(found);
+        Assert.Equal(StateValue.Str("60"), found[0].Current);
+
+        Assert.Equal(1, drift.Restore(found));
+        Assert.Empty(drift.Check());
+        Assert.Equal(StateValue.Str(p.Displays[0].MaxHzAtCurrentResolution.ToString()), map[ChangeType.Display].Read(key));
+
+        new Opti.Fixes.Services.RollbackService(reg, journal).RollbackAll();         // исходное значение не потеряно
+        Assert.Equal(StateValue.Str(p.Displays[0].CurrentHz.ToString()), map[ChangeType.Display].Read(key));
+    }
+
+    [Fact]
+    public void Drift_IgnoresRolledBackAndUnreadableSettings_HomeShowsBanner()
+    {
+        using var dir = new TempDir();
+        var svc = new ViewModelTests.FakeServices(dir.Path, "laptop-optimus", _ => 10);
+        var main = new MainViewModel(svc);
+        main.Home.Refresh();
+        Assert.Null(main.Home.DriftText);
+
+        var plan = svc.Workflow.Catalog.Single(f => f.Id == FixIds.DisplayMaxHz);
+        var session = svc.Workflow.StartSession(Opti.Analysis.SystemAnalyzer.FromProfile(svc.Profile), Opti.Core.Strategy.UserGoal.MaxFps);
+        svc.Workflow.Apply(session, new[] { plan });
+        main.Home.Refresh();
+        Assert.Null(main.Home.DriftText);                                            // всё на месте
+
+        var target = svc.Journal.GetAll().Single(r => r.FixId == FixIds.DisplayMaxHz).Target;
+        svc.Map[ChangeType.Display].Seed(target, StateValue.Str("60"));
+        main.Home.Refresh();
+        Assert.Contains("частота экрана", main.Home.DriftText);
+        main.Home.RestoreDriftCommand.Execute(null);
+        Assert.Null(main.Home.DriftText);
+    }
+
+    // ---------- EcoQoS ----------
+
+    [Fact]
+    public void Throttler_SetsEfficiencyModeAndClearsItAfterGame()
+    {
+        var f = new FakeProcs { EfficiencySupported = true }.Add(1, "chrome", 300).Add(10, "GTA5", 3000);
+        var t = new BackgroundThrottler(f);
+        t.SetGames(Array.Empty<string>());
+        t.Tick();
+        Assert.True(f.Efficiency.Contains(1));
+        f.Procs.RemoveAll(p => p.Name == "GTA5");
+        t.Tick();
+        Assert.False(f.Efficiency.Contains(1));
+        Assert.Equal(ProcPriority.Normal, f.Procs.Single().Priority);
+    }
+
+    [Fact]
+    public void Throttler_WorksWhereEfficiencyModeIsUnavailable()
+    {
+        var f = new FakeProcs { EfficiencySupported = false }.Add(1, "chrome", 300).Add(10, "GTA5", 3000);
+        var t = new BackgroundThrottler(f);
+        t.SetGames(Array.Empty<string>());
+        Assert.Equal(1, t.Tick().Throttled);
+        Assert.Empty(f.Efficiency);
+        t.Restore();
+        Assert.Equal(ProcPriority.Normal, f.Procs.First().Priority);
+    }
+
+    // ---------- PCIe, NVMe, MSI, RSS ----------
+
+    [Theory]
+    [InlineData("16, 16\n", 16, 16)]
+    [InlineData("4, 16", 4, 16)]
+    public void ParsePcieWidth(string text, int cur, int max) => Assert.Equal((cur, max), ToolParsers.ParseNvidiaPcieWidth(text));
+
+    [Fact]
+    public void ParsePcieWidth_GarbageGivesNull() => Assert.Null(ToolParsers.ParseNvidiaPcieWidth("N/A, N/A"));
+
+    [Theory]
+    [InlineData(4, 16, false, true)]
+    [InlineData(8, 16, false, true)]
+    [InlineData(16, 16, false, false)]
+    [InlineData(12, 16, false, false)]   // нестандартная ширина не диагностируем
+    [InlineData(4, 16, true, false)]     // у ноутбуков ширина штатно меньше
+    [InlineData(4, 8, false, false)]     // карта сама x8
+    public void PcieWidth_OnlyOnDesktopWhenBelowCardMaximum(int cur, int max, bool laptop, bool expected)
+    {
+        var p = new SystemProfile { Device = { IsLaptop = laptop }, Gpus = { new GpuInfo { Name = "NVIDIA GeForce RTX 3070", Vendor = GpuVendor.Nvidia } }, Graphics = { PcieWidthCurrent = cur, PcieWidthMax = max } };
+        Assert.Equal(expected, TestProfiles.Findings(p).Any(f => f.Id == "GPU_PCIE_WIDTH"));
+    }
+
+    [Fact]
+    public void NvmeHot_UsesCurrentOrLifetimeMaximum_IgnoresSataAndColdDrives()
+    {
+        var p = new SystemProfile { Disks = { new DiskInfo { Model = "Fast NVMe", MediaType = DiskMediaType.Nvme, TemperatureC = 41, TemperatureMaxC = 84 }, new DiskInfo { Model = "Cold", MediaType = DiskMediaType.Nvme, TemperatureC = 38, TemperatureMaxC = 60 }, new DiskInfo { Model = "Sata", MediaType = DiskMediaType.Ssd, TemperatureC = 70 } } };
+        var f = TestProfiles.Findings(p).Single(x => x.Id == "DISK_NVME_HOT");
+        Assert.Single(f.Evidence);
+        Assert.Contains("Fast NVMe", f.Evidence[0]);
+        Assert.Contains("84", f.Evidence[0]);
+    }
+
+    [Fact]
+    public void Msi_OnlyExplicitZeroIsReported()
+    {
+        var p = new SystemProfile { Gpus = { new GpuInfo { Name = "NVIDIA GeForce RTX 4070", Vendor = GpuVendor.Nvidia, MsiSupported = null } } };
+        Assert.DoesNotContain(TestProfiles.Findings(p), f => f.Id == "GPU_MSI_OFF");   // значения нет — это «по умолчанию»
+        p.Gpus[0].MsiSupported = 1;
+        Assert.DoesNotContain(TestProfiles.Findings(p), f => f.Id == "GPU_MSI_OFF");
+        p.Gpus[0].MsiSupported = 0;
+        var f = TestProfiles.Findings(p).Single(x => x.Id == "GPU_MSI_OFF");
+        Assert.Empty(f.FixIds);                                                         // реестр устройства Opti не правит
+    }
+
+    [Fact]
+    public void Rss_FixAppliesOnlyWhereDisabled_AndRollsBack()
+    {
+        var p = new SystemProfile
+        {
+            Cpu = { Threads = 12 },
+            Network = { new NetAdapterInfo { Name = "Ethernet", Kind = NetAdapterKind.Ethernet, IsUp = true, RssEnabled = false }, new NetAdapterInfo { Name = "Wi-Fi", Kind = NetAdapterKind.WiFi, IsUp = true, RssEnabled = true } },
+        };
+        Assert.Contains(FixIds.NetRssOn, TestProfiles.Findings(p).Single(f => f.Id == "NET_RSS_OFF").FixIds);
+        var reg = Opti.Fixes.Backends.ProfileSeeder.CreateEmulation(p, out var map);
+        var journal = new Opti.Fixes.Journal.InMemoryChangeJournal();
+        new Opti.Fixes.Services.ApplyService(reg, journal, null).Apply(p, new[] { Opti.Fixes.Catalog.FixCatalog.Find(FixIds.NetRssOn)! }, Opti.Core.Strategy.UserGoal.MaxFps);
+        Assert.Equal(StateValue.Str("Enabled"), map[ChangeType.NetAdapter].Read(Opti.Fixes.Backends.Targets.NetAdapter("Ethernet", "Rss")));
+        Assert.Single(journal.GetAll());                                                // Wi-Fi уже был включён — не трогали
+        new Opti.Fixes.Services.RollbackService(reg, journal).RollbackAll();
+        Assert.Equal(StateValue.Str("Disabled"), map[ChangeType.NetAdapter].Read(Opti.Fixes.Backends.Targets.NetAdapter("Ethernet", "Rss")));
+
+        p.Cpu.Threads = 2;                                                              // на двух потоках RSS ничего не даёт
+        Assert.DoesNotContain(TestProfiles.Findings(p), f => f.Id == "NET_RSS_OFF");
+    }
+
+    // ---------- Лимит FPS и карточка ----------
+
+    [Theory]
+    [InlineData(144, true, 138)]
+    [InlineData(165, true, 157)]
+    [InlineData(240, true, 224)]
+    [InlineData(144, false, 144)]
+    [InlineData(144, null, 144)]
+    [InlineData(0, true, 0)]
+    public void FpsCap(int hz, bool? vrr, int expected) => Assert.Equal(expected, Opti.Core.Games.FpsCap.Recommend(hz, vrr));
+
+    [Fact]
+    public void GpuTips_UseVrrAwareCap()
+    {
+        var p = TestProfiles.Load("gta-majestic-pc");
+        p.Displays[0].VrrSupported = true;
+        var f = TestProfiles.Findings(p).Single(x => x.Id == "GPU_PANEL_TIPS");
+        Assert.Contains(f.ManualSteps, s => s.Contains("138") && s.Contains("144 Гц"));
+        Assert.Contains(TestProfiles.Findings(p).Single(x => x.Id == "GAME_GTA5_PROFILE").ManualSteps, s => s.Contains("около 138"));
+    }
+
+    [Fact]
+    public void DiagnosticCard_IsShortAndAnonymous()
+    {
+        var p = TestProfiles.Load("gta-majestic-pc");
+        p.Label = Environment.MachineName;
+        var card = Opti.Workflow.Reports.DiagnosticCard.Build(p, TestProfiles.Findings(p), "1.7.0-beta");
+        Assert.StartsWith("[Opti 1.7.0-beta", card);
+        Assert.Contains("Ryzen 5 3600", card);
+        Assert.Contains("GTX 1660", card);
+        Assert.Contains("1920×1080 @ 144 Гц", card);
+        Assert.DoesNotContain("Player", card);                                          // путь и имя пользователя из путей к играм не попадают
+        Assert.DoesNotContain(@"C:\", card);
+        Assert.True(card.Split('\n').Length <= 20);
+    }
+
+    // ---------- Находки первого запуска на Windows ----------
+
+    [Fact]
+    public void PowerShellError_IsReadableInsteadOfClixml()
+    {
+        const string raw = "#< CLIXML\r\n<Objs Version=\"1.1.0.1\" xmlns=\"http://schemas.microsoft.com/powershell/2004/04\"><S S=\"Error\">Set-NetAdapterPowerManagement : Не удается найти параметр, соответствующий имени параметра \"AllowComputerToTurnOffDevic_x000D__x000A_</S><S S=\"Error\">e\"._x000D__x000A_</S><S S=\"Error\">строка:1 знак:165_x000D__x000A_</S><S S=\"Error\">+ ... owerManagement -Name 'Ethernet' -AllowComputerToTurnOffDevice Disable ..._x000D__x000A_</S><S S=\"Error\">    + CategoryInfo          : InvalidArgument_x000D__x000A_</S></Objs>";
+        var clean = ProcessRunner.CleanPowerShellError(raw);
+        Assert.Equal("Set-NetAdapterPowerManagement : Не удается найти параметр, соответствующий имени параметра \"AllowComputerToTurnOffDevice\".", clean);
+        Assert.Equal("обычная ошибка", ProcessRunner.CleanPowerShellError("  обычная ошибка \r\n"));
+        Assert.Equal("", ProcessRunner.CleanPowerShellError(""));
+    }
+
+    [Fact]
+    public void Drift_IgnoresFilesRewrittenByTheirOwner()
+    {
+        var reg = Opti.Fixes.Backends.InMemoryBackend.CreateRegistry(out var map);
+        var journal = new Opti.Fixes.Journal.InMemoryChangeJournal();
+        var ctx = new ChangeContext(reg, journal, "s", FixIds.ObsGameCapture, new SystemProfile());
+        map[ChangeType.File].Seed("scene.json", StateValue.Str("old"));
+        ctx.Set(ChangeType.File, "scene.json", StateValue.Str("new"));
+        map[ChangeType.File].Seed("scene.json", StateValue.Str("rewritten by OBS"));   // OBS сохраняет сцену при каждом запуске
+        Assert.Empty(new Opti.Fixes.Services.DriftService(reg, journal).Check());
+    }
+
+    [Theory]
+    [InlineData(24, 250, 75)]      // 250 FPS → нагрузка втрое выше
+    [InlineData(24, 100, 24)]      // слабому ПК базовая нагрузка
+    [InlineData(24, 110, 24)]
+    [InlineData(24, 5000, 1500)]
+    [InlineData(3000, 400, 4000)]  // потолок
+    public void BenchLoad_ScalesTowardsTargetFps(double baseLoad, double fps, double expected) =>
+        Assert.Equal(expected, Opti.Workflow.Measuring.SyntheticRunner.ScaleLoad(baseLoad, fps));
 
     private static class FixCatalogHelper
     {

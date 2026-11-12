@@ -26,6 +26,7 @@ try
         "latency" => Commands.Latency(a),
         "net" => await Commands.Net(a),
         "version" or "--version" => await Commands.Version(a),
+        "verify" => Commands.Verify(a),
         "doctor" => Doctor.Run(a),
         _ => Commands.Help(),
     };

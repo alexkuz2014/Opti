@@ -31,7 +31,7 @@ public sealed class WindowsDisplayBackend : IStateBackend
 public sealed class WindowsNetAdapterBackend : IStateBackend
 {
     private static readonly HashSet<string> Allowed = new(StringComparer.OrdinalIgnoreCase)
-        { "AllowComputerToTurnOffDevice", "SelectiveSuspend", "WakeOnMagicPacket", "WakeOnPattern" };
+        { "AllowComputerToTurnOffDevice", "SelectiveSuspend", "WakeOnMagicPacket", "WakeOnPattern", "Rss" };
 
     private readonly ProcessRunner _runner;
     public WindowsNetAdapterBackend(ProcessRunner? runner = null) => _runner = runner ?? ProcessRunner.Instance;
@@ -48,6 +48,12 @@ public sealed class WindowsNetAdapterBackend : IStateBackend
             if (!a.Ok) throw new IOException(a.StdErr.Trim());
             var av = a.StdOut.Trim();
             return av.Length == 0 ? StateValue.Missing : StateValue.Str(av);
+        }
+        if (prop == "Rss")
+        {
+            var q = _runner.RunPowerShell($"[string](Get-NetAdapterRss -Name {ProcessRunner.PsQuote(name)}).Enabled");
+            if (!q.Ok) throw new IOException(q.StdErr.Trim());
+            return q.StdOut.Trim() switch { "True" => StateValue.Str("Enabled"), "False" => StateValue.Str("Disabled"), _ => StateValue.Missing };
         }
         var r = _runner.RunPowerShell($"(Get-NetAdapterPowerManagement -Name {ProcessRunner.PsQuote(name)}).{prop}");
         if (!r.Ok) throw new IOException(r.StdErr.Trim());
@@ -69,7 +75,18 @@ public sealed class WindowsNetAdapterBackend : IStateBackend
             return;
         }
         if (!value.Exists || value.Value is not ("Enabled" or "Disabled")) return;
-        var r = _runner.RunPowerShell($"Set-NetAdapterPowerManagement -Name {ProcessRunner.PsQuote(name)} -{prop} {value.Value} -NoRestart");
+        if (prop == "Rss")
+        {
+            var cmd = value.Value == "Enabled" ? "Enable-NetAdapterRss" : "Disable-NetAdapterRss";
+            var rr = _runner.RunPowerShell($"{cmd} -Name {ProcessRunner.PsQuote(name)}");
+            if (!rr.Ok) throw new IOException(rr.StdErr.Trim());
+            return;
+        }
+        // AllowComputerToTurnOffDevice — не параметр командлета, а свойство объекта: меняем его и передаём объект обратно.
+        // Остальные (SelectiveSuspend, WakeOnMagicPacket, WakeOnPattern) — обычные параметры.
+        var r = prop.Equals("AllowComputerToTurnOffDevice", StringComparison.OrdinalIgnoreCase)
+            ? _runner.RunPowerShell($"$pm = Get-NetAdapterPowerManagement -Name {ProcessRunner.PsQuote(name)}; $pm.AllowComputerToTurnOffDevice = '{value.Value}'; $pm | Set-NetAdapterPowerManagement -NoRestart")
+            : _runner.RunPowerShell($"Set-NetAdapterPowerManagement -Name {ProcessRunner.PsQuote(name)} -{prop} {value.Value} -NoRestart");
         if (!r.Ok) throw new IOException(r.StdErr.Trim());
     }
 

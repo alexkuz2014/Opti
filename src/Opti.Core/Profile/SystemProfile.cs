@@ -117,6 +117,8 @@ public sealed class GpuInfo
     public string? PnpDeviceId { get; set; }
     /// <summary>Видеокарта работает на «Базовом видеоадаптере Майкрософт» — драйвер производителя не установлен.</summary>
     public bool UsingBasicDriver { get; set; }
+    /// <summary>MSISupported из реестра устройства: 0 — явно выключен режим MSI, null — значения нет (обычно значит «по умолчанию»).</summary>
+    public int? MsiSupported { get; set; }
 }
 
 public sealed class HybridGraphicsInfo
@@ -187,6 +189,9 @@ public sealed class DiskInfo
     public string? HealthStatus { get; set; }   // Healthy / Warning / Unhealthy
     public int? WearPercent { get; set; }
     public bool? TrimEnabled { get; set; }
+    /// <summary>Температура накопителя сейчас и максимальная за время работы, °C (счётчики надёжности).</summary>
+    public int? TemperatureC { get; set; }
+    public int? TemperatureMaxC { get; set; }
     /// <summary>Буквы томов на этом диске («C:», «D:»).</summary>
     public List<string> DriveLetters { get; set; } = new();
     /// <summary>Тома этого диска с размером и свободным местом.</summary>
@@ -274,6 +279,9 @@ public sealed class GraphicsSettingsInfo
 {
     /// <summary>Размер окна BAR1 видеокарты NVIDIA, МБ: 256 — Resizable BAR выключен, равен видеопамяти — включён.</summary>
     public int? Bar1TotalMb { get; set; }
+    /// <summary>Ширина шины PCIe видеокарты NVIDIA (x16, x8…): текущая и максимальная.</summary>
+    public int? PcieWidthCurrent { get; set; }
+    public int? PcieWidthMax { get; set; }
     public bool? ResizableBarEnabled { get; set; }
     public bool? HagsSupported { get; set; }
     public bool? HagsEnabled { get; set; }
@@ -362,6 +370,8 @@ public sealed class NetAdapterInfo
     public List<string> EnergySavingKeywords { get; set; } = new();
     /// <summary>Алгоритм Нейгла отключён для этого интерфейса (TcpAckFrequency=1 и TCPNoDelay=1).</summary>
     public bool? NagleDisabled { get; set; }
+    /// <summary>Receive Side Scaling: обработка входящих пакетов распределяется по ядрам процессора.</summary>
+    public bool? RssEnabled { get; set; }
 }
 
 public sealed class NetworkQuality

@@ -34,11 +34,13 @@ public sealed class TweakService
         catch { return false; }
     }
 
-    public void Enable(Tweak t)
+    /// <param name="sessionId">Сессия журнала: у «Максимума оптимизации» это сессия оптимизации, чтобы откат сессии вернул и твики.</param>
+    public void Enable(Tweak t, string? sessionId = null)
     {
-        if (!_journal.GetSessions().Any(s => s.SessionId == SessionId))
-            _journal.SaveSession(new SessionInfo { SessionId = SessionId, Goal = "Твики", Notes = "Твики удобства" });
-        var ctx = new ChangeContext(_backends, _journal, SessionId, t.FixId, new SystemProfile());
+        var sid = sessionId ?? SessionId;
+        if (!_journal.GetSessions().Any(s => s.SessionId == sid))
+            _journal.SaveSession(new SessionInfo { SessionId = sid, Goal = "Твики", Notes = "Твики" });
+        var ctx = new ChangeContext(_backends, _journal, sid, t.FixId, new SystemProfile());
         var done = new List<ChangeRecord>();
         try
         {

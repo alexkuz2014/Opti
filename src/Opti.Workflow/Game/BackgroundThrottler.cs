@@ -3,7 +3,7 @@ namespace Opti.Workflow.Game;
 public sealed record ThrottleStatus(bool GameRunning, string? GameName, int Throttled);
 
 /// <summary>
-/// «Приглушать фон во время игры»: пока идёт игра, браузеры и вспомогательные процессы лаунчеров получают пониженный приоритет,
+/// «Приглушать фон во время игры»: пока идёт игра, браузеры и вспомогательные процессы лаунчеров получают пониженный приоритет и режим эффективности (EcoQoS),
 /// когда игра закрылась — прежний. Права администратора и перезагрузка не нужны. Эффект есть, когда процессор занят целиком:
 /// фон отдаёт ядра игре. Если процессор и так не загружен, разницы не будет.
 /// Голосовой чат (Discord), OBS и защита сюда не входят: им понижение приоритета вредит.
@@ -12,6 +12,7 @@ public sealed class BackgroundThrottler
 {
     private readonly IProcessControl _procs;
     private readonly Dictionary<int, (string Name, ProcPriority Original)> _throttled = new();
+    private readonly HashSet<int> _efficiency = new();
     private HashSet<string> _games = new(StringComparer.OrdinalIgnoreCase);
 
     public BackgroundThrottler(IProcessControl procs) => _procs = procs;
@@ -53,10 +54,14 @@ public sealed class BackgroundThrottler
             return new ThrottleStatus(false, null, 0);
         }
         var alive = all.Select(p => p.Pid).ToHashSet();
-        foreach (var gone in _throttled.Keys.Where(k => !alive.Contains(k)).ToList()) _throttled.Remove(gone);
+        foreach (var gone in _throttled.Keys.Where(k => !alive.Contains(k)).ToList()) { _throttled.Remove(gone); _efficiency.Remove(gone); }
         foreach (var p in all.Where(p => Targets.Contains(p.Name) && p.Priority == ProcPriority.Normal && !_throttled.ContainsKey(p.Pid)))
             if (_procs.TrySetPriority(p.Pid, ProcPriority.BelowNormal))
+            {
                 _throttled[p.Pid] = (p.Name, p.Priority);
+                // Режим эффективности: Windows 11 старается держать процесс на энергоэффективных ядрах; где не поддерживается, просто не сработает
+                if (_procs.TrySetEfficiency(p.Pid, true)) _efficiency.Add(p.Pid);
+            }
         return new ThrottleStatus(true, game.Name, _throttled.Count);
     }
 
@@ -64,7 +69,12 @@ public sealed class BackgroundThrottler
     public void Restore()
     {
         if (_throttled.Count == 0) return;
-        foreach (var (pid, (_, original)) in _throttled) _procs.TrySetPriority(pid, original);
+        foreach (var (pid, (_, original)) in _throttled)
+        {
+            _procs.TrySetPriority(pid, original);
+            if (_efficiency.Contains(pid)) _procs.TrySetEfficiency(pid, false);
+        }
         _throttled.Clear();
+        _efficiency.Clear();
     }
 }

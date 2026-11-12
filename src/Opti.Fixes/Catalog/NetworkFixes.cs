@@ -91,6 +91,29 @@ public sealed class BcdBootLimitsResetFix : FixBase
     }
 }
 
+/// <summary>Включение Receive Side Scaling: входящие сетевые пакеты обрабатываются не одним ядром процессора.</summary>
+public sealed class NetRssOnFix : FixBase
+{
+    public override string Id => FixIds.NetRssOn;
+    public override string Title => "Включить масштабирование приёма пакетов (RSS)";
+    public override string Explanation => "RSS по умолчанию включён: он распределяет обработку входящих сетевых пакетов по ядрам процессора. Если его отключили, всё идёт через одно ядро, и в мультиплеере с большим числом игроков возможны сетевые статтеры. " +
+                                          "Сеть может пропасть на секунду при включении.";
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
+    public override FixCategory Category => FixCategory.Network;
+
+    private static IEnumerable<NetAdapterInfo> Candidates(SystemProfile p) =>
+        p.Network.Where(n => n.IsUp && n.RssEnabled == false && n.Kind is NetAdapterKind.Ethernet or NetAdapterKind.WiFi);
+
+    public override bool IsApplicable(SystemProfile p) => p.Cpu.Threads >= 4 && Candidates(p).Any();
+    public override bool IsAlreadyApplied(SystemProfile p) => !Candidates(p).Any();
+
+    protected override void Execute(ChangeContext ctx)
+    {
+        foreach (var a in Candidates(ctx.Profile))
+            ctx.Set(ChangeType.NetAdapter, Targets.NetAdapter(a.Name, "Rss"), StateValue.Str("Enabled"));
+    }
+}
+
 /// <summary>Включение TRIM для SSD.</summary>
 public sealed class TrimOnFix : FixBase
 {

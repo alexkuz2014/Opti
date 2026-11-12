@@ -14,6 +14,14 @@ public sealed class GoalOption
     /// <summary>Глиф шрифта Segoe Fluent Icons.</summary>
     public required string Icon { get; init; }
 
+    /// <summary>Три пресета на главной. «Стрим» и «Тихо» остаются в настройках (цель по умолчанию).</summary>
+    public static IReadOnlyList<GoalOption> Presets { get; } = new[]
+    {
+        new GoalOption { Goal = UserGoal.Smoothness, Title = "Баланс", Description = "Плавно и без рывков — подходит большинству", Icon = "\uE9E9" },
+        new GoalOption { Goal = UserGoal.MaxFps, Title = "Максимум FPS", Description = "Больше кадров, теплее и громче", Icon = "\uEC4A" },
+        new GoalOption { Goal = UserGoal.LowLatency, Title = "Киберспорт", Description = "Минимальная задержка в онлайн-играх", Icon = "\uE945" },
+    };
+
     public static IReadOnlyList<GoalOption> All { get; } = new[]
     {
         new GoalOption { Goal = UserGoal.LowLatency, Title = "Отклик", Description = "Соревновательные игры", Icon = "\uE945" },

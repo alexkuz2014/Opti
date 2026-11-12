@@ -72,6 +72,10 @@ public sealed class ViewModelTests : IDisposable
         public Opti.Fixes.Services.TweakService Tweaks { get; }
         public int OsBuild => 26100;
         public Opti.Workflow.Game.IProcessControl? Processes { get; set; }
+        public Opti.Workflow.Maximum.IDriverUpdater? DriverUpdater { get; set; }
+        public int KeepAwakeCalls { get; private set; }
+        public bool Awake { get; private set; }
+        public void KeepAwake(bool on) { KeepAwakeCalls++; Awake = on; }
         public int ExplorerRestarts { get; private set; }
         public void RestartExplorer() => ExplorerRestarts++;
     }
@@ -232,7 +236,7 @@ public sealed class ViewModelTests : IDisposable
         Assert.False(svc.Map[ChangeType.Bcd].Read(Targets.Bcd("useplatformclock")).Exists);
     }
 
-    private static async Task<T> WaitForPage<T>(MainViewModel main, int timeoutMs = 10000) where T : PageViewModel
+    internal static async Task<T> WaitForPage<T>(MainViewModel main, int timeoutMs = 10000) where T : PageViewModel
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
         while (sw.ElapsedMilliseconds < timeoutMs)
@@ -525,5 +529,37 @@ public sealed class ViewModelTests : IDisposable
         Assert.NotEqual(first, main.Session!.Id);
         Assert.Equal(Opti.Core.Strategy.UserGoal.LowLatency, main.Session.Goal);
         Assert.True(main.Home.IsIdle);
+    }
+
+    [Fact]
+    public async Task Optimize_OneClick_RunsAnalysisTestFixesAndTest()
+    {
+        var svc = new FakeServices(_dir, "laptop-optimus", n => n < 2 ? 8.5 : 7.0);
+        var main = new MainViewModel(svc);
+        Assert.Equal(3, main.Home.Goals.Count);                       // три пресета вместо пяти целей
+        Assert.NotNull(main.Home.SelectedGoal);
+
+        await main.Home.OptimizeCommand.ExecuteAsync(null);           // единственное нажатие
+        var cmp = await WaitForPage<CompareViewModel>(main);
+        var s = main.Session!;
+        Assert.True(s.AutoMode);
+        Assert.Equal(2, s.Before.Count);                               // быстрый тест: 2 прогона
+        Assert.Equal(2, s.After.Count);
+        Assert.Equal(20, s.MeasureDurationSec);
+        Assert.Contains(FixIds.DisplayMaxHz, s.AppliedFixIds);
+        // Спорное и требующее выбора одной кнопкой не применяется
+        Assert.DoesNotContain(FixIds.HagsAb, s.AppliedFixIds);
+        Assert.DoesNotContain(FixIds.StartupDisable, s.AppliedFixIds);
+        Assert.NotEmpty(cmp.Cards);
+    }
+
+    [Fact]
+    public void Home_HiddenDefaultGoalIsStillUsed()
+    {
+        var svc = new FakeServices(_dir, "desktop-rtx", _ => 10);
+        svc.Settings.DefaultGoal = Core.Strategy.UserGoal.QuietCool;  // «Тихо» выбрано в настройках, на главной его нет
+        var main = new MainViewModel(svc);
+        Assert.Null(main.Home.SelectedGoal);
+        main.SettingsPage.OnShown();                                  // настройки не падают на цели вне пресетов
     }
 }
