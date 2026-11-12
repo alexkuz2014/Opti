@@ -261,5 +261,12 @@ public static class TweakCatalog
     /// <summary>Сначала игровые твики, затем твики удобства. Объявлено после обоих массивов: статические поля инициализируются по порядку.</summary>
     public static IReadOnlyList<Tweak> All { get; } = GamingTweaks.Concat(BaseTweaks).ToArray();
 
+    /// <summary>
+    /// Твики, которые включает «Максимум оптимизации»: только про память, процессор и сеть, и только те, у кого эффект известен.
+    /// «Гипотезы» (MMCSS, сетевое ограничение мультимедиа) и твики удобства (контекстное меню, значки слева…) сюда не входят.
+    /// </summary>
+    public static readonly IReadOnlyList<string> MaxOptimizeIds = new[]
+        { "NO_UPDATE_SHARING", "EDGE_NO_BACKGROUND", "NO_BACKGROUND_APPS", "NO_WIDGETS", "NO_TRANSPARENCY", "NO_GAMEBAR_BUTTON", "FAST_MENUS", "INSTANT_MINIMIZE" };
+
     public static Tweak? Find(string id) => All.FirstOrDefault(t => t.Id == id);
 }

@@ -59,6 +59,8 @@ public sealed partial class CompareViewModel : PageViewModel
     public override string Title => _ab is null ? "Сравнение «до / после»" : $"A/B: {_ab.VariantB}";
     public ComparisonResult Result { get; }
     public ObservableCollection<MetricCard> Cards { get; } = new();
+    /// <summary>Итоги «Максимума оптимизации»: твики, очистка, драйверы.</summary>
+    public ObservableCollection<LogItem> MaxSteps { get; } = new();
     public ObservableCollection<string> Warnings { get; } = new();
     public ObservableCollection<AppliedFixItem> AppliedFixes { get; } = new();
     public IReadOnlyList<double> BeforeFrames { get; }
@@ -75,13 +77,15 @@ public sealed partial class CompareViewModel : PageViewModel
     private void LoadFixes()
     {
         AppliedFixes.Clear();
+        MaxSteps.Clear();
+        foreach (var st in _session.MaxSteps ?? new()) MaxSteps.Add(MaxRunViewModel.ToItem(st));
         var records = Main.Services.Journal.GetAll().Where(r => r.SessionId.StartsWith(_session.Id, StringComparison.Ordinal)).ToList();
         foreach (var g in records.GroupBy(r => r.FixId))
         {
             AppliedFixes.Add(new AppliedFixItem
             {
                 FixId = g.Key,
-                Title = Main.Services.Workflow.Catalog.FirstOrDefault(f => f.Id == g.Key)?.Title ?? g.Key,
+                Title = Main.Services.Workflow.Catalog.FirstOrDefault(f => f.Id == g.Key)?.Title ?? Opti.Core.Fixes.FixIds.Title(g.Key),
                 Changes = string.Join("\n", g.Select(r => $"{r.Type} {r.Target}: {r.Before} → {r.After}")),
                 RolledBack = g.All(r => r.RolledBack),
             });

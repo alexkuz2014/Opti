@@ -17,6 +17,29 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
+            <!-- Что сделал «Максимум оптимизации» -->
+            <TextBlock Text="Что сделал «Максимум оптимизации»" Style="{StaticResource SectionTitle}" Visibility="{Binding MaxSteps.Count, Converter={StaticResource CountToVis}}"/>
+            <ItemsControl ItemsSource="{Binding MaxSteps}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Expander Margin="0,0,0,6" HorizontalAlignment="Stretch">
+                            <Expander.Header>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Status}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                    <Ellipse Style="{StaticResource Dot}" Fill="{Binding Color, Converter={StaticResource ToneToBrush}}"/>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource Strong}"/>
+                                </DockPanel>
+                            </Expander.Header>
+                            <ItemsControl ItemsSource="{Binding Details}" Margin="18,4,0,4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding}" Style="{StaticResource Caption}" Margin="0,1" TextWrapping="Wrap"/></DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Expander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
             <ItemsControl ItemsSource="{Binding Cards}" Margin="0,20,0,0">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>

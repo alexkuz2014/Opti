@@ -40,6 +40,10 @@ public sealed class TuneSession
     public string? GameProcess { get; set; }
     /// <summary>Автоцикл без замеров: только применить выбранное (результат не доказан замером).</summary>
     public bool SkipMeasure { get; set; }
+    /// <summary>«Максимум оптимизации»: кроме исправлений — твики, очистка и драйверы, без вопросов.</summary>
+    public bool Maximum { get; set; }
+    /// <summary>Итоги шагов «Максимума оптимизации».</summary>
+    public List<Opti.Workflow.Maximum.MaxStep>? MaxSteps { get; set; }
     /// <summary>Нагрузка синтетического теста, подобранная под этот ПК при первом прогоне: все прогоны сессии идут с ней.</summary>
     public double? BenchGpuLoad { get; set; }
     /// <summary>Исправления, выбранные перед автоциклом (null — рекомендованные по плану).</summary>

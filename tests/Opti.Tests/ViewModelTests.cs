@@ -72,6 +72,10 @@ public sealed class ViewModelTests : IDisposable
         public Opti.Fixes.Services.TweakService Tweaks { get; }
         public int OsBuild => 26100;
         public Opti.Workflow.Game.IProcessControl? Processes { get; set; }
+        public Opti.Workflow.Maximum.IDriverUpdater? DriverUpdater { get; set; }
+        public int KeepAwakeCalls { get; private set; }
+        public bool Awake { get; private set; }
+        public void KeepAwake(bool on) { KeepAwakeCalls++; Awake = on; }
         public int ExplorerRestarts { get; private set; }
         public void RestartExplorer() => ExplorerRestarts++;
     }
@@ -232,7 +236,7 @@ public sealed class ViewModelTests : IDisposable
         Assert.False(svc.Map[ChangeType.Bcd].Read(Targets.Bcd("useplatformclock")).Exists);
     }
 
-    private static async Task<T> WaitForPage<T>(MainViewModel main, int timeoutMs = 10000) where T : PageViewModel
+    internal static async Task<T> WaitForPage<T>(MainViewModel main, int timeoutMs = 10000) where T : PageViewModel
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
         while (sw.ElapsedMilliseconds < timeoutMs)

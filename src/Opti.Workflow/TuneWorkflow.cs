@@ -97,6 +97,20 @@ public sealed class TuneWorkflow
         return report;
     }
 
+    /// <summary>Перезагрузка понадобилась уже после применения (например, из-за драйверов): ставим продолжение на вход пользователя.</summary>
+    public void RequireReboot(TuneSession s, string? resumeExe)
+    {
+        if (s.RebootRequired) return;
+        s.RebootRequired = true;
+        s.Stage = SessionStage.AwaitingReboot;
+        if (_scheduler is not null && resumeExe is not null)
+        {
+            try { _scheduler.ScheduleOnLogon(resumeExe, "resume"); }
+            catch (Exception ex) { s.Notes.Add("Задача продолжения не создана: " + ex.Message + ". После перезагрузки запустите Opti вручную."); }
+        }
+        Store.Save(s);
+    }
+
     /// <summary>Вызывается при запуске программы: если сессия ждала перезагрузку и она была — самопроверка.</summary>
     public PostRebootReport? ResumeIfRebooted(TuneSession s)
     {

@@ -33,6 +33,10 @@ public interface IAppServices
     Opti.Fixes.Services.TweakService Tweaks { get; }
     /// <summary>Сборка Windows (0 — неизвестно).</summary>
     int OsBuild => 0;
+    /// <summary>Установка драйверов через Центр обновления для «Максимума оптимизации»; null — недоступно.</summary>
+    Opti.Workflow.Maximum.IDriverUpdater? DriverUpdater => null;
+    /// <summary>Не давать компьютеру засыпать, пока Opti работает без присмотра.</summary>
+    void KeepAwake(bool on) { }
     /// <summary>Положить текст в буфер обмена (в тестах — запоминается).</summary>
     void CopyText(string text) { }
     /// <summary>Доступ к процессам для страницы «Игра»; null — страница недоступна.</summary>

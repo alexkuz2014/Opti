@@ -142,6 +142,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public void ShowCompare(CompareViewModel vm)
     {
+        Services.KeepAwake(false);
         Compare = vm;
         Nav[3].IsEnabled = true;
         Navigate(vm);
@@ -225,6 +226,23 @@ public sealed partial class MainViewModel : ObservableObject
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Шаги «Максимума оптимизации» после исправлений: твики, очистка, драйверы. Идут на отдельной странице с живым списком;
+    /// если драйверам нужна перезагрузка, она планируется вместе с продолжением после входа.
+    /// </summary>
+    public async Task RunMaximumExtrasAsync(TuneSession s)
+    {
+        var page = new MaxRunViewModel(this);
+        Navigate(page);
+        var st = Services.Settings;
+        var optimizer = new Opti.Workflow.Maximum.MaxOptimizer(Services.Tweaks, () => Services.CleanupTargets(), st.MaxIncludeDrivers ? Services.DriverUpdater : null, Services.OsBuild);
+        var result = await optimizer.RunAsync(s.Id, new Progress<Opti.Workflow.Maximum.MaxStep>(page.Add), new Progress<string>(t => page.Status = t), st.MaxIncludeDrivers, page.Token);
+        s.MaxSteps = result.Steps;
+        if (result.RebootRequired) Services.Workflow.RequireReboot(s, Services.ResumeExePath);
+        else Services.Workflow.Store.Save(s);
+        page.Finish();
+    }
+
     /// <summary>Запуск автоцикла с выбранными параметрами.</summary>
     public async Task RunAutoFlowAsync(TuneSession s)
     {
@@ -244,13 +262,20 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Шаг автоцикла после замера «до».</summary>
     public async Task ApplyRecommendedAsync() => Navigate(await ApplyRecommendedNavigateAsync(Session!));
 
+    /// <summary>Через сколько секунд «Максимум оптимизации» перезагружает компьютер сам (можно отменить).</summary>
+    public int AutoRebootDelaySeconds { get; set; } = 60;
+
     private async Task<PageViewModel> ApplyRecommendedNavigateAsync(TuneSession s)
     {
         var fixes = AutoFixes(s);
         var report = await Task.Run(() => Services.Workflow.Apply(s, fixes, Services.ResumeExePath));
         Session = s;
-        if (!report.RebootRequired && !s.SkipMeasure) return MeasureViewModel.ForAfter(this, auto: true);
+        if (s.Maximum) await RunMaximumExtrasAsync(s);
+        bool reboot = report.RebootRequired || s.RebootRequired;
+        if (!reboot && !s.SkipMeasure) return MeasureViewModel.ForAfter(this, auto: true);
         var vm = new ApplyViewModel(this, report);
+        vm.RebootRequired = reboot;
+        if (reboot && s.Maximum) _ = vm.RunAutoRebootAsync(AutoRebootDelaySeconds);
         if (s.SkipMeasure)
             vm.NextText = report.RebootRequired
                 ? "Нужна перезагрузка. Замер пропущен — эффект не проверен; при желании сделайте замер позже."

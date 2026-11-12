@@ -28,6 +28,8 @@ public sealed partial class ApplyViewModel : PageViewModel
                     .Concat(r.Changes.Select(c => $"{c.Type} {c.Target}: {c.Before} → {c.After}")).ToList(),
             });
         }
+        if (Main.Session?.MaxSteps is { } extra)
+            foreach (var step in extra) Log.Add(MaxRunViewModel.ToItem(step));
         Headline = report.Results.Any(r => r.Outcome == FixOutcome.Failed)
             ? "Часть исправлений не применилась — они откачены, остальное действует."
             : "Исправления применены.";
@@ -55,6 +57,28 @@ public sealed partial class ApplyViewModel : PageViewModel
         SuggestRollback = check.SuggestRollback;
         NextText = check.SuggestRollback ? "После изменений были сбои системы. Рекомендуется откатить." : "Теперь замер «после» в тех же условиях, что и «до».";
     }
+
+    [ObservableProperty] private string? _countdownText;
+    private CancellationTokenSource? _countdownCts;
+
+    /// <summary>«Максимум оптимизации»: пользователь мог отойти, поэтому перезагрузка начинается сама после обратного отсчёта; отсчёт можно отменить.</summary>
+    public async Task RunAutoRebootAsync(int seconds)
+    {
+        _countdownCts = new CancellationTokenSource();
+        try
+        {
+            for (int i = seconds; i > 0; i--)
+            {
+                CountdownText = $"Перезагрузка через {i} с. После входа в систему Opti продолжит сам.";
+                await Task.Delay(1000, _countdownCts.Token);
+            }
+            CountdownText = "Перезагружаю…";
+            Main.Services.RestartComputer();
+        }
+        catch (OperationCanceledException) { CountdownText = null; }
+    }
+
+    [RelayCommand] private void CancelReboot() => _countdownCts?.Cancel();
 
     [RelayCommand] private void RebootNow() => Main.Services.RestartComputer();
 

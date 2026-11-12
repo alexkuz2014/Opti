@@ -5,7 +5,7 @@
         <StackPanel Margin="{StaticResource PageMargin}" MaxWidth="{StaticResource ContentMaxWidth}" HorizontalAlignment="Left">
             <TextBlock Text="Найдём, что тормозит" Style="{StaticResource PageTitle}"/>
             <TextBlock Style="{StaticResource Secondary}"
-                       Text="Одна кнопка: Opti проверит компьютер, исправит то, что мешает, и покажет результат."/>
+                       Text="Нажмите «Максимум оптимизации» и отойдите: Opti проверит компьютер, исправит, что мешает, обновит драйверы и покажет результат. Исправления и твики откатываются."/>
 
             <!-- Незавершённая сессия -->
             <Border Style="{StaticResource Card}" Margin="0,20,0,0" Visibility="{Binding HasOpenSession, Converter={StaticResource BoolToVis}}">
@@ -54,14 +54,17 @@
                     </ListBox>
 
                     <DockPanel Margin="0,8,0,0">
-                        <Button DockPanel.Dock="Left" Style="{StaticResource AccentButton}" Content="Оптимизировать" Padding="32,11" FontSize="15" Command="{Binding OptimizeCommand}"
+                        <Button DockPanel.Dock="Left" Style="{StaticResource AccentButton}" Content="Максимум оптимизации" Padding="32,11" FontSize="15" Command="{Binding MaximumCommand}"
                                 Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}"
-                                ToolTip="Проверка → быстрый тест → безопасные исправления → повторный тест. Всё откатывается"/>
+                                ToolTip="Нажмите и отойдите: проверка, исправления, твики, очистка, драйверы, перезагрузка и повторный тест — всё само. Откатывается кнопкой в «Истории»"/>
+                        <Button DockPanel.Dock="Left" Content="Оптимизировать" Padding="20,10" Command="{Binding OptimizeCommand}" Margin="0,0,8,0"
+                                Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}"
+                                ToolTip="Короче: проверка → быстрый тест → безопасные исправления → повторный тест. Без твиков, очистки и драйверов"/>
                         <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Только проверить" Command="{Binding AnalyzeCommand}" VerticalAlignment="Center" Margin="12,0,0,0"
                                 Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}" ToolTip="Найти проблемы и ничего не менять"/>
                         <Button DockPanel.Dock="Left" Content="Отмена" Command="{Binding CancelAnalysisCommand}" Margin="0,0,12,0" VerticalAlignment="Center"
                                 Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}"/>
-                        <TextBlock Text="Opti сам найдёт проблемы, исправит безопасное и покажет результат. Около 3 минут, всё откатывается" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0"
+                        <TextBlock Text="«Максимум»: 10–15 минут без вашего участия, компьютер может перезагрузиться сам" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0"
                                    Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}"/>
                         <!-- Ход анализа: на месте кнопки, с номером шага -->
                         <StackPanel VerticalAlignment="Center" Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVis}}">

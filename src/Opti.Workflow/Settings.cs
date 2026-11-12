@@ -28,6 +28,8 @@ public sealed class OptiSettings
     public bool CheckForUpdates { get; set; } = true;
     /// <summary>Во время игры понижать приоритет браузеров и помощников лаунчеров (страница «Игра»).</summary>
     public bool ThrottleBackground { get; set; }
+    /// <summary>«Максимум оптимизации» ставит драйверы из Центра обновления Windows.</summary>
+    public bool MaxIncludeDrivers { get; set; } = true;
     /// <summary>Программы, отмеченные в «Перед игрой» в прошлый раз.</summary>
     public List<string> PrepareCloseList { get; set; } = new();
 

@@ -18,7 +18,7 @@ public sealed partial class HomeViewModel : PageViewModel
     public IReadOnlyList<GoalOption> Goals => GoalOption.Presets;
 
     [ObservableProperty] private GoalOption? _selectedGoal;
-    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))] [NotifyCanExecuteChangedFor(nameof(OptimizeCommand))] [NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isAnalyzing;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))] [NotifyCanExecuteChangedFor(nameof(OptimizeCommand))] [NotifyCanExecuteChangedFor(nameof(MaximumCommand))] [NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isAnalyzing;
     public bool IsIdle => !IsAnalyzing;
     [ObservableProperty] private string? _progressText;
     /// <summary>Номер текущего шага анализа и их общее число; если число неизвестно — полоса «бегущая».</summary>
@@ -133,7 +133,9 @@ public sealed partial class HomeViewModel : PageViewModel
     private bool CanAnalyze() => !IsAnalyzing;
 
     [RelayCommand(CanExecute = nameof(CanAnalyze))]
-    private async Task AnalyzeAsync()
+    private Task AnalyzeAsync() => RunAnalysisAsync(SelectedGoal?.Goal ?? Main.Services.Settings.DefaultGoal);
+
+    private async Task RunAnalysisAsync(Opti.Core.Strategy.UserGoal goal)
     {
         IsAnalyzing = true;
         _cts = new CancellationTokenSource();
@@ -148,7 +150,7 @@ public sealed partial class HomeViewModel : PageViewModel
                 ProgressText = total > 0 ? $"Шаг {Math.Min(step, total)} из {total}: {s}…" : $"Собираю данные: {s}…";
             });
             var result = await Main.Services.AnalyzeAsync(progress, _cts.Token);
-            var session = Main.Services.Workflow.StartSession(result, SelectedGoal?.Goal ?? Main.Services.Settings.DefaultGoal);
+            var session = Main.Services.Workflow.StartSession(result, goal);
             Main.Session = session;
             Main.Analysis.Load(session, result.Timings.Select(t => t.Error is null ? null : $"{t.Name}: {t.Error}").OfType<string>().ToList());
             Main.Navigate(Main.Analysis);
@@ -171,7 +173,7 @@ public sealed partial class HomeViewModel : PageViewModel
     private async Task OptimizeAsync()
     {
         var before = Main.Session;
-        await AnalyzeAsync();
+        await RunAnalysisAsync(SelectedGoal?.Goal ?? Main.Services.Settings.DefaultGoal);
         var s = Main.Session;
         if (s?.Profile is null || ReferenceEquals(s, before)) return;      // анализ отменён или не удался
         var fixes = Main.RecommendedFixes(s);
@@ -186,6 +188,36 @@ public sealed partial class HomeViewModel : PageViewModel
         s.MeasureDurationSec = 20;
         try { await Main.RunAutoFlowAsync(s); }
         catch (Exception ex) { Main.ShowMessage(ex.Message, error: true); }
+    }
+
+    /// <summary>
+    /// «Максимум оптимизации»: пользователь нажимает один раз и уходит. Анализ → тест «до» → все безопасные исправления → твики, очистка,
+    /// драйверы из Центра обновления → перезагрузка сама (с отсчётом, который можно отменить) → тест «после» → результат.
+    /// Цель — минимальная задержка: она включает и сетевые исправления для пинга. Спорное (A/B) и рискованное по-прежнему только вручную.
+    /// Всё, кроме очистки и драйверов, откатывается одной кнопкой.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanAnalyze))]
+    private async Task MaximumAsync()
+    {
+        var before = Main.Session;
+        Main.Services.KeepAwake(true);
+        try
+        {
+            await RunAnalysisAsync(Opti.Core.Strategy.UserGoal.LowLatency);
+            var s = Main.Session;
+            if (s?.Profile is null || ReferenceEquals(s, before)) { Main.Services.KeepAwake(false); return; }   // анализ отменён или не удался
+            s.AutoFixIds = Main.RecommendedFixes(s).Select(f => f.Id).ToList();
+            s.Maximum = true;
+            s.SkipMeasure = false;
+            s.MeasureRuns = 2;
+            s.MeasureDurationSec = 20;
+            await Main.RunAutoFlowAsync(s);
+        }
+        catch (Exception ex)
+        {
+            Main.Services.KeepAwake(false);
+            Main.ShowMessage(ex.Message, error: true);
+        }
     }
 
     [RelayCommand] private void CancelAnalysis() => _cts?.Cancel();

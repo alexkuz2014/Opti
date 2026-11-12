@@ -34,6 +34,11 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
     public TuneWorkflow Workflow { get; }
     public TweakService Tweaks { get; }
     public int OsBuild => Environment.OSVersion.Version.Build;
+    public Opti.Workflow.Maximum.IDriverUpdater? DriverUpdater { get; } = new Opti.Workflow.Maximum.WindowsUpdateDriverUpdater();
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")] private static extern uint SetThreadExecutionState(uint flags);
+    /// <summary>ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED: без сна и без отключения экрана (на тёмном экране замер теста ненадёжен).</summary>
+    public void KeepAwake(bool on) => SetThreadExecutionState(on ? 0x80000000u | 0x00000001u | 0x00000002u : 0x80000000u);
     public void CopyText(string text) { try { System.Windows.Clipboard.SetText(text); } catch { /* буфер обмена занят */ } }
     public Opti.Workflow.Game.IProcessControl? Processes { get; } = new Opti.Workflow.Game.SystemProcessControl();
     public int AnalysisStepCount => SystemAnalyzer.DefaultCollectors(null, Settings.NetworkCheckInAnalysis ? Settings.NetworkTarget : null).Count;
