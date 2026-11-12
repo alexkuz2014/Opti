@@ -15,7 +15,7 @@ public sealed class ViewModelTests : IDisposable
     private readonly string _dir = Directory.CreateTempSubdirectory("opti-vm-").FullName;
     public void Dispose() => Directory.Delete(_dir, true);
 
-    private sealed class FakeRunner : IMeasureRunner
+    internal sealed class FakeRunner : IMeasureRunner
     {
         private readonly Func<int, double> _base;
         private int _n;
@@ -32,7 +32,7 @@ public sealed class ViewModelTests : IDisposable
         }
     }
 
-    private sealed class FakeServices : IAppServices
+    internal sealed class FakeServices : IAppServices
     {
         public FakeServices(string dir, string profile, Func<int, double> frameMs)
         {
@@ -71,6 +71,7 @@ public sealed class ViewModelTests : IDisposable
         public string? StartupNotice => null;
         public Opti.Fixes.Services.TweakService Tweaks { get; }
         public int OsBuild => 26100;
+        public Opti.Workflow.Game.IProcessControl? Processes { get; set; }
         public int ExplorerRestarts { get; private set; }
         public void RestartExplorer() => ExplorerRestarts++;
     }

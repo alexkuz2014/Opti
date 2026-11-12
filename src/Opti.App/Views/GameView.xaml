@@ -1,0 +1,70 @@
+<UserControl x:Class="Opti.App.Views.GameView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="{StaticResource PageMargin}" MaxWidth="{StaticResource ContentMaxWidth}" HorizontalAlignment="Left">
+            <TextBlock Text="Игра" Style="{StaticResource PageTitle}"/>
+            <TextBlock Style="{StaticResource Secondary}" MaxWidth="700" HorizontalAlignment="Left"
+                       Text="Освободить ресурсы перед игрой и не давать фону отнимать их во время неё. Системные процессы, защита и драйверы не показываются и не трогаются."/>
+
+            <Border Style="{StaticResource Callout}" Margin="0,16,0,0" Background="{Binding Source=warn, Converter={StaticResource ToneToSoft}}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Visibility="{Binding IsAvailable, Converter={StaticResource InvBoolToVis}}">
+                <TextBlock Text="Список процессов недоступен на этом компьютере." Style="{StaticResource Body}"/>
+            </Border>
+
+            <!-- Приглушать фон во время игры -->
+            <Border Style="{StaticResource Card}" Margin="0,20,0,0">
+                <DockPanel>
+                    <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding ThrottleBackground}" VerticalAlignment="Center"
+                              Margin="16,0,0,0" AutomationProperties.Name="Приглушать фон во время игры" IsEnabled="{Binding IsAvailable}"/>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Приглушать фон во время игры" Style="{StaticResource Strong}" VerticalAlignment="Center"/>
+                            <Border Style="{StaticResource Tag}" Margin="10,0,0,0" Background="{Binding Source=neutral, Converter={StaticResource ToneToSoft}}"
+                                    ToolTip="Помогает, когда процессор загружен целиком; если нет — разницы не будет">
+                                <TextBlock Text="зависит от ПК" Style="{StaticResource TagText}" Foreground="{Binding Source=neutral, Converter={StaticResource ToneToBrush}}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,3,0,0"
+                                   Text="Пока идёт игра, браузеры и помощники лаунчеров (Steam, Epic, Battle.net…) получают пониженный приоритет, облачные диски и торренты тоже. Игра закрылась — всё возвращается. Без прав администратора и без перезагрузки. Opti должен оставаться запущенным. Discord, OBS и защита не затрагиваются."/>
+                        <TextBlock Text="{Binding ThrottleStatus}" Style="{StaticResource Caption}" Margin="0,6,0,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                   Visibility="{Binding ThrottleStatus, Converter={StaticResource StrToVis}}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Перед игрой -->
+            <DockPanel Margin="0,28,0,6">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding AppsSummary}" Style="{StaticResource Caption}" VerticalAlignment="Bottom"/>
+                <TextBlock Text="Перед игрой" Style="{StaticResource SectionTitle}" Margin="0"/>
+            </DockPanel>
+            <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,12" MaxWidth="700" HorizontalAlignment="Left"
+                       Text="Отметьте программы, которые не нужны во время игры, — Opti закроет их. Несохранённое в закрытых программах пропадёт. Отметки запоминаются. «Очистка оперативной памяти» отдельными утилитами не нужна: Windows освобождает память сама, поэтому здесь только закрытие программ."/>
+            <ItemsControl ItemsSource="{Binding Apps}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Width="224" Margin="0,0,8,8" Padding="12,10">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding MemoryText}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Center" MinWidth="0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="110"/>
+                                        <TextBlock Text="{Binding CountText}" Style="{StaticResource Caption}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button Style="{StaticResource AccentButton}" Content="Подготовить к игре" Command="{Binding PrepareCommand}" IsEnabled="{Binding IsAvailable}"/>
+                <Button Content="Обновить список" Command="{Binding RefreshCommand}" Margin="0,0,12,0"/>
+                <TextBlock Text="{Binding PrepResult}" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

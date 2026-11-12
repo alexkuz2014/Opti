@@ -244,6 +244,9 @@ public sealed class SecurityInfo
 
 public sealed class GraphicsSettingsInfo
 {
+    /// <summary>Размер окна BAR1 видеокарты NVIDIA, МБ: 256 — Resizable BAR выключен, равен видеопамяти — включён.</summary>
+    public int? Bar1TotalMb { get; set; }
+    public bool? ResizableBarEnabled { get; set; }
     public bool? HagsSupported { get; set; }
     public bool? HagsEnabled { get; set; }
     /// <summary>HKLM\SOFTWARE\Microsoft\Windows\Dwm\OverlayTestMode, если задан.</summary>

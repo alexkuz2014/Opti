@@ -1,11 +1,11 @@
 # Opti — карта репозитория
 
-Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.4.0-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
+Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.5.0-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
 
 ## Команды
 
 ```bash
-dotnet test                      # 246 тестов, xUnit, ~20 с; работает в Linux
+dotnet test                      # 264 теста, xUnit, ~20 с; работает в Linux
 dotnet build src/Opti.Cli        # CLI
 dotnet build src/Opti.App        # WPF; в Linux собирается (EnableWindowsTargeting), но не запускается
 build/publish.sh [версия]        # win-x64 single-file → artifacts/Opti.exe, opti-cli.exe, SHA256SUMS.txt
@@ -24,11 +24,11 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 |---|---|
 | `Opti.Core` | Без зависимостей. `SystemProfile` (модель ПК), `Finding`/`IDetector`, справочники (`Os/WindowsLifecycle`, `Os/BootLimits`, `Games/GameProfiles`, `Hardware/GpuSupport`, `Network/NetworkApps`, `Network/PingProbe`, `Drivers/`, `Registry/`, `Tweaks/`, `Software/`), `IFix`/`FixIds`/`ChangeContext`/`ChangeRecord`/`StateValue`, `IStateBackend`/`IChangeJournal`, `StrategyEngine`, `UserGoal`, `Sources` (ссылки на первоисточники) |
 | `Opti.Native` | P/Invoke (экран, DXGI, HAGS, питание), `ProcessRunner`, `ToolParsers` (разбор вывода bcdedit/powercfg/nvidia-smi и т. п.) |
-| `Opti.Analysis` | `Collectors/` — 17 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 56 детекторов, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
+| `Opti.Analysis` | `Collectors/` — 18 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 57 детекторов, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
 | `Opti.Fixes` | `Catalog/` — 25 исправлений (`FixBase`); `Backends/` — Windows-бэкенды + `InMemoryBackend`/`ProfileSeeder` для тестов; `Journal/` — SQLite и in-memory; `ApplyService`, `RollbackService`, точка восстановления |
 | `Opti.Measure` | `Stats/` — `FrameMetrics`, блочный бутстреп, `Comparison` (вердикт лучше/шум/хуже); `Capture/` — ETW (кадры, DPC/ISR), PresentMon CSV, сеть, таймер |
 | `Opti.Bench` | Синтетический тест D3D11 (Vortice); встроен в `Opti.exe`, запускается ключом `--bench` |
-| `Opti.Workflow` | `TuneWorkflow` (сессия: анализ → план → до → применение → перезагрузка/resume → после → сравнение → откат; A/B), `Sessions/`, `Measuring/` (раннеры), `Cleanup/`, `Reports/` (HTML + SVG), `Settings`, `AppInfo`/`UpdateChecker` |
+| `Opti.Workflow` | `TuneWorkflow` (сессия: анализ → план → до → применение → перезагрузка/resume → после → сравнение → откат; A/B), `Sessions/`, `Measuring/` (раннеры), `Game/` («Перед игрой» и приглушение фона через шов `IProcessControl`), `Cleanup/`, `Reports/` (HTML + SVG), `Settings`, `AppInfo`/`UpdateChecker` |
 | `Opti.ViewModels` | MVVM (CommunityToolkit.Mvvm), `IAppServices` — шов для тестов без Windows |
 | `Opti.App` | WPF Fluent, `net10.0-windows`. Views без кода — только XAML; `WindowsAppServices` — реальная реализация `IAppServices` |
 | `Opti.Cli` | `opti-cli`; все команды в `Commands.cs` (run, resume, analyze, plan, measure, apply, ab, compare, report, rollback, history, latency, net, version, doctor) |
@@ -62,6 +62,9 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 - `origin` — `alexkuz2014/Opti`, но в коде и README зашит `allora-dev/optim` (`AppInfo.Repository`, `RepositoryUrl`, ссылка на релизы): проверка обновлений смотрит туда.
 - Остатки старого имени: `Opti.Core/Json/GameTuneJson.cs`, миграция данных GameTune 1.0.0-beta — оставлены намеренно ради отката старых изменений.
 - Данные программы: `C:\ProgramData\Opti\` (`journal.db`, сессии, отчёты) — пути в `OptiPaths` (`Fixes/Backends/WindowsBackends.cs`).
+- Страница «Игра»: `GamePrep` закрывает выбранные программы, `BackgroundThrottler` понижает приоритет браузерам и лаунчерам на время игры (таймер 5 с в `App.xaml.cs`, возврат при выходе). Список защищённых процессов `GamePrep.Protected` — не сокращать; Discord и OBS из приглушения исключены намеренно. «Очистку ОЗУ» не добавлять: миф.
+- Метки надёжности (`EvidenceLevel`: Solid / Varies / Hypothesis) у исправлений и твиков: новый твик без измерений — только Hypothesis и выключен по умолчанию.
+- Сознательно не делаем (антиочит и безопасность): приоритет процесса игры через IFEO, исключения Defender, отключение Defender/Update, правка файлов игры.
 - Советы по играм (`GameProfiles`) — только про настройки в самой игре и системную часть. Файлы игры (settings.xml и т. п.) Opti не меняет: решение владельца, пользователям это может не понравиться. Добавляя игру, ссылаться на обзоры, цифры без источника не писать.
 - Эвристики про «твики из роликов» проверены поиском: `msconfig → число процессоров` не ускоряет (Windows использует все ядра), MMCSS/Win32PrioritySeparation/NetworkThrottling дают нестабильный эффект, Ultimate Performance — единицы процентов, VBS/HVCI — около 5 % (до 10 %), HAGS — по-разному. Крупные выигрыши — настройки графики в игре и исправление неверной конфигурации.
 - Ссылки `Gta5Guide`, `ReflexTest`, `HvciBenchmark` взяты из выдачи поиска, страницы из контейнера не открывались.

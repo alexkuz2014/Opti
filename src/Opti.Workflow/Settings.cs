@@ -26,6 +26,10 @@ public sealed class OptiSettings
     public bool RollbackWhenNoEffect { get; set; }
     /// <summary>Проверять наличие новой версии на GitHub (только уведомление, ничего не скачивается).</summary>
     public bool CheckForUpdates { get; set; } = true;
+    /// <summary>Во время игры понижать приоритет браузеров и помощников лаунчеров (страница «Игра»).</summary>
+    public bool ThrottleBackground { get; set; }
+    /// <summary>Программы, отмеченные в «Перед игрой» в прошлый раз.</summary>
+    public List<string> PrepareCloseList { get; set; } = new();
 
     public static OptiSettings Load(string? path = null)
     {

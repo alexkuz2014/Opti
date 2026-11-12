@@ -25,6 +25,7 @@ public static class Sources
     public const string HvciBenchmark = "https://www.tomshardware.com/news/windows-vbs-harms-performance-rtx-4090";
     public const string ReflexTest = "https://techpowerup.com/review/nvidia-reflex-review-test-ldat-v2/3.html";
     public const string Gta5Guide = "https://www.gamersnexus.net/game-bench/1909-gta-v-graphics-optimization-guide";
+    public const string PcTuning = "https://github.com/valleyofdoom/PC-Tuning";
     public const string WindowsLifecycle = "https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro";
     public const string Windows10EndOfSupport = "https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro";
     public const string TcpAckFrequency = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/registry-entry-control-tcp-acknowledgment-behavior";

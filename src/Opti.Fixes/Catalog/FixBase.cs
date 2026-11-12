@@ -12,6 +12,7 @@ public abstract class FixBase : IFix
     public virtual RiskLevel Risk => RiskLevel.Safe;
     public virtual bool RequiresReboot => false;
     public abstract FixCategory Category { get; }
+    public virtual EvidenceLevel Evidence => EvidenceLevel.Solid;
     public virtual bool RequiresAbTest => false;
     public virtual bool TouchesBcd => false;
     public virtual bool NeedsUserChoice => false;

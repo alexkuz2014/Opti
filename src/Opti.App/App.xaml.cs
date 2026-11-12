@@ -10,6 +10,7 @@ namespace Opti.App;
 public partial class App : Application
 {
     private WindowsAppServices? _services;
+    private MainViewModel? _vm;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -29,6 +30,11 @@ public partial class App : Application
         ApplyBrandTheme();
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, _) => Dispatcher.BeginInvoke(ApplyBrandTheme);
         var vm = new MainViewModel(_services);
+        _vm = vm;
+        // «Приглушать фон во время игры»: раз в 5 секунд смотрим, идёт ли игра
+        var gameTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        gameTimer.Tick += (_, _) => vm.Game.Tick();
+        gameTimer.Start();
         var window = new MainWindow { DataContext = vm };
         MainWindow = window;
 #if DEV
@@ -61,6 +67,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _vm?.Game.Shutdown();
 #if DEV
         Services.DevExport.Write("выход");
 #endif

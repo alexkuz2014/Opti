@@ -79,6 +79,7 @@ public static class DetectorCatalog
         new BootLimitsDetector(),
         new Gta5ProfileDetector(),
         new GpuPanelTipsDetector(),
+        new ResizableBarDetector(),
         new DriverAuditDetector(),
         new RegistryAuditDetector(),
     };

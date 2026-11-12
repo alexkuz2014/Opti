@@ -41,6 +41,14 @@ public static partial class ToolParsers
     public static bool ParseNvidiaThrottleActive(string output) =>
         output.Split('\n').Any(line => line.Split(',').Any(f => f.Trim().Equals("Active", StringComparison.OrdinalIgnoreCase)));
 
+    /// <summary>Размер BAR1 из «nvidia-smi -q -d MEMORY»; null — строки нет.</summary>
+    public static int? ParseNvidiaBar1TotalMb(string output)
+    {
+        var m = Bar1Regex().Match(output);
+        return m.Success && int.TryParse(m.Groups[1].Value, out var v) ? v : null;
+    }
+
+    [GeneratedRegex(@"BAR1 Memory Usage\s*\r?\n\s*Total\s*:\s*(\d+)\s*MiB", RegexOptions.IgnoreCase)] private static partial Regex Bar1Regex();
     [GeneratedRegex(@"^([a-z][a-z0-9]+)\s{2,}(.+)$")] private static partial Regex BcdLineRegex();
     [GeneratedRegex(@":\s*0x([0-9a-fA-F]{1,8})\s*$", RegexOptions.Multiline)] private static partial Regex PowerHexRegex();
 }

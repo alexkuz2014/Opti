@@ -30,6 +30,7 @@ public static class PowerGuids
 public sealed class PowerSchemePerfFix : FixBase
 {
     public override string Id => FixIds.PowerSchemePerf;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Схема питания «Высокая производительность»";
     public override string Explanation => "Процессор быстрее выходит на высокие частоты и не паркует ядра. Если в системе есть только «Сбалансированная» схема, создаётся скрытая «Максимальная производительность» " +
                                           "(как командой powercfg -duplicatescheme). Выигрыш обычно небольшой — единицы процентов; зато плавнее отклик. Только для настольных ПК; на ноутбуке меняются лишь параметры от сети. " +
@@ -63,6 +64,7 @@ public sealed class PowerSchemePerfFix : FixBase
 public sealed class PowerAcTuningFix : FixBase
 {
     public override string Id => FixIds.PowerAcTuning;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Питание от сети: без энергосберегающих ограничений";
     public override string Explanation => "Для режима «от сети»: режим питания Windows «Максимальная производительность» (если стоит «Экономия заряда»), " +
                                           "максимальное состояние процессора 100 %, без парковки ядер (только ПК), выключено выборочное отключение USB, " +
@@ -97,6 +99,7 @@ public sealed class PowerThrottlingOffFix : FixBase
 {
     public const string Key = @"HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling";
     public override string Id => FixIds.PowerThrottlingOff;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Отключить Power Throttling";
     public override string Explanation => "Power Throttling переводит «фоновые» процессы на энергоэффективные режимы. Иногда под него попадают лаунчеры, OBS и сама игра в окне. " +
                                           "Отключение глобальное — точечное отключение по процессу Windows не поддерживает постоянно.";
@@ -135,8 +138,9 @@ public sealed class TimerResolutionGlobalFix : FixBase
 {
     public const string Key = @"HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel";
     public override string Id => FixIds.TimerResGlobal;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Глобальные запросы разрешения таймера (Windows 11)";
-    public override string Explanation => "Возвращает поведение Windows 10: запрос точного таймера от игры действует, даже когда её окно не на переднем плане. Оставляется только при улучшении по замеру.";
+    public override string Explanation => "Возвращает поведение Windows 10: запрос точного таймера от игры действует, даже когда её окно не на переднем плане. По измерениям PC-Tuning на Windows 11 22H2 интервал Sleep(1) падал с ~15,6 до ~1,5 мс; на Windows 10 21H2 эффекта нет. Для FPS игры это не гарантия — оставляется только при улучшении по замеру.";
     public override RiskLevel Risk => RiskLevel.Moderate;
     public override bool RequiresReboot => true;
     public override bool RequiresAbTest => true;
@@ -172,6 +176,7 @@ public sealed class StartupDisableFix : FixBase
 public sealed class NetAdapterPowerOffFix : FixBase
 {
     public override string Id => FixIds.NetAdapterPowerOff;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Запретить отключение сетевого адаптера для экономии энергии";
     public override string Explanation => "Снимает «Разрешить отключение этого устройства для экономии энергии» у активных сетевых адаптеров.";
     public override FixCategory Category => FixCategory.Network;

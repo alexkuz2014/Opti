@@ -49,6 +49,10 @@
                                                                     Visibility="{Binding Recommended, Converter={StaticResource BoolToVis}}">
                                                                 <TextBlock Text="рекомендуем" Style="{StaticResource TagText}" Foreground="{Binding Source=good, Converter={StaticResource ToneToBrush}}"/>
                                                             </Border>
+                                                            <Border Style="{StaticResource Tag}" Margin="10,0,0,0" Background="{Binding EvidenceColor, Converter={StaticResource ToneToSoft}}"
+                                                                    Visibility="{Binding ShowEvidence, Converter={StaticResource BoolToVis}}" ToolTip="Насколько надёжно известно, что твик помогает">
+                                                                <TextBlock Text="{Binding EvidenceText}" Style="{StaticResource TagText}" Foreground="{Binding EvidenceColor, Converter={StaticResource ToneToBrush}}"/>
+                                                            </Border>
                                                         </StackPanel>
                                                         <TextBlock Text="{Binding Description}" Style="{StaticResource Caption}" Margin="0,3,0,0"/>
                                                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">

@@ -10,6 +10,7 @@ public sealed class NagleOffFix : FixBase
     public const string InterfacesKey = @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\";
 
     public override string Id => FixIds.NetNagleOff;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Отправлять пакеты TCP без задержки (отключить алгоритм Нейгла)";
     public override string Explanation => "Для активных сетевых адаптеров ставит TcpAckFrequency = 1 и TCPNoDelay = 1: Windows перестаёт придерживать мелкие пакеты и подтверждения. " +
                                           "Снижает задержку в играх на TCP (MMO, часть MOBA и стратегий). Шутерам на UDP не помогает и не мешает. " +
@@ -38,6 +39,7 @@ public sealed class NagleOffFix : FixBase
 public sealed class NetEeeOffFix : FixBase
 {
     public override string Id => FixIds.NetEeeOff;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Отключить энергосбережение сетевой карты (EEE, Green Ethernet)";
     public override string Explanation => "Выключает Energy Efficient Ethernet и «зелёный» режим в драйвере проводной сетевой карты: линия не засыпает между пакетами. " +
                                           "Скорость соединения не меняется. Вступает в силу после перезагрузки.";

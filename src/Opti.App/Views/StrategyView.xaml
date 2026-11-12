@@ -21,6 +21,10 @@
                                         <Ellipse Style="{StaticResource Dot}" Width="6" Height="6" Margin="0,0,6,0" Fill="{Binding RiskColor, Converter={StaticResource ToneToBrush}}"/>
                                         <TextBlock Text="{Binding RiskText}" Style="{StaticResource Caption}"/>
                                         <TextBlock Text="  ·  нужна перезагрузка" Style="{StaticResource Caption}" Visibility="{Binding RequiresReboot, Converter={StaticResource BoolToVis}}"/>
+                                        <Border Style="{StaticResource Tag}" Margin="10,0,0,0" Background="{Binding EvidenceColor, Converter={StaticResource ToneToSoft}}"
+                                                Visibility="{Binding ShowEvidence, Converter={StaticResource BoolToVis}}" ToolTip="Насколько надёжно известно, что настройка помогает">
+                                            <TextBlock Text="{Binding EvidenceText}" Style="{StaticResource TagText}" Foreground="{Binding EvidenceColor, Converter={StaticResource ToneToBrush}}"/>
+                                        </Border>
                                     </StackPanel>
                                     <ItemsControl ItemsSource="{Binding Notes}">
                                         <ItemsControl.ItemTemplate>

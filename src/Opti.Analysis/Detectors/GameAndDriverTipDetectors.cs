@@ -93,3 +93,33 @@ public sealed class GpuPanelTipsDetector : DetectorBase
         };
     }
 }
+
+/// <summary>Resizable BAR (Smart Access Memory) выключен на видеокарте, которая его поддерживает.</summary>
+public sealed class ResizableBarDetector : DetectorBase
+{
+    public override string Id => "GPU_REBAR_OFF";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var gpu = p.DiscreteGpu;
+        if (gpu is not { Vendor: GpuVendor.Nvidia } || p.Graphics.ResizableBarEnabled != false) yield break;
+        // Официально Resizable BAR поддерживают видеокарты GeForce RTX 30-й серии и новее
+        if (!System.Text.RegularExpressions.Regex.IsMatch(gpu.Name, @"RTX\s*[3-5]\d{3}", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = "Resizable BAR выключен",
+            Severity = Severity.Advice,
+            Explanation = "Resizable BAR даёт процессору доступ ко всей видеопамяти сразу, а не окнами по 256 МБ. В части игр это добавляет несколько процентов FPS, " +
+                          "в других ничего не меняет, а в отдельных даже чуть хуже — поэтому после включения проверьте игру замером. Включается в BIOS, из Windows это сделать нельзя.",
+            Evidence = { $"{gpu.Name}: окно BAR1 {p.Graphics.Bar1TotalMb} МБ при видеопамяти {gpu.DedicatedVramMb} МБ" },
+            ManualSteps =
+            {
+                "BIOS: включите «Above 4G Decoding», затем «Re-Size BAR Support»; режим загрузки UEFI, CSM выключить.",
+                "Нужны актуальный BIOS материнской платы и драйвер видеокарты. Проверка — в GPU-Z: «Resizable BAR: Enabled».",
+            },
+            Links = { Sources.PcTuning },
+            IsHardwareLimitation = false,
+        };
+    }
+}

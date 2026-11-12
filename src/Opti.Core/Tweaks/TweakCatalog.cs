@@ -24,6 +24,7 @@ public sealed class Tweak
     /// <summary>Минимальная сборка Windows (22000 — Windows 11).</summary>
     public int MinBuild { get; init; }
     public bool Recommended { get; init; }
+    public Opti.Core.Fixes.EvidenceLevel Evidence { get; init; } = Opti.Core.Fixes.EvidenceLevel.Solid;
     public string? Link { get; init; }
 
     public string FixId => "TWEAK_" + Id;
@@ -200,7 +201,7 @@ public static class TweakCatalog
         },
         new()
         {
-            Id = "NO_WIDGETS", Category = TweakCategory.Gaming, MinBuild = 22000,
+            Id = "NO_WIDGETS", Category = TweakCategory.Gaming, MinBuild = 22000, Evidence = Opti.Core.Fixes.EvidenceLevel.Varies,
             Title = "Отключить мини-приложения (виджеты)",
             Description = "Убирает панель новостей и погоды вместе с её фоновыми процессами. Полезно на компьютерах с 8 ГБ памяти и меньше.",
             Values = new[] { new TweakValue(@"HKLM\SOFTWARE\Policies\Microsoft\Dsh", "AllowNewsAndInterests", "DWord", "0") },
@@ -209,11 +210,44 @@ public static class TweakCatalog
         },
         new()
         {
-            Id = "NO_TRANSPARENCY", Category = TweakCategory.Gaming,
+            Id = "NO_TRANSPARENCY", Category = TweakCategory.Gaming, Evidence = Opti.Core.Fixes.EvidenceLevel.Varies,
             Title = "Без эффектов прозрачности",
             Description = "Панель задач, «Пуск» и окна становятся непрозрачными. На встроенной графике и старых видеокартах снимает часть нагрузки с видеочипа, " +
                           "когда игра идёт в окне или поверх неё что-то открыто.",
             Values = new[] { new TweakValue(@"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "EnableTransparency", "DWord", "0") },
+        },
+        new()
+        {
+            Id = "NO_BACKGROUND_APPS", Category = TweakCategory.Gaming, Evidence = Opti.Core.Fixes.EvidenceLevel.Varies,
+            Title = "Запретить фоновую работу приложений из Microsoft Store",
+            Description = "Приложения из Магазина (почта, погода, «Фото» и т. п.) перестают просыпаться и работать в фоне. Освобождает немного памяти и процессора; на ПК с 8 ГБ памяти и меньше заметнее. " +
+                          "Уведомления и обновления плиток этих приложений могут приходить с задержкой.",
+            Values = new[] { new TweakValue(@"HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy", "LetAppsRunInBackground", "DWord", "2") },
+            ApplyMode = TweakApplyMode.Reboot,
+            Link = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy#letappsruninbackground",
+        },
+        new()
+        {
+            Id = "MMCSS_GAMES", Category = TweakCategory.Gaming, Evidence = Opti.Core.Fixes.EvidenceLevel.Hypothesis,
+            Title = "Приоритет игр в планировщике мультимедиа (MMCSS)",
+            Description = "Поднимает приоритет задачи «Games» в службе планирования мультимедиа: приоритет 6, планирование «Высокое», приоритет диска «Высокий». " +
+                          "Это значения, которые советуют в гайдах; измерений, что они дают FPS, нет — эффект, если есть, в стабильности кадров. Выключатель вернёт стандартные значения Windows.",
+            Values = new[]
+            {
+                new TweakValue(@"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games", "Priority", "DWord", "6"),
+                new TweakValue(@"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games", "Scheduling Category", "String", "High"),
+                new TweakValue(@"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games", "SFIO Priority", "String", "High"),
+            },
+            ApplyMode = TweakApplyMode.Reboot,
+        },
+        new()
+        {
+            Id = "NO_NETWORK_THROTTLING", Category = TweakCategory.Gaming, Evidence = Opti.Core.Fixes.EvidenceLevel.Hypothesis,
+            Title = "Снять ограничение сети для мультимедиа (NetworkThrottlingIndex)",
+            Description = "Windows по умолчанию ограничивает сетевой трафик во время воспроизведения мультимедиа. Опция снимает это ограничение. Измерений выигрыша для игр нет; " +
+                          "если проблема в Wi-Fi, роутере или провайдере, она ничего не изменит — сначала смотрите результаты проверки сети.",
+            Values = new[] { new TweakValue(@"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile", "NetworkThrottlingIndex", "DWord", "4294967295") },
+            ApplyMode = TweakApplyMode.Reboot,
         },
         new()
         {
