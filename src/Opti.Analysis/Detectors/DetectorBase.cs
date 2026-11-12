@@ -81,6 +81,9 @@ public static class DetectorCatalog
         new GpuPanelTipsDetector(),
         new ResizableBarDetector(),
         new PeripheralSoftwareDetector(),
+        new DiskBusyDetector(),
+        new GamesDiskFullDetector(),
+        new GameLoadTipsDetector(),
         new DriverAuditDetector(),
         new RegistryAuditDetector(),
     };

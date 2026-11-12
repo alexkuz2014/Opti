@@ -23,7 +23,7 @@ public static class SystemAnalyzer
         {
             new DeviceCollector(), new OsCollector(), new CpuCollector(), new GpuDisplayCollector(), new MemoryCollector(),
             new DiskCollector(), new PowerCollector(), new ThermalCollector(), new TimersAndSecurityCollector(),
-            new GraphicsSettingsCollector(), new BackgroundCollector(), new ObsCollector(obsConfigDir), new NetworkCollector(), new GamesCollector(), new ExtrasCollector(), new DriversCollector(), new ResizableBarCollector(),
+            new GraphicsSettingsCollector(), new BackgroundCollector(), new ObsCollector(obsConfigDir), new NetworkCollector(), new GamesCollector(), new ExtrasCollector(), new DriversCollector(), new ResizableBarCollector(), new DiskActivityCollector(),
         };
         // Быстрый пинг до роутера и интернета; networkTarget = null — проверка сети выключена в настройках
         if (networkTarget is not null) list.Add(new NetworkQualityCollector(networkTarget));

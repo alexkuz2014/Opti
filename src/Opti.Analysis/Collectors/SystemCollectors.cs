@@ -39,6 +39,15 @@ public sealed partial class DiskCollector : ICollector
                 WearPercent = id is not null && wear.TryGetValue(id, out var w) ? w : null,
             };
             if (id is not null && letters.TryGetValue(id, out var own)) disk.DriveLetters = own;
+            foreach (var letter in disk.DriveLetters)
+            {
+                try
+                {
+                    var dv = new DriveInfo(letter);
+                    if (dv.IsReady) disk.Volumes.Add(new DiskVolume { Letter = letter, SizeGb = dv.TotalSize / 1e9, FreeGb = dv.AvailableFreeSpace / 1e9 });
+                }
+                catch { /* том недоступен — для него просто не будет данных о свободном месте */ }
+            }
             if (disk.IsSystem)
             {
                 var drive = new DriveInfo(sysLetter);

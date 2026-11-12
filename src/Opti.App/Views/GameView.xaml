@@ -12,6 +12,27 @@
                 <TextBlock Text="Список процессов недоступен на этом компьютере." Style="{StaticResource Body}"/>
             </Border>
 
+            <!-- Где лежат игры -->
+            <TextBlock Text="Где лежат ваши игры" Style="{StaticResource SectionTitle}" Margin="0,24,0,6"/>
+            <TextBlock Text="Список появится после анализа: Opti найдёт установленные игры и покажет, на каком они диске. Загрузка игр зависит от диска больше, чем от чего-либо ещё." Style="{StaticResource Caption}"
+                       Visibility="{Binding HasDrives, Converter={StaticResource InvBoolToVis}}"/>
+            <ItemsControl ItemsSource="{Binding Drives}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <Ellipse DockPanel.Dock="Left" Style="{StaticResource Dot}" Fill="{Binding Color, Converter={StaticResource ToneToBrush}}" Margin="0,0,12,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource Strong}"/>
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" Margin="0,2,0,0"/>
+                                    <TextBlock Text="{Binding Verdict}" Style="{StaticResource Caption}" Margin="0,4,0,0" Foreground="{Binding Color, Converter={StaticResource ToneToBrush}}"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
             <!-- Приглушать фон во время игры -->
             <Border Style="{StaticResource Card}" Margin="0,20,0,0">
                 <DockPanel>

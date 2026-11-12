@@ -172,7 +172,7 @@ public static class CleanupCatalog
             fileFilter: f => Path.GetFileName(f).StartsWith("thumbcache_", StringComparison.OrdinalIgnoreCase), recursive: false),
         new FolderCleanupTarget("shader-cache", "Кеш шейдеров (DirectX, NVIDIA, AMD)", "Скомпилированные шейдеры игр. Помогает, если после обновления драйвера игры стали фризить.",
             () => new[] { Path.Combine(Local, "D3DSCache"), Path.Combine(Local, @"NVIDIA\DXCache"), Path.Combine(Local, @"NVIDIA\GLCache"), Path.Combine(Local, @"AMD\DxCache"), Path.Combine(Local, @"AMD\DxcCache"), Path.Combine(Local, @"AMD\VkCache") },
-            TimeSpan.FromDays(1), defaultSelected: false, caution: "Первый запуск каждой игры после очистки будет с подтормаживаниями, пока кеш не наполнится заново."),
+            TimeSpan.FromDays(1), defaultSelected: false, caution: "Первый запуск каждой игры после очистки будет дольше и с подтормаживаниями, пока кеш не наполнится заново. Чистите, только если после обновления драйвера игры фризят."),
         new FolderCleanupTarget("browser-cache", "Кеш браузеров", "Только кеш Chrome, Edge, Brave, Яндекс, Opera, Vivaldi и Firefox: пароли, история, вкладки и расширения не затрагиваются.",
             () => ChromiumCaches(Path.Combine(Local, @"Google\Chrome\User Data"))
                 .Concat(ChromiumCaches(Path.Combine(Local, @"Microsoft\Edge\User Data")))

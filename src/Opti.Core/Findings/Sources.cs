@@ -25,6 +25,9 @@ public static class Sources
     public const string HvciBenchmark = "https://www.tomshardware.com/news/windows-vbs-harms-performance-rtx-4090";
     public const string ReflexTest = "https://techpowerup.com/review/nvidia-reflex-review-test-ldat-v2/3.html";
     public const string Gta5Guide = "https://www.gamersnexus.net/game-bench/1909-gta-v-graphics-optimization-guide";
+    public const string GameLoadBenchmark = "https://www.legitreviews.com/game-load-time-benchmarking-shootout-six-ssds-one-hdd_204468";
+    public const string DirectStorageTest = "https://www.pcworld.com/article/1486755/tested-microsofts-directstorage-tech-signals-the-sunset-of-sata-ssds.html";
+    public const string FortniteShaders = "https://www.epicgames.com/help/c-34254770/c-38015632/a11302262?lang=en-US";
     public const string PcOptimizationHub = "https://github.com/BoringBoredom/PC-Optimization-Hub";
     public const string PcTuning = "https://github.com/valleyofdoom/PC-Tuning";
     public const string WindowsLifecycle = "https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro";

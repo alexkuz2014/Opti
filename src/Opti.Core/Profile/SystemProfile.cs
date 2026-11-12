@@ -30,6 +30,7 @@ public sealed class SystemProfile
     public List<NetAdapterInfo> Network { get; set; } = new();
     public NetworkQuality? NetQuality { get; set; }
     public NetSettingsInfo NetSettings { get; set; } = new();
+    public DiskActivityInfo? DiskActivity { get; set; }
     public DpcLatencyInfo? Dpc { get; set; }
     public List<GameInfo> Games { get; set; } = new();
     /// <summary>Устройства с ошибками (нет драйвера, отключены, конфликт).</summary>
@@ -188,8 +189,33 @@ public sealed class DiskInfo
     public bool? TrimEnabled { get; set; }
     /// <summary>Буквы томов на этом диске («C:», «D:»).</summary>
     public List<string> DriveLetters { get; set; } = new();
+    /// <summary>Тома этого диска с размером и свободным местом.</summary>
+    public List<DiskVolume> Volumes { get; set; } = new();
 
     [JsonIgnore] public double UsedPercent => SizeGb > 0 ? 100.0 * (SizeGb - FreeGb) / SizeGb : 0;
+}
+
+public sealed class DiskVolume
+{
+    public string Letter { get; set; } = "";
+    public double SizeGb { get; set; }
+    public double FreeGb { get; set; }
+    [JsonIgnore] public double FreePercent => SizeGb > 0 ? 100.0 * FreeGb / SizeGb : 100;
+}
+
+public sealed class DiskWriter
+{
+    public string Name { get; set; } = "";
+    public double MbPerSec { get; set; }
+}
+
+/// <summary>Нагрузка на диски в покое (несколько секунд во время анализа): занят ли диск чем-то, кроме игры.</summary>
+public sealed class DiskActivityInfo
+{
+    public double BusyPercent { get; set; }
+    public double QueueLength { get; set; }
+    public double ThroughputMBs { get; set; }
+    public List<DiskWriter> Top { get; set; } = new();
 }
 
 public sealed class ThermalInfo
@@ -240,6 +266,8 @@ public sealed class SecurityInfo
     public string? HypervisorLaunchType { get; set; }
     public bool? BitLockerOnSystemDrive { get; set; }
     public bool? SystemRestoreEnabled { get; set; }
+    /// <summary>Установленные антивирусы по данным Центра безопасности Windows.</summary>
+    public List<string> AntiVirus { get; set; } = new();
 }
 
 public sealed class GraphicsSettingsInfo

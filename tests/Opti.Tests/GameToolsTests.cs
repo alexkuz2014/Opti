@@ -255,6 +255,122 @@ public class GameToolsTests
         Assert.Contains(f.ManualSteps, s => s.Contains("чистую установку"));
     }
 
+    // ---------- Загрузка игр ----------
+
+    private static SystemProfile Pc(params (string Letter, DiskMediaType Type, double Size, double Free, string[] Games)[] drives)
+    {
+        var p = new SystemProfile();
+        foreach (var d in drives)
+        {
+            p.Disks.Add(new DiskInfo { Model = "Disk " + d.Letter, MediaType = d.Type, IsSystem = d.Letter == "C:", DriveLetters = { d.Letter }, Volumes = { new DiskVolume { Letter = d.Letter, SizeGb = d.Size, FreeGb = d.Free } } });
+            foreach (var g in d.Games) p.Games.Add(new GameInfo { Name = g, InstallDir = d.Letter + @"\Games\" + g, IsOnline = true });
+        }
+        return p;
+    }
+
+    [Fact]
+    public void GameStorage_MapsGamesToDriveKindAndFreeSpace()
+    {
+        var p = Pc(("C:", DiskMediaType.Nvme, 500, 200, new[] { "Fortnite" }), ("D:", DiskMediaType.Hdd, 1000, 40, new[] { "GTA V", "Majestic RP" }));
+        var drives = Opti.Core.Games.GameStorage.Analyze(p);
+        Assert.Equal(new[] { "C:", "D:" }, drives.Select(d => d.Letter));
+        Assert.Equal(Opti.Core.Games.StorageKind.Hdd, drives[1].Kind);
+        Assert.Equal(2, drives[1].Games.Count);
+        Assert.True(drives[1].IsNearlyFull);                 // 4 % и меньше 50 ГБ
+        Assert.False(drives[0].IsNearlyFull);
+    }
+
+    [Fact]
+    public void GameStorage_BigDiskWithPlentyOfSpaceIsNotFull()
+    {
+        var p = Pc(("D:", DiskMediaType.Nvme, 4000, 300, new[] { "Game" }));   // 7,5 %, но 300 ГБ свободно
+        Assert.False(Opti.Core.Games.GameStorage.Analyze(p)[0].IsNearlyFull);
+    }
+
+    [Fact]
+    public void GameLoadTips_HddGamesAreTheFirstAdvice_AndNvmeOnlyPcStaysQuiet()
+    {
+        var hdd = TestProfiles.Findings(Pc(("D:", DiskMediaType.Hdd, 1000, 400, new[] { "GTA V" }))).Single(f => f.Id == "GAME_LOAD_TIPS");
+        Assert.Contains("перенесите на SSD", hdd.ManualSteps[0]);
+        Assert.Contains(Opti.Core.Findings.Sources.GameLoadBenchmark, hdd.Links);
+        Assert.Contains(hdd.Evidence, e => e.StartsWith("D: — HDD"));
+        Assert.Contains(hdd.ManualSteps, s => s.Contains("кэш шейдеров"));
+
+        Assert.DoesNotContain(TestProfiles.Findings(Pc(("D:", DiskMediaType.Nvme, 1000, 600, new[] { "GTA V" }))), f => f.Id == "GAME_LOAD_TIPS");
+    }
+
+    [Fact]
+    public void GameLoadTips_SataSsdIsHonestAboutNvme_FortniteAndAntivirusAreSpecific()
+    {
+        var p = Pc(("D:", DiskMediaType.Ssd, 1000, 600, new[] { "Fortnite" }));
+        p.Security.AntiVirus.AddRange(new[] { "Windows Defender", "Kaspersky Free" });
+        var f = TestProfiles.Findings(p).Single(x => x.Id == "GAME_LOAD_TIPS");
+        Assert.Contains(f.ManualSteps, s => s.Contains("Менять диск ради этого не стоит"));
+        Assert.Contains(f.ManualSteps, s => s.Contains("DirectX 12 Shaders"));
+        Assert.Contains(f.ManualSteps, s => s.Contains("Kaspersky") && s.Contains("Opti этого сам не делает"));
+        Assert.DoesNotContain(f.ManualSteps, s => s.Contains("Defender"));
+        Assert.Contains(Opti.Core.Findings.Sources.FortniteShaders, f.Links);
+    }
+
+    [Fact]
+    public void GamesDiskFull_FlagsNearlyFullGameDrive()
+    {
+        var f = TestProfiles.Findings(Pc(("D:", DiskMediaType.Ssd, 500, 20, new[] { "Game" }))).Single(x => x.Id == "GAME_DISK_FULL");
+        Assert.Contains(f.Evidence, e => e.Contains("D:") && e.Contains("4 %"));
+    }
+
+    [Fact]
+    public void DiskActivity_SummarizesAndDetectsBusyDisk()
+    {
+        var samples = new[]
+        {
+            new Opti.Analysis.Collectors.DiskSample(95, 3, 80e6, new Dictionary<string, double> { ["MsMpEng"] = 60e6, ["chrome"] = 2e6 }),
+            new Opti.Analysis.Collectors.DiskSample(85, 2, 70e6, new Dictionary<string, double> { ["MsMpEng"] = 50e6 }),
+            new Opti.Analysis.Collectors.DiskSample(100, 4, 90e6, new Dictionary<string, double> { ["MsMpEng"] = 70e6, ["tiny"] = 0.1e6 }),
+        };
+        var a = Opti.Analysis.Collectors.DiskActivityCollector.Summarize(samples)!;
+        Assert.Equal(93, a.BusyPercent);
+        Assert.Equal("MsMpEng", a.Top[0].Name);
+        Assert.Equal(60, a.Top[0].MbPerSec);
+        Assert.DoesNotContain(a.Top, w => w.Name == "tiny");
+
+        var p = new SystemProfile { DiskActivity = a, Disks = { new DiskInfo { IsSystem = true, MediaType = DiskMediaType.Hdd } } };
+        var f = TestProfiles.Findings(p).Single(x => x.Id == "DISK_BUSY");
+        Assert.Equal(Severity.Important, f.Severity);
+        Assert.Contains(f.ManualSteps, s => s.Contains("Defender"));
+
+        p.DiskActivity = new DiskActivityInfo { BusyPercent = 12, QueueLength = 0.1 };
+        Assert.DoesNotContain(TestProfiles.Findings(p), x => x.Id == "DISK_BUSY");
+        Assert.Null(Opti.Analysis.Collectors.DiskActivityCollector.Summarize(Array.Empty<Opti.Analysis.Collectors.DiskSample>()));
+    }
+
+    [Theory]
+    [InlineData("chrome#12", "chrome")]
+    [InlineData("MsMpEng", "MsMpEng")]
+    [InlineData("Razer Synapse 3#1", "Razer Synapse 3")]
+    public void DiskActivity_NormalizesProcessNames(string raw, string expected) =>
+        Assert.Equal(expected, Opti.Analysis.Collectors.DiskActivityCollector.Normalize(raw));
+
+    [Fact]
+    public void GamePage_ShowsWhereGamesLive()
+    {
+        using var dir = new TempDir();
+        var svc = new ViewModelTests.FakeServices(dir.Path, "gta-majestic-pc", _ => 10);
+        var main = new MainViewModel(svc);
+        main.Game.OnShown();
+        Assert.False(main.Game.HasDrives);                       // до анализа списка нет
+        main.Session = svc.Workflow.StartSession(SystemAnalyzerFromProfile(svc.Profile), Opti.Core.Strategy.UserGoal.MaxFps);
+        main.Game.OnShown();
+        Assert.True(main.Game.HasDrives);
+        Assert.Equal(2, main.Game.Drives.Count);                 // GTA V на D: (HDD), клиент Majestic в профиле на C:
+        var d = main.Game.Drives.Single(x => x.Title.StartsWith("D:"));
+        Assert.Contains("HDD", d.Title);
+        Assert.Contains("SSD", d.Verdict);
+        Assert.Equal("warn", d.Color);
+    }
+
+    private static Opti.Analysis.AnalysisResult SystemAnalyzerFromProfile(SystemProfile p) => Opti.Analysis.SystemAnalyzer.FromProfile(p);
+
     private static class FixCatalogHelper
     {
         public static EvidenceLevel Level(string id) => Opti.Fixes.Catalog.FixCatalog.Find(id)!.Evidence;

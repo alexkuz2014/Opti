@@ -19,6 +19,13 @@ public sealed class ExtrasCollector : ICollector
 
         try
         {
+            p.Security.AntiVirus = Wmi.Query("SELECT displayName FROM AntiVirusProduct", @"root\SecurityCenter2")
+                .Select(a => a.Str("displayName") ?? "").Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+        catch { /* Центр безопасности недоступен (серверная Windows) — антивирусы просто не перечисляем */ }
+
+        try
+        {
             var hf = Opti.Native.ProcessRunner.Instance.RunPowerShell(
                 "$d = Get-HotFix | Where-Object { $_.InstalledOn } | Sort-Object InstalledOn -Descending | Select-Object -First 1; if ($d) { $d.InstalledOn.ToString('yyyy-MM-dd') }",
                 TimeSpan.FromSeconds(40));

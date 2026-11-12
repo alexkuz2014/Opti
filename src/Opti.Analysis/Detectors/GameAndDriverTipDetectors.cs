@@ -157,3 +157,121 @@ public sealed class PeripheralSoftwareDetector : DetectorBase
         };
     }
 }
+
+/// <summary>Диск занят в покое: игре придётся делить его с фоновыми программами.</summary>
+public sealed class DiskBusyDetector : DetectorBase
+{
+    public override string Id => "DISK_BUSY";
+    public const double BusyThreshold = 70;
+
+    private static readonly (string Process, string Hint)[] Hints =
+    {
+        ("MsMpEng", "Microsoft Defender сканирует файлы — дождитесь окончания"),
+        ("TiWorker", "Windows ставит обновления — дождитесь окончания и перезагрузитесь"),
+        ("TrustedInstaller", "Windows ставит обновления — дождитесь окончания и перезагрузитесь"),
+        ("SearchIndexer", "Windows индексирует файлы — после большого копирования пройдёт само"),
+        ("OneDrive", "OneDrive синхронизирует файлы — приостановите на время игры"),
+        ("qbittorrent", "торрент-клиент качает или раздаёт — закройте на время игры"),
+        ("utorrent", "торрент-клиент качает или раздаёт — закройте на время игры"),
+        ("steam", "Steam обновляет игры — пусть закончит или поставьте на паузу"),
+        ("EpicGamesLauncher", "Epic обновляет игры — пусть закончит или поставьте на паузу"),
+        ("Battle.net", "Battle.net обновляет игры — пусть закончит или поставьте на паузу"),
+    };
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        if (p.DiskActivity is not { } a || (a.BusyPercent < BusyThreshold && a.QueueLength < 2)) yield break;
+        bool hdd = p.SystemDisk?.MediaType == DiskMediaType.Hdd;
+        var f = new Finding
+        {
+            Id = Id,
+            Title = "Диск занят, хотя компьютер ничем не занят",
+            Severity = a.BusyPercent >= 90 || (hdd && a.BusyPercent >= BusyThreshold) ? Severity.Important : Severity.Advice,
+            Explanation = "Во время анализа диск работал почти на пределе. Пока он занят, игры дольше запускаются и подгружают уровни, а в самой игре возможны фризы: игре приходится делить диск с фоновыми программами." +
+                          (hdd ? " На жёстком диске это ощущается сильнее всего." : ""),
+            Evidence = { $"Занятость диска: {a.BusyPercent:0} %, очередь запросов: {a.QueueLength:0.#}, скорость: {a.ThroughputMBs:0.#} МБ/с" },
+        };
+        foreach (var w in a.Top)
+        {
+            f.Evidence.Add($"{w.Name}: {w.MbPerSec:0.#} МБ/с");
+            var hint = Hints.FirstOrDefault(h => w.Name.Contains(h.Process, StringComparison.OrdinalIgnoreCase)).Hint;
+            f.ManualSteps.Add(hint is not null ? $"{w.Name}: {hint}." : $"{w.Name}: закройте или поставьте на паузу, если программа не нужна сейчас.");
+        }
+        if (f.ManualSteps.Count == 0) f.ManualSteps.Add("Какая программа грузит диск, определить не удалось: откройте «Диспетчер задач» → «Производительность» → «Диск» и повторите анализ после закрытия лишнего.");
+        yield return f;
+    }
+}
+
+/// <summary>Игры на почти заполненном диске.</summary>
+public sealed class GamesDiskFullDetector : DetectorBase
+{
+    public override string Id => "GAME_DISK_FULL";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var full = GameStorage.Analyze(p).Where(d => d.IsNearlyFull).ToList();
+        if (full.Count == 0) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = "Диск с играми почти заполнен",
+            Severity = Severity.Advice,
+            Explanation = "Когда на диске остаётся меньше 10 % свободного места, запись замедляется (особенно у SSD): обновления игр, кэш шейдеров и файлы подкачки пишутся дольше, а загрузка может «запинаться». " +
+                          "Освободите место или перенесите часть игр на другой диск.",
+            Evidence = full.Select(d => $"{d.Letter} ({d.KindText}): свободно {d.FreeGb:0} ГБ из {d.SizeGb:0} ГБ ({d.FreePercent:0} %)").ToList(),
+            ManualSteps = { "Удалите игры, в которые не играете (Steam, Epic и другие лаунчеры удаляют и возвращают игры без потери сохранений в облаке).", "Раздел «Очистка» в Opti освободит временные файлы и кэш." },
+        };
+    }
+}
+
+/// <summary>Как ускорить загрузку игр: что именно мешает на этом ПК. Файлы игр Opti не трогает.</summary>
+public sealed class GameLoadTipsDetector : DetectorBase
+{
+    public override string Id => "GAME_LOAD_TIPS";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        if (p.Games.Count == 0) yield break;
+        var drives = GameStorage.Analyze(p);
+        var steps = new List<string>();
+        var links = new List<string>();
+
+        if (drives.Any(d => d.Kind == StorageKind.Hdd))
+        {
+            steps.Add("Игры на жёстком диске: перенесите на SSD те, в которые играете чаще всего. По обзорам игры с HDD грузятся заметно дольше SSD — от десятков процентов до 2–3 раз в зависимости от игры; сильнее всего разница в играх с открытым миром, где карта подгружается прямо во время игры (GTA V).");
+            links.Add(Sources.GameLoadBenchmark);
+        }
+        if (drives.Any(d => d.Kind == StorageKind.Usb))
+            steps.Add("Игра на внешнем USB-диске: через USB загрузка медленнее, чем с внутреннего SSD. Если диск не NVMe во внешнем корпусе — лучше держать игру внутри.");
+        if (drives.Any(d => d.Kind == StorageKind.SataSsd) && !drives.Any(d => d.Kind is StorageKind.Hdd or StorageKind.Usb))
+        {
+            steps.Add("SATA SSD уже хорош: замена на NVMe для обычных игр экономит 1–3 секунды на загрузке в 15–30 секунд и ощутима в основном в играх с DirectStorage. Менять диск ради этого не стоит.");
+            links.Add(Sources.DirectStorageTest);
+        }
+        foreach (var d in drives.Where(d => d.IsNearlyFull))
+            steps.Add($"На диске {d.Letter} осталось {d.FreePercent:0} % места: освободите — запись на почти полный SSD замедляется, обновления игр и кэш шейдеров пишутся дольше.");
+        if (p.DiskActivity is { } a && (a.BusyPercent >= DiskBusyDetector.BusyThreshold || a.QueueLength >= 2))
+            steps.Add("Диск был занят во время анализа — см. отдельную находку «Диск занят»: пока он занят, игра грузится медленнее.");
+        if (p.Games.Any(g => g.Name.Contains("Fortnite", StringComparison.OrdinalIgnoreCase) || g.Executables.Any(e => e.Contains("Fortnite", StringComparison.OrdinalIgnoreCase))))
+        {
+            steps.Add("Fortnite: после обновления игры или драйвера первый запуск и первые матчи идут дольше — игра пересобирает шейдеры. Не прерывайте компиляцию. Если играете в DirectX 11, в Epic Games Launcher → Fortnite → «Параметры» можно снять «DirectX 12 Shaders» (по сообщениям игроков, это 3–6 ГБ). Если клиент бесконечно пересобирает шейдеры в DX12, Epic советует очистить их кэш.");
+            links.Add(Sources.FortniteShaders);
+        }
+        var thirdPartyAv = p.Security.AntiVirus.Where(n => !n.Contains("Defender", StringComparison.OrdinalIgnoreCase) && !n.Contains("Windows", StringComparison.OrdinalIgnoreCase)).ToList();
+        if (thirdPartyAv.Count > 0)
+            steps.Add($"Антивирус ({string.Join(", ", thirdPartyAv)}) может сканировать файлы игры при каждом запуске и подгрузке. Исключение папки игры ускоряет загрузку, но снижает защиту — решайте сами и только для игр из официальных магазинов. Opti этого сам не делает.");
+        if (steps.Count == 0) yield break;
+
+        steps.Add("Не очищайте кэш шейдеров без нужды: после очистки первые запуски и подгрузки снова будут медленнее (в «Очистке» он по умолчанию не отмечен).");
+        yield return new Finding
+        {
+            Id = Id,
+            Title = "Как ускорить загрузку игр на этом ПК",
+            Severity = Severity.Advice,
+            Explanation = "Время загрузки и подгрузки игр почти целиком зависит от диска и от того, что ещё его использует. Файлы игр Opti не меняет — ниже то, что мешает именно на вашем компьютере. Точные секунды зависят от игры и железа.",
+            Evidence = drives.Select(d => $"{d.Letter} — {d.KindText}, свободно {d.FreeGb:0} из {d.SizeGb:0} ГБ: {string.Join(", ", d.Games.Select(g => g.Name).Take(4))}{(d.Games.Count > 4 ? $" и ещё {d.Games.Count - 4}" : "")}").ToList(),
+            ManualSteps = steps,
+            Links = links.Distinct().ToList(),
+        };
+    }
+}

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Opti.Core.Games;
 using Opti.Workflow.Game;
 
 namespace Opti.ViewModels;
@@ -19,6 +20,28 @@ public sealed partial class AppChoice : ObservableObject
     [ObservableProperty] private bool _isChecked;
 }
 
+/// <summary>Диск с играми в списке «Где лежат ваши игры»: тип, место, игры и вывод простыми словами.</summary>
+public sealed class GameDriveItem
+{
+    public GameDriveItem(GameDrive d)
+    {
+        Title = $"{d.Letter}  ·  {d.KindText}";
+        Detail = $"свободно {d.FreeGb:0} из {d.SizeGb:0} ГБ  ·  " + string.Join(", ", d.Games.Select(g => g.Name).Take(5)) + (d.Games.Count > 5 ? $" и ещё {d.Games.Count - 5}" : "");
+        (Verdict, Color) = d switch
+        {
+            { Kind: StorageKind.Hdd } => ("Медленно: игры подгружаются дольше. Перенесите любимые на SSD", Palette.Warn),
+            { Kind: StorageKind.Usb } => ("Внешний диск: загрузка медленнее, чем с внутреннего SSD", Palette.Warn),
+            { IsNearlyFull: true } => ("Диск почти полон: запись замедляется, освободите место", Palette.Bad),
+            { Kind: StorageKind.Nvme or StorageKind.SataSsd } => ("Хорошо: игры на SSD", Palette.Good),
+            _ => ("Тип диска определить не удалось", Palette.Neutral),
+        };
+    }
+    public string Title { get; }
+    public string Detail { get; }
+    public string Verdict { get; }
+    public string Color { get; }
+}
+
 /// <summary>Страница «Игра»: «Перед игрой» (закрыть выбранные фоновые программы) и «Приглушать фон во время игры».</summary>
 public sealed partial class GameViewModel : PageViewModel
 {
@@ -30,6 +53,8 @@ public sealed partial class GameViewModel : PageViewModel
     public override string Title => "Игра";
 
     public ObservableCollection<AppChoice> Apps { get; } = new();
+    public ObservableCollection<GameDriveItem> Drives { get; } = new();
+    [ObservableProperty] private bool _hasDrives;
     [ObservableProperty] private bool _isAvailable;
     [ObservableProperty] private bool _throttleBackground;
     [ObservableProperty] private string? _throttleStatus;
@@ -53,7 +78,16 @@ public sealed partial class GameViewModel : PageViewModel
         _loading = true;
         ThrottleBackground = Main.Services.Settings.ThrottleBackground;
         _loading = false;
+        LoadDrives();
         Refresh();
+    }
+
+    private void LoadDrives()
+    {
+        Drives.Clear();
+        if (Main.Session?.Profile is { } p)
+            foreach (var d in GameStorage.Analyze(p)) Drives.Add(new GameDriveItem(d));
+        HasDrives = Drives.Count > 0;
     }
 
     [RelayCommand]
