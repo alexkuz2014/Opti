@@ -78,6 +78,8 @@ public sealed class BackgroundCollector : ICollector
         {
             var names = procs.Select(pr => pr.ProcessName).ToHashSet(StringComparer.OrdinalIgnoreCase);
             p.Background.RunningOverlays = OverlayProcesses.Where(kv => names.Contains(kv.Key)).Select(kv => kv.Value).ToList();
+            p.Background.NetworkHeavyApps = Opti.Core.Network.NetworkApps.Match(names).ToList();
+            p.Background.PeripheralApps = Opti.Core.Hardware.PeripheralApps.Match(names).ToList();
 
             // Загрузка CPU за 1 секунду
             var t0 = new Dictionary<int, (string Name, TimeSpan Cpu, long Ws)>();
@@ -224,10 +226,14 @@ public sealed partial class NetworkCollector : ICollector
 
     public void Collect(SystemProfile p)
     {
-        const string script =
+        string script =
             "$pm = @{}; Get-NetAdapterPowerManagement -ErrorAction SilentlyContinue | ForEach-Object { $pm[$_.Name] = [string]$_.AllowComputerToTurnOffDevice };" +
+            "$kw = @(" + EnergyKeywordsPs + "); $adv = @{};" +
+            "Get-NetAdapterAdvancedProperty -ErrorAction SilentlyContinue | Where-Object { $kw -contains $_.RegistryKeyword } | ForEach-Object {" +
+            " $v = [string]($_.RegistryValue | Select-Object -First 1); if ($v -ne '' -and $v -ne '0') { if (-not $adv.ContainsKey($_.Name)) { $adv[$_.Name] = @() }; $adv[$_.Name] += $_.RegistryKeyword } };" +
             "Get-NetAdapter -Physical | ForEach-Object { [pscustomobject]@{ Name=$_.Name; Desc=$_.InterfaceDescription; Status=[string]$_.Status;" +
-            " Speed=$_.ReceiveLinkSpeed; Driver=$_.DriverVersionString; DriverDate=$_.DriverDate; Media=[string]$_.PhysicalMediaType; Pm=$pm[$_.Name] } } | ConvertTo-Json -Compress";
+            " Speed=$_.ReceiveLinkSpeed; Driver=$_.DriverVersionString; DriverDate=$_.DriverDate; Media=[string]$_.PhysicalMediaType; Pm=$pm[$_.Name];" +
+            " Guid=[string]$_.InterfaceGuid; Eco=@($adv[$_.Name] | Where-Object { $_ }) } } | ConvertTo-Json -Compress -Depth 4";
         var r = ProcessRunner.Instance.RunPowerShell(script, TimeSpan.FromSeconds(30));
         if (!r.Ok) { p.CollectorErrors.Add("Get-NetAdapter: " + r.StdErr.Trim()); return; }
         if (string.IsNullOrWhiteSpace(r.StdOut)) return;
@@ -246,7 +252,11 @@ public sealed partial class NetworkCollector : ICollector
                 LinkSpeedMbps = e.TryGetProperty("Speed", out var sp) && sp.ValueKind == JsonValueKind.Number ? sp.GetInt64() / 1_000_000 : null,
                 DriverVersion = S("Driver"),
                 AllowComputerToTurnOff = S("Pm") switch { "Enabled" => true, "Disabled" => false, _ => null },
+                InterfaceGuid = S("Guid") is { Length: > 0 } guid ? guid : null,
             };
+            if (e.TryGetProperty("Eco", out var eco) && eco.ValueKind == JsonValueKind.Array)
+                adapter.EnergySavingKeywords = eco.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString()!).Distinct().ToList();
+            adapter.NagleDisabled = ReadNagleDisabled(adapter.InterfaceGuid);
             p.Network.Add(adapter);
         }
 
@@ -255,8 +265,72 @@ public sealed partial class NetworkCollector : ICollector
         {
             var w = ProcessRunner.Instance.RunConsoleUtf8("netsh wlan show interfaces");
             wifi.WifiBandGhz = ParseWifiBand(w.StdOut);
+            wifi.WifiSignalPercent = ParseWifiSignal(w.StdOut);
+            wifi.WifiRadioType = ParseWifiRadio(w.StdOut);
         }
+        CollectSettings(p);
     }
+
+    /// <summary>Ключевые слова энергосберегающих функций сетевых драйверов (Intel, Realtek, Killer…).</summary>
+    public static readonly string[] EnergyKeywords =
+        { "*EEE", "EEE", "EEELinkAdvertisement", "AdvancedEEE", "EnableGreenEthernet", "PowerSavingMode", "AutoPowerSaveModeEnabled" };
+    private static string EnergyKeywordsPs => string.Join(",", EnergyKeywords.Select(k => "'" + k + "'"));
+
+    private const string TcpInterfaces = @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\";
+
+    private static bool? ReadNagleDisabled(string? interfaceGuid)
+    {
+        if (string.IsNullOrEmpty(interfaceGuid)) return null;
+        try
+        {
+            var key = TcpInterfaces + interfaceGuid;
+            if (!Reg.KeyExists(key)) return null;
+            return Reg.Int(key, "TcpAckFrequency") == 1 && Reg.Int(key, "TCPNoDelay") == 1;
+        }
+        catch { return null; }
+    }
+
+    private static void CollectSettings(SystemProfile p)
+    {
+        var s = p.NetSettings;
+        try
+        {
+            s.ActiveVpnAdapters = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up
+                            && n.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback
+                            && (n.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Ppp
+                                || Opti.Core.Network.NetworkApps.LooksLikeVpn(n.Description, n.Name)))
+                .Select(n => n.Description).Distinct().ToList();
+        }
+        catch (Exception ex) { p.CollectorErrors.Add("VPN-адаптеры: " + ex.Message); }
+
+        const string inet = @"HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings";
+        s.ProxyEnabled = Reg.Int(inet, "ProxyEnable") is { } pe ? pe != 0 : false;
+        s.ProxyServer = s.ProxyEnabled == true ? Reg.Str(inet, "ProxyServer") : null;
+
+        try
+        {
+            var r = ProcessRunner.Instance.RunPowerShell(
+                "[string](Get-NetTCPSetting -SettingName Internet -ErrorAction SilentlyContinue | Select-Object -First 1).AutoTuningLevelLocal", TimeSpan.FromSeconds(20));
+            if (r.Ok && r.StdOut.Trim() is { Length: > 0 } level) s.TcpAutoTuning = level;
+        }
+        catch { /* командлет есть не во всех редакциях */ }
+    }
+
+    public static int? ParseWifiSignal(string netshOutput)
+    {
+        var m = SignalRegex().Match(netshOutput);
+        return m.Success && int.TryParse(m.Groups[1].Value, out var v) && v is >= 0 and <= 100 ? v : null;
+    }
+
+    public static string? ParseWifiRadio(string netshOutput)
+    {
+        var m = RadioRegex().Match(netshOutput);
+        return m.Success ? m.Value.ToLowerInvariant() : null;
+    }
+
+    [GeneratedRegex(@":\s*(\d{1,3})\s*%")] private static partial Regex SignalRegex();
+    [GeneratedRegex(@"802\.11[a-z]{1,2}", RegexOptions.IgnoreCase)] private static partial Regex RadioRegex();
 
     public static double? ParseWifiBand(string netshOutput)
     {

@@ -695,8 +695,11 @@ internal static class Commands
         Console.WriteLine($"Пинг до {target} в простое{(a.Has("no-load") ? "" : " и под нагрузкой (скачивание ~200 МБ)")}…");
         var q = await NetworkTest.RunAsync(target, a.Has("no-load") ? null : NetworkTest.DefaultLoadUrl);
         Console.WriteLine($"  В простое: {q.IdlePingMs:0.#} мс, джиттер {q.IdleJitterMs:0.#} мс, потери {q.PacketLossPercent:0.#} %");
+        if (q.GatewayPingMs is { } g) Console.WriteLine($"  До роутера ({q.Gateway}): {g:0.#} мс, джиттер {q.GatewayJitterMs:0.#} мс, потери {q.GatewayLossPercent:0.#} %");
+        else Console.WriteLine("  Роутер на пинг не отвечает — домашний участок сети оценить нельзя.");
         if (q.LoadedPingMs is { } l) Console.WriteLine($"  Под нагрузкой: {l:0.#} мс (+{l - q.IdlePingMs:0.#} мс)");
-        Output.PrintFindings(DetectorCatalog.RunAll(new SystemProfile { NetQuality = q }, new[] { new BufferbloatDetector() }));
+        Output.PrintFindings(DetectorCatalog.RunAll(new SystemProfile { NetQuality = q },
+            new Opti.Core.Findings.IDetector[] { new NetUnstableDetector(), new NetHighPingDetector(), new BufferbloatDetector() }));
         return 0;
     }
 

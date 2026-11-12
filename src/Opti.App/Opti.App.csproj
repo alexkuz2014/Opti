@@ -18,6 +18,10 @@
     <!-- TraceEvent и WPF загружают нативные библиотеки по пути сборки — распаковываем всё содержимое -->
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
   </PropertyGroup>
+  <!-- Dev-сборка (-p:DevBuild=true): пишет dev.zip с диагностикой рядом с exe. См. build/publish.sh -->
+  <PropertyGroup Condition="'$(DevBuild)' == 'true'">
+    <DefineConstants>$(DefineConstants);DEV</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Using Include="System.IO" />
   </ItemGroup>
@@ -30,6 +34,5 @@
     <Page Include="App.xaml" />
     <Resource Include="Assets\opti.ico" />
     <Resource Include="Assets\opti.png" />
-    <Resource Include="Assets\opti-wordmark.png" />
   </ItemGroup>
 </Project>

@@ -77,6 +77,10 @@ public sealed partial class AnalysisViewModel : PageViewModel
         if (p.Memory.TotalMb > 0) ProfileLines.Add($"Память: {p.Memory.TotalMb / 1024.0:0.#} ГБ, свободно {p.Memory.AvailablePercent:0} %");
         if (p.SystemDisk is { } sd) ProfileLines.Add($"Системный диск: {sd.Model} ({sd.MediaType}), свободно {sd.FreeGb:0} ГБ");
         ProfileLines.Add($"Питание: {(p.Power.OnAcPower == true ? "от сети" : p.Power.OnAcPower == false ? "от батареи" : "?")}; игр найдено: {p.Games.Count}");
+        if (p.NetQuality is { } nq && !double.IsNaN(nq.IdlePingMs))
+            ProfileLines.Add($"Сеть: пинг {nq.IdlePingMs:0} мс, скачки ±{nq.IdleJitterMs:0.#} мс, потери {nq.PacketLossPercent:0.#} %" +
+                             (nq.GatewayPingMs is { } gw ? $"; до роутера {gw:0.#} мс" : ""));
+        if (p.Os.LastUpdateInstalled is { } upd) ProfileLines.Add($"Последнее обновление Windows: {upd:dd.MM.yyyy}");
         Errors.Clear();
         foreach (var e in collectorErrors.Concat(p.CollectorErrors).Distinct()) Errors.Add(e);
         RecommendedCount = Main.RecommendedFixes(s).Count;
@@ -96,6 +100,14 @@ public sealed partial class AnalysisViewModel : PageViewModel
     }
 
     [RelayCommand] private Task AutoFixAsync() => Main.StartAutoFlowAsync();
+
+    /// <summary>Повторный анализ с той же целью — после ручных шагов (драйверы, обновления, кабель).</summary>
+    [RelayCommand]
+    private async Task ReanalyzeAsync()
+    {
+        Main.Navigate(Main.Home);
+        if (Main.Home.AnalyzeCommand.CanExecute(null)) await Main.Home.AnalyzeCommand.ExecuteAsync(null);
+    }
 
     [RelayCommand] private void MeasureBefore() => Main.Navigate(MeasureViewModel.ForBefore(Main));
 

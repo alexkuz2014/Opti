@@ -1,0 +1,24 @@
+{
+  "label": "Игрок GTA V / Majestic RP: Ryzen 5 + GTX 1660, 6 ядер, Windows 11 без плана питания, msconfig «число процессоров = 2», игра на HDD",
+  "device": { "isLaptop": false, "hasBattery": false, "manufacturer": "Unknown", "model": "Desktop", "boardManufacturer": "Gigabyte Technology Co., Ltd." },
+  "os": { "productName": "Windows 11 Home", "edition": "Core", "displayVersion": "24H2", "build": 26100, "ubr": 2605, "lastUpdateInstalled": "2026-10-20T00:00:00" },
+  "cpu": { "name": "AMD Ryzen 5 3600 6-Core Processor", "vendor": "Amd", "cores": 6, "threads": 12, "maxClockMhz": 3600 },
+  "gpus": [ { "name": "NVIDIA GeForce GTX 1660", "vendor": "Nvidia", "driverVersion": "32.0.15.8157", "driverDate": "2026-09-10T00:00:00", "dedicatedVramMb": 6144, "isIntegrated": false, "drivesDisplay": true } ],
+  "hybrid": { "isHybrid": false },
+  "displays": [ { "deviceName": "\\\\.\\DISPLAY1", "width": 1920, "height": 1080, "currentHz": 144, "maxHzAtCurrentResolution": 144, "isPrimary": true, "isInternal": false } ],
+  "memory": { "totalMb": 16300, "availableMb": 9000, "modules": [ { "capacityMb": 8192, "ratedSpeed": 3200, "configuredSpeed": 3200, "slot": "DIMM_A2" }, { "capacityMb": 8192, "ratedSpeed": 3200, "configuredSpeed": 3200, "slot": "DIMM_B2" } ], "channelsPopulated": 2 },
+  "disks": [
+    { "model": "KINGSTON SA400S37240G", "mediaType": "Ssd", "isSystem": true, "driveLetters": [ "C:" ], "driveLetter": "C:", "sizeGb": 240, "freeGb": 60, "healthStatus": "Healthy", "trimEnabled": true },
+    { "model": "WDC WD10EZEX", "mediaType": "Hdd", "isSystem": false, "driveLetters": [ "D:" ], "sizeGb": 1000, "freeGb": 400, "healthStatus": "Healthy" }
+  ],
+  "power": { "onAcPower": true, "activeSchemeGuid": "381b4222-f694-41f0-9685-ff5bb260df2e", "activeSchemeName": "Сбалансированная", "acMaxProcessorState": 100, "acCoreParkingMinCores": 10, "availableSchemeGuids": [ "381b4222-f694-41f0-9685-ff5bb260df2e" ] },
+  "timers": { "bcdNumProc": 2 },
+  "security": { "vbsRunning": true, "hvciRunning": true, "bitLockerOnSystemDrive": false },
+  "graphics": { "hagsSupported": true, "hagsEnabled": false, "gameModeEnabled": true, "gameDvrEnabled": false },
+  "background": { "startupItems": [], "runningOverlays": [ "Discord (оверлей, если включён)" ] },
+  "network": [ { "name": "Ethernet", "description": "Realtek PCIe GbE Family Controller", "kind": "Ethernet", "isUp": true, "linkSpeedMbps": 1000, "allowComputerToTurnOff": false, "interfaceGuid": "{4D36E972-1111-4000-8000-00AA00BB00CC}", "nagleDisabled": false } ],
+  "games": [
+    { "name": "Grand Theft Auto V", "launcher": "Other", "installDir": "D:\\Rockstar Games\\Grand Theft Auto V", "executables": [ "D:\\Rockstar Games\\Grand Theft Auto V\\GTA5.exe" ], "isOnline": true },
+    { "name": "Majestic RP (altV)", "launcher": "Other", "installDir": "C:\\Users\\Player\\AppData\\Local\\AltV Majestic", "executables": [ "C:\\Users\\Player\\AppData\\Local\\AltV Majestic\\altv.exe" ], "isOnline": true }
+  ]
+}

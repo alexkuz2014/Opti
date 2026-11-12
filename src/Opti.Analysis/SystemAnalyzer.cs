@@ -16,15 +16,18 @@ public sealed class AnalysisResult
 /// <summary>Анализ системы: сбор профиля всеми коллекторами + запуск детекторов.</summary>
 public static class SystemAnalyzer
 {
-    public static IReadOnlyList<ICollector> DefaultCollectors(string? obsConfigDir = null)
+    public static IReadOnlyList<ICollector> DefaultCollectors(string? obsConfigDir = null, string? networkTarget = "1.1.1.1")
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Сбор профиля работает только в Windows. Для тестов используйте сохранённые профили (--profile).");
-        return new ICollector[]
+        var list = new List<ICollector>
         {
             new DeviceCollector(), new OsCollector(), new CpuCollector(), new GpuDisplayCollector(), new MemoryCollector(),
             new DiskCollector(), new PowerCollector(), new ThermalCollector(), new TimersAndSecurityCollector(),
-            new GraphicsSettingsCollector(), new BackgroundCollector(), new ObsCollector(obsConfigDir), new NetworkCollector(), new GamesCollector(), new ExtrasCollector(), new DriversCollector(),
+            new GraphicsSettingsCollector(), new BackgroundCollector(), new ObsCollector(obsConfigDir), new NetworkCollector(), new GamesCollector(), new ExtrasCollector(), new DriversCollector(), new ResizableBarCollector(), new DiskActivityCollector(),
         };
+        // Быстрый пинг до роутера и интернета; networkTarget = null — проверка сети выключена в настройках
+        if (networkTarget is not null) list.Add(new NetworkQualityCollector(networkTarget));
+        return list;
     }
 
     public static AnalysisResult Collect(IEnumerable<ICollector>? collectors = null, Action<string>? progress = null)

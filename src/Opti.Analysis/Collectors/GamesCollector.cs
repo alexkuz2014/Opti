@@ -18,6 +18,8 @@ public sealed class GamesCollector : ICollector
         Try(p, "Epic", () => games.AddRange(Epic()));
         Try(p, "GOG", () => games.AddRange(Gog()));
         Try(p, "Xbox", () => games.AddRange(Xbox()));
+        Try(p, "Rockstar", () => games.AddRange(Rockstar()));
+        Try(p, "Majestic", () => games.AddRange(Majestic()));
 
         foreach (var g in games)
         {
@@ -92,6 +94,21 @@ public sealed class GamesCollector : ICollector
         }
     }
 
+    /// <summary>GTA V из лаунчера Rockstar (Steam и Epic находятся своими способами).</summary>
+    private static IEnumerable<GameInfo> Rockstar()
+    {
+        var dir = Reg.Str(@"HKLM\SOFTWARE\WOW6432Node\Rockstar Games\Grand Theft Auto V", "InstallFolder");
+        if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir)) yield break;
+        yield return new GameInfo { Name = "Grand Theft Auto V", Launcher = GameLauncher.Other, InstallDir = dir.TrimEnd('\\') };
+    }
+
+    /// <summary>Клиент Majestic RP (altV) ставится в профиль пользователя.</summary>
+    private static IEnumerable<GameInfo> Majestic()
+    {
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AltV Majestic");
+        if (Directory.Exists(dir)) yield return new GameInfo { Name = "Majestic RP (altV)", Launcher = GameLauncher.Other, InstallDir = dir };
+    }
+
     private static IEnumerable<GameInfo> Xbox()
     {
         foreach (var drive in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady))
@@ -121,7 +138,7 @@ public static partial class GameScan
     {
         "counter-strike", "dota", "valorant", "apex", "fortnite", "pubg", "rust", "overwatch", "rainbow six", "league of legends",
         "call of duty", "warzone", "battlefield", "the finals", "deadlock", "marvel rivals", "tarkov", "war thunder",
-        "world of tanks", "world of warships", "destiny", "rocket league", "dead by daylight", "naraka", "warframe", "lost ark",
+        "world of tanks", "world of warships", "destiny", "rocket league", "dead by daylight", "naraka", "warframe", "lost ark", "majestic", "altv",
     };
 
     public static List<string> FindExecutables(string installDir, int maxDepth = 3, int maxCount = 5)

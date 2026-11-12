@@ -29,6 +29,8 @@ public sealed class SystemProfile
     public ObsInfo? Obs { get; set; }
     public List<NetAdapterInfo> Network { get; set; } = new();
     public NetworkQuality? NetQuality { get; set; }
+    public NetSettingsInfo NetSettings { get; set; } = new();
+    public DiskActivityInfo? DiskActivity { get; set; }
     public DpcLatencyInfo? Dpc { get; set; }
     public List<GameInfo> Games { get; set; } = new();
     /// <summary>Устройства с ошибками (нет драйвера, отключены, конфликт).</summary>
@@ -76,6 +78,8 @@ public sealed class OsInfo
     public DateTime? InstallDate { get; set; }
     /// <summary>Windows ждёт перезагрузку для завершения обновлений.</summary>
     public bool? PendingReboot { get; set; }
+    /// <summary>Дата установки последнего обновления Windows (по списку установленных исправлений).</summary>
+    public DateTime? LastUpdateInstalled { get; set; }
 
     [JsonIgnore] public bool IsWindows11 => Build >= 22000;
     /// <summary>Windows 11 24H2 и новее.</summary>
@@ -183,8 +187,35 @@ public sealed class DiskInfo
     public string? HealthStatus { get; set; }   // Healthy / Warning / Unhealthy
     public int? WearPercent { get; set; }
     public bool? TrimEnabled { get; set; }
+    /// <summary>Буквы томов на этом диске («C:», «D:»).</summary>
+    public List<string> DriveLetters { get; set; } = new();
+    /// <summary>Тома этого диска с размером и свободным местом.</summary>
+    public List<DiskVolume> Volumes { get; set; } = new();
 
     [JsonIgnore] public double UsedPercent => SizeGb > 0 ? 100.0 * (SizeGb - FreeGb) / SizeGb : 0;
+}
+
+public sealed class DiskVolume
+{
+    public string Letter { get; set; } = "";
+    public double SizeGb { get; set; }
+    public double FreeGb { get; set; }
+    [JsonIgnore] public double FreePercent => SizeGb > 0 ? 100.0 * FreeGb / SizeGb : 100;
+}
+
+public sealed class DiskWriter
+{
+    public string Name { get; set; } = "";
+    public double MbPerSec { get; set; }
+}
+
+/// <summary>Нагрузка на диски в покое (несколько секунд во время анализа): занят ли диск чем-то, кроме игры.</summary>
+public sealed class DiskActivityInfo
+{
+    public double BusyPercent { get; set; }
+    public double QueueLength { get; set; }
+    public double ThroughputMBs { get; set; }
+    public List<DiskWriter> Top { get; set; } = new();
 }
 
 public sealed class ThermalInfo
@@ -218,6 +249,11 @@ public sealed class TimerInfo
     public bool? UsePlatformClock { get; set; }
     public bool? UsePlatformTick { get; set; }
     public bool? DisableDynamicTick { get; set; }
+    /// <summary>Ограничения загрузки из BCD (msconfig → Загрузка → Дополнительные параметры): число процессоров, предел памяти и т. п.</summary>
+    public int? BcdNumProc { get; set; }
+    public bool? BcdOneCpu { get; set; }
+    public string? BcdMaxMem { get; set; }
+    public string? BcdTruncateMemory { get; set; }
     public string? TscSyncPolicy { get; set; }
     public bool? GlobalTimerResolutionRequests { get; set; }
 }
@@ -230,10 +266,15 @@ public sealed class SecurityInfo
     public string? HypervisorLaunchType { get; set; }
     public bool? BitLockerOnSystemDrive { get; set; }
     public bool? SystemRestoreEnabled { get; set; }
+    /// <summary>Установленные антивирусы по данным Центра безопасности Windows.</summary>
+    public List<string> AntiVirus { get; set; } = new();
 }
 
 public sealed class GraphicsSettingsInfo
 {
+    /// <summary>Размер окна BAR1 видеокарты NVIDIA, МБ: 256 — Resizable BAR выключен, равен видеопамяти — включён.</summary>
+    public int? Bar1TotalMb { get; set; }
+    public bool? ResizableBarEnabled { get; set; }
     public bool? HagsSupported { get; set; }
     public bool? HagsEnabled { get; set; }
     /// <summary>HKLM\SOFTWARE\Microsoft\Windows\Dwm\OverlayTestMode, если задан.</summary>
@@ -273,6 +314,10 @@ public sealed class BackgroundInfo
     /// <summary>Запущенные оверлеи (Discord, Steam, RTSS, Overwolf, NVIDIA App…).</summary>
     public List<string> RunningOverlays { get; set; } = new();
     public List<ProcessUsage> HeavyProcesses { get; set; } = new();
+    /// <summary>Запущенные программы, которые качают или раздают в фоне (торренты, облака, загрузчики).</summary>
+    public List<string> NetworkHeavyApps { get; set; } = new();
+    /// <summary>Запущенное фоновое ПО периферии: G HUB, Synapse, Armoury Crate, SteelSeries GG, iCUE…</summary>
+    public List<string> PeripheralApps { get; set; } = new();
 }
 
 public sealed class ObsInfo
@@ -307,6 +352,16 @@ public sealed class NetAdapterInfo
     public bool? AllowComputerToTurnOff { get; set; }
     /// <summary>Для Wi-Fi: диапазон, ГГц (2.4/5/6).</summary>
     public double? WifiBandGhz { get; set; }
+    /// <summary>Уровень сигнала Wi-Fi, 0–100 % (netsh wlan show interfaces).</summary>
+    public int? WifiSignalPercent { get; set; }
+    /// <summary>Стандарт Wi-Fi: «802.11n», «802.11ac», «802.11ax»…</summary>
+    public string? WifiRadioType { get; set; }
+    /// <summary>GUID интерфейса — для параметров TCP/IP этого адаптера.</summary>
+    public string? InterfaceGuid { get; set; }
+    /// <summary>Включённые энергосберегающие функции драйвера (ключевые слова: *EEE, EnableGreenEthernet…).</summary>
+    public List<string> EnergySavingKeywords { get; set; } = new();
+    /// <summary>Алгоритм Нейгла отключён для этого интерфейса (TcpAckFrequency=1 и TCPNoDelay=1).</summary>
+    public bool? NagleDisabled { get; set; }
 }
 
 public sealed class NetworkQuality
@@ -316,6 +371,25 @@ public sealed class NetworkQuality
     public double IdleJitterMs { get; set; }
     public double? LoadedPingMs { get; set; }
     public double PacketLossPercent { get; set; }
+    /// <summary>Адрес шлюза (роутера), если его удалось определить.</summary>
+    public string? Gateway { get; set; }
+    public double? GatewayPingMs { get; set; }
+    public double? GatewayJitterMs { get; set; }
+    public double? GatewayLossPercent { get; set; }
+    /// <summary>Худший пинг до цели в простое.</summary>
+    public double? IdleMaxPingMs { get; set; }
+}
+
+/// <summary>Сетевые настройки Windows, влияющие на пинг и скорость.</summary>
+public sealed class NetSettingsInfo
+{
+    /// <summary>Активные VPN-/туннельные адаптеры.</summary>
+    public List<string> ActiveVpnAdapters { get; set; } = new();
+    /// <summary>Включён системный прокси (Параметры → Сеть → Прокси).</summary>
+    public bool? ProxyEnabled { get; set; }
+    public string? ProxyServer { get; set; }
+    /// <summary>Автонастройка окна приёма TCP: Normal, Disabled, Restricted, HighlyRestricted, Experimental.</summary>
+    public string? TcpAutoTuning { get; set; }
 }
 
 public sealed class DriverLatency

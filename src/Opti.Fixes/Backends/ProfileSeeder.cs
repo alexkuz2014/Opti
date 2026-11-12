@@ -82,8 +82,23 @@ public static class ProfileSeeder
         var bcd = map[ChangeType.Bcd];
         if (p.Timers.UsePlatformClock is { } upc) bcd.Seed(Targets.Bcd("useplatformclock"), StateValue.Str(upc ? "Yes" : "No"));
         if (p.Timers.UsePlatformTick is { } upt) bcd.Seed(Targets.Bcd("useplatformtick"), StateValue.Str(upt ? "Yes" : "No"));
+        if (p.Timers.BcdNumProc is { } np) bcd.Seed(Targets.Bcd("numproc"), StateValue.Str(np.ToString()));
+        if (p.Timers.BcdOneCpu == true) bcd.Seed(Targets.Bcd("onecpu"), StateValue.Str("Yes"));
+        if (p.Timers.BcdMaxMem is { } mm) bcd.Seed(Targets.Bcd("maxmem"), StateValue.Str(mm));
+        if (p.Timers.BcdTruncateMemory is { } tm) bcd.Seed(Targets.Bcd("truncatememory"), StateValue.Str(tm));
         if (p.Timers.DisableDynamicTick is { } ddt) bcd.Seed(Targets.Bcd("disabledynamictick"), StateValue.Str(ddt ? "Yes" : "No"));
 
+        foreach (var n in p.Network)
+        {
+            if (n.InterfaceGuid is { } guid && n.NagleDisabled == true)
+            {
+                r.Seed(Targets.Reg(NagleOffFix.InterfacesKey + guid, "TcpAckFrequency"), StateValue.DWord(1));
+                r.Seed(Targets.Reg(NagleOffFix.InterfacesKey + guid, "TCPNoDelay"), StateValue.DWord(1));
+            }
+            foreach (var kw in n.EnergySavingKeywords)
+                map[ChangeType.NetAdapter].Seed(Targets.NetAdapterAdvanced(n.Name, kw), StateValue.Str("1"));
+        }
+        if (p.Disks.Any(d => d.TrimEnabled == false)) r.Seed(Targets.Reg(TrimOnFix.Key, TrimOnFix.ValueName), StateValue.DWord(1));
         foreach (var n in p.Network.Where(n => n.AllowComputerToTurnOff is not null))
             map[ChangeType.NetAdapter].Seed(Targets.NetAdapter(n.Name, "AllowComputerToTurnOffDevice"), StateValue.Str(n.AllowComputerToTurnOff == true ? "Enabled" : "Disabled"));
     }

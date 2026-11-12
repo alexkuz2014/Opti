@@ -51,6 +51,7 @@ public sealed class WindowedOptimizationsFix : FixBase
 {
     public const string ValueName = "DirectXUserGlobalSettings";
     public override string Id => FixIds.WindowedOptimizations;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Оптимизация оконных игр и VRR (Windows 11)";
     public override string Explanation => "Включает «Оптимизацию для игр в окне» и «Оптимизацию переменной частоты обновления» в настройках графики Windows. " +
                                           "Остальные глобальные настройки DirectX сохраняются.";
@@ -101,6 +102,7 @@ public sealed class WindowedOptimizationsFix : FixBase
 public sealed class GameModeOnFix : FixBase
 {
     public override string Id => FixIds.GameModeOn;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Включить игровой режим Windows";
     public override string Explanation => "Игровой режим откладывает обновления и фоновое обслуживание во время игры.";
     public override FixCategory Category => FixCategory.GameSettings;
@@ -127,6 +129,7 @@ public sealed class MpoResetFix : FixBase
 {
     public const string Key = @"HKLM\SOFTWARE\Microsoft\Windows\Dwm";
     public override string Id => FixIds.MpoReset;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Вернуть стандартную работу MPO";
     public override string Explanation => "Удаляет ключ OverlayTestMode, которым когда-то отключали Multiplane Overlay. На Windows 11 24H2+ он вредит режиму Independent Flip.";
     public override FixCategory Category => FixCategory.Display;
@@ -143,6 +146,7 @@ public sealed class HagsAbFix : FixBase
 {
     public const string Key = @"HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers";
     public override string Id => FixIds.HagsAb;
+    public override EvidenceLevel Evidence => EvidenceLevel.Varies;
     public override string Title => "Аппаратное планирование GPU (HAGS): проверить оба варианта";
     public override string Explanation => "Переключает HAGS, чтобы сравнить замером. Останется тот вариант, который покажет лучший фреймтайм. Требуется перезагрузка.";
     public override RiskLevel Risk => RiskLevel.Moderate;

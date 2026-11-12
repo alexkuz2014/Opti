@@ -22,6 +22,7 @@ public sealed partial class DiskCollector : ICollector
             .Select(x => x.Long("DiskNumber")).FirstOrDefault();
 
         var wear = ReadWear();
+        var letters = ReadDriveLetters();
         foreach (var d in Wmi.Query("SELECT DeviceId, FriendlyName, MediaType, BusType, HealthStatus, Size FROM MSFT_PhysicalDisk", StorageNs))
         {
             var id = d.Str("DeviceId");
@@ -37,6 +38,16 @@ public sealed partial class DiskCollector : ICollector
                 IsSystem = sysDiskNumber is not null && id == sysDiskNumber.ToString(),
                 WearPercent = id is not null && wear.TryGetValue(id, out var w) ? w : null,
             };
+            if (id is not null && letters.TryGetValue(id, out var own)) disk.DriveLetters = own;
+            foreach (var letter in disk.DriveLetters)
+            {
+                try
+                {
+                    var dv = new DriveInfo(letter);
+                    if (dv.IsReady) disk.Volumes.Add(new DiskVolume { Letter = letter, SizeGb = dv.TotalSize / 1e9, FreeGb = dv.AvailableFreeSpace / 1e9 });
+                }
+                catch { /* том недоступен — для него просто не будет данных о свободном месте */ }
+            }
             if (disk.IsSystem)
             {
                 var drive = new DriveInfo(sysLetter);
@@ -54,6 +65,25 @@ public sealed partial class DiskCollector : ICollector
             bool enabled = m.Groups[1].Value == "0";
             foreach (var d in p.Disks.Where(d => d.MediaType is DiskMediaType.Ssd or DiskMediaType.Nvme)) d.TrimEnabled = enabled;
         }
+    }
+
+    private static Dictionary<string, List<string>> ReadDriveLetters()
+    {
+        var map = new Dictionary<string, List<string>>();
+        try
+        {
+            foreach (var part in Wmi.Query("SELECT DiskNumber, DriveLetter FROM MSFT_Partition", StorageNs))
+            {
+                if (part["DriveLetter"] is not { } dl || part.Long("DiskNumber") is not { } num) continue;
+                char c = char.ToUpperInvariant(Convert.ToChar(dl));
+                if (c is < 'A' or > 'Z') continue;
+                var key = num.ToString();
+                if (!map.TryGetValue(key, out var list)) map[key] = list = new();
+                list.Add(c + ":");
+            }
+        }
+        catch { /* без букв томов обойдёмся: проверка «игры на HDD» просто не сработает */ }
+        return map;
     }
 
     private static Dictionary<string, int> ReadWear()
@@ -174,6 +204,10 @@ public sealed class TimersAndSecurityCollector : ICollector
             p.Timers.UsePlatformTick = Flag("useplatformtick");
             p.Timers.DisableDynamicTick = Flag("disabledynamictick");
             p.Timers.TscSyncPolicy = map.GetValueOrDefault("tscsyncpolicy");
+            p.Timers.BcdNumProc = map.TryGetValue("numproc", out var np) && int.TryParse(np, out var npv) ? npv : null;
+            p.Timers.BcdOneCpu = Flag("onecpu");
+            p.Timers.BcdMaxMem = map.GetValueOrDefault("maxmem");
+            p.Timers.BcdTruncateMemory = map.GetValueOrDefault("truncatememory");
             p.Security.HypervisorLaunchType = map.GetValueOrDefault("hypervisorlaunchtype");
         }
         else p.CollectorErrors.Add("bcdedit недоступен (нужны права администратора)");

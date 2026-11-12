@@ -12,6 +12,7 @@ public abstract class FixBase : IFix
     public virtual RiskLevel Risk => RiskLevel.Safe;
     public virtual bool RequiresReboot => false;
     public abstract FixCategory Category { get; }
+    public virtual EvidenceLevel Evidence => EvidenceLevel.Solid;
     public virtual bool RequiresAbTest => false;
     public virtual bool TouchesBcd => false;
     public virtual bool NeedsUserChoice => false;
@@ -60,6 +61,10 @@ public static class FixCatalog
         new PageFileAutoFix(),
         new RegistryPerfDefaultsFix(),
         new RegistrySecurityDefaultsFix(),
+        new NagleOffFix(),
+        new NetEeeOffFix(),
+        new TrimOnFix(),
+        new BcdBootLimitsResetFix(),
     };
 
     public static IFix? Find(string id) => All().FirstOrDefault(f => string.Equals(f.Id, id, StringComparison.OrdinalIgnoreCase));

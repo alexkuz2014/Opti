@@ -23,6 +23,9 @@ public sealed partial class TweakItem : ObservableObject
     public string Description => Tweak.Description;
     public bool IsAvailable { get; }
     public bool Recommended => Tweak.Recommended;
+    public bool ShowEvidence => Tweak.Evidence != Opti.Core.Fixes.EvidenceLevel.Solid;
+    public string EvidenceText => EvidenceTexts.For(Tweak.Evidence);
+    public string EvidenceColor => EvidenceTexts.Color(Tweak.Evidence);
     public string ApplyText => IsAvailable ? "Вступает в силу: " + TweakCatalog.ApplyModeText(Tweak.ApplyMode) : "Нужна более новая Windows 11";
     public string? Link => Tweak.Link;
 

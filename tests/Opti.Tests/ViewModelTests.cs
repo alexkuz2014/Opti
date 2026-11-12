@@ -15,7 +15,7 @@ public sealed class ViewModelTests : IDisposable
     private readonly string _dir = Directory.CreateTempSubdirectory("opti-vm-").FullName;
     public void Dispose() => Directory.Delete(_dir, true);
 
-    private sealed class FakeRunner : IMeasureRunner
+    internal sealed class FakeRunner : IMeasureRunner
     {
         private readonly Func<int, double> _base;
         private int _n;
@@ -32,7 +32,7 @@ public sealed class ViewModelTests : IDisposable
         }
     }
 
-    private sealed class FakeServices : IAppServices
+    internal sealed class FakeServices : IAppServices
     {
         public FakeServices(string dir, string profile, Func<int, double> frameMs)
         {
@@ -71,6 +71,7 @@ public sealed class ViewModelTests : IDisposable
         public string? StartupNotice => null;
         public Opti.Fixes.Services.TweakService Tweaks { get; }
         public int OsBuild => 26100;
+        public Opti.Workflow.Game.IProcessControl? Processes { get; set; }
         public int ExplorerRestarts { get; private set; }
         public void RestartExplorer() => ExplorerRestarts++;
     }
@@ -498,5 +499,31 @@ public sealed class ViewModelTests : IDisposable
         Assert.Equal(10, svc.Settings.MeasureRuns);
         Assert.Contains(FixIds.MpoReset, svc.Settings.ExcludedFixIds);
         Assert.True(File.Exists(Path.Combine(_dir, "settings.json")));
+    }
+
+    [Fact]
+    public async Task Home_ShowsActiveChanges_AndReanalyzeKeepsGoal()
+    {
+        var svc = new FakeServices(_dir, "old-gaming-pc", _ => 10);
+        var main = new MainViewModel(svc);
+        main.Home.Refresh();
+        Assert.Null(main.Home.ActiveChangesText);   // Opti ещё ничего не менял — строки нет
+        Assert.True(main.Home.IsIdle);
+
+        svc.Tweaks.Enable(Opti.Core.Tweaks.TweakCatalog.Find("NO_TRANSPARENCY")!);
+        svc.Tweaks.Enable(Opti.Core.Tweaks.TweakCatalog.Find("EDGE_NO_BACKGROUND")!);
+        main.Home.OnShown();
+        Assert.Equal("Действуют 2 изменения Opti", main.Home.ActiveChangesText);
+
+        main.Home.SelectedGoal = GoalOption.All.First(g => g.Goal == Opti.Core.Strategy.UserGoal.LowLatency);
+        await main.Home.AnalyzeCommand.ExecuteAsync(null);
+        Assert.Same(main.Analysis, main.CurrentPage);
+        var first = main.Session!.Id;
+
+        await main.Analysis.ReanalyzeCommand.ExecuteAsync(null);
+        Assert.Same(main.Analysis, main.CurrentPage);
+        Assert.NotEqual(first, main.Session!.Id);
+        Assert.Equal(Opti.Core.Strategy.UserGoal.LowLatency, main.Session.Goal);
+        Assert.True(main.Home.IsIdle);
     }
 }

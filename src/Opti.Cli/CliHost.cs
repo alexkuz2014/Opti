@@ -42,7 +42,8 @@ internal static class AnalysisLoader
             return SystemAnalyzer.FromProfile(OptiJson.Deserialize<SystemProfile>(profileJson));
         }
         Console.Write("Анализ системы: ");
-        var r = SystemAnalyzer.Collect(SystemAnalyzer.DefaultCollectors(Opti.Workflow.OptiSettings.Load().ObsConfigDir), name => Console.Write(name + "… "));
+        var settings = Opti.Workflow.OptiSettings.Load();
+        var r = SystemAnalyzer.Collect(SystemAnalyzer.DefaultCollectors(settings.ObsConfigDir, settings.NetworkCheckInAnalysis ? settings.NetworkTarget : null), name => Console.Write(name + "… "));
         Console.WriteLine("готово.");
         return r;
     }

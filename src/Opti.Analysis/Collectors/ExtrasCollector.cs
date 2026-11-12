@@ -19,6 +19,24 @@ public sealed class ExtrasCollector : ICollector
 
         try
         {
+            p.Security.AntiVirus = Wmi.Query("SELECT displayName FROM AntiVirusProduct", @"root\SecurityCenter2")
+                .Select(a => a.Str("displayName") ?? "").Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+        catch { /* Центр безопасности недоступен (серверная Windows) — антивирусы просто не перечисляем */ }
+
+        try
+        {
+            var hf = Opti.Native.ProcessRunner.Instance.RunPowerShell(
+                "$d = Get-HotFix | Where-Object { $_.InstalledOn } | Sort-Object InstalledOn -Descending | Select-Object -First 1; if ($d) { $d.InstalledOn.ToString('yyyy-MM-dd') }",
+                TimeSpan.FromSeconds(40));
+            if (hf.Ok && DateTime.TryParseExact(hf.StdOut.Trim(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var last))
+                p.Os.LastUpdateInstalled = last;
+        }
+        catch (Exception ex) { p.CollectorErrors.Add("Обновления Windows: " + ex.Message); }
+
+        try
+        {
             foreach (var d in Wmi.Query("SELECT Name, PNPClass, ConfigManagerErrorCode, PNPDeviceID FROM Win32_PnPEntity WHERE ConfigManagerErrorCode <> 0"))
             {
                 int code = (int)(d.Long("ConfigManagerErrorCode") ?? 0);

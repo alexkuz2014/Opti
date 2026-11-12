@@ -1,6 +1,6 @@
 namespace Opti.Core.Tweaks;
 
-public enum TweakCategory { ContextMenu, Explorer, StartAndTaskbar, Responsiveness, System }
+public enum TweakCategory { ContextMenu, Explorer, StartAndTaskbar, Responsiveness, System, Gaming }
 
 /// <summary>Что нужно, чтобы твик вступил в силу.</summary>
 public enum TweakApplyMode { Immediate, RestartExplorer, SignOut, Reboot }
@@ -24,6 +24,7 @@ public sealed class Tweak
     /// <summary>Минимальная сборка Windows (22000 — Windows 11).</summary>
     public int MinBuild { get; init; }
     public bool Recommended { get; init; }
+    public Opti.Core.Fixes.EvidenceLevel Evidence { get; init; } = Opti.Core.Fixes.EvidenceLevel.Solid;
     public string? Link { get; init; }
 
     public string FixId => "TWEAK_" + Id;
@@ -40,6 +41,7 @@ public static class TweakCatalog
         TweakCategory.Explorer => "Проводник",
         TweakCategory.StartAndTaskbar => "Пуск и панель задач",
         TweakCategory.Responsiveness => "Отзывчивость",
+        TweakCategory.Gaming => "Игры и фоновая нагрузка",
         _ => "Система",
     };
 
@@ -49,6 +51,7 @@ public static class TweakCatalog
         TweakCategory.Explorer => "",
         TweakCategory.StartAndTaskbar => "",
         TweakCategory.Responsiveness => "",
+        TweakCategory.Gaming => "",
         _ => "",
     };
 
@@ -60,7 +63,7 @@ public static class TweakCatalog
         _ => "сразу",
     };
 
-    public static IReadOnlyList<Tweak> All { get; } = new Tweak[]
+    private static readonly Tweak[] BaseTweaks = new Tweak[]
     {
         // ---------- Контекстное меню ----------
         new()
@@ -166,6 +169,97 @@ public static class TweakCatalog
             Link = "https://learn.microsoft.com/en-us/troubleshoot/windows-client/setup-upgrade-and-drivers/disable-and-re-enable-hibernation",
         },
     };
+
+    private const string EdgePolicy = @"HKLM\SOFTWARE\Policies\Microsoft\Edge";
+
+    /// <summary>Твики, которые освобождают память, процессор и интернет-канал для игр. Все — документированные настройки и политики.</summary>
+    private static readonly Tweak[] GamingTweaks =
+    {
+        new()
+        {
+            Id = "NO_UPDATE_SHARING", Category = TweakCategory.Gaming, Recommended = true,
+            Title = "Не раздавать обновления Windows в интернет",
+            Description = "Windows перестаёт отдавать скачанные обновления чужим компьютерам в интернете — исходящий канал остаётся игре, пинг не скачет. " +
+                          "Свои обновления качаются как обычно, обмен внутри домашней сети остаётся.",
+            Values = new[] { new TweakValue(@"HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization", "DODownloadMode", "DWord", "1") },
+            ApplyMode = TweakApplyMode.Reboot,
+            Link = "https://learn.microsoft.com/en-us/windows/deployment/do/waas-delivery-optimization-reference#download-mode",
+        },
+        new()
+        {
+            Id = "EDGE_NO_BACKGROUND", Category = TweakCategory.Gaming, Recommended = true,
+            Title = "Edge не работает в фоне",
+            Description = "Microsoft Edge перестаёт держать процессы в памяти после закрытия окна и не запускается заранее при входе в Windows. " +
+                          "Освобождает сотни мегабайт памяти. Сам браузер работает как раньше, первое открытие — на секунду дольше.",
+            Values = new[]
+            {
+                new TweakValue(EdgePolicy, "StartupBoostEnabled", "DWord", "0"),
+                new TweakValue(EdgePolicy, "BackgroundModeEnabled", "DWord", "0"),
+            },
+            ApplyMode = TweakApplyMode.Reboot,
+            Link = "https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies#startupboostenabled",
+        },
+        new()
+        {
+            Id = "NO_WIDGETS", Category = TweakCategory.Gaming, MinBuild = 22000, Evidence = Opti.Core.Fixes.EvidenceLevel.Varies,
+            Title = "Отключить мини-приложения (виджеты)",
+            Description = "Убирает панель новостей и погоды вместе с её фоновыми процессами. Полезно на компьютерах с 8 ГБ памяти и меньше.",
+            Values = new[] { new TweakValue(@"HKLM\SOFTWARE\Policies\Microsoft\Dsh", "AllowNewsAndInterests", "DWord", "0") },
+            ApplyMode = TweakApplyMode.Reboot,
+            Link = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-newsandinterests",
+        },
+        new()
+        {
+            Id = "NO_TRANSPARENCY", Category = TweakCategory.Gaming, Evidence = Opti.Core.Fixes.EvidenceLevel.Varies,
+            Title = "Без эффектов прозрачности",
+            Description = "Панель задач, «Пуск» и окна становятся непрозрачными. На встроенной графике и старых видеокартах снимает часть нагрузки с видеочипа, " +
+                          "когда игра идёт в окне или поверх неё что-то открыто.",
+            Values = new[] { new TweakValue(@"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "EnableTransparency", "DWord", "0") },
+        },
+        new()
+        {
+            Id = "NO_BACKGROUND_APPS", Category = TweakCategory.Gaming, Evidence = Opti.Core.Fixes.EvidenceLevel.Varies,
+            Title = "Запретить фоновую работу приложений из Microsoft Store",
+            Description = "Приложения из Магазина (почта, погода, «Фото» и т. п.) перестают просыпаться и работать в фоне. Освобождает немного памяти и процессора; на ПК с 8 ГБ памяти и меньше заметнее. " +
+                          "Уведомления и обновления плиток этих приложений могут приходить с задержкой.",
+            Values = new[] { new TweakValue(@"HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy", "LetAppsRunInBackground", "DWord", "2") },
+            ApplyMode = TweakApplyMode.Reboot,
+            Link = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy#letappsruninbackground",
+        },
+        new()
+        {
+            Id = "MMCSS_GAMES", Category = TweakCategory.Gaming, Evidence = Opti.Core.Fixes.EvidenceLevel.Hypothesis,
+            Title = "Приоритет игр в планировщике мультимедиа (MMCSS)",
+            Description = "Поднимает приоритет задачи «Games» в службе планирования мультимедиа: приоритет 6, планирование «Высокое», приоритет диска «Высокий». " +
+                          "Это значения, которые советуют в гайдах; измерений, что они дают FPS, нет — эффект, если есть, в стабильности кадров. Выключатель вернёт стандартные значения Windows.",
+            Values = new[]
+            {
+                new TweakValue(@"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games", "Priority", "DWord", "6"),
+                new TweakValue(@"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games", "Scheduling Category", "String", "High"),
+                new TweakValue(@"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games", "SFIO Priority", "String", "High"),
+            },
+            ApplyMode = TweakApplyMode.Reboot,
+        },
+        new()
+        {
+            Id = "NO_NETWORK_THROTTLING", Category = TweakCategory.Gaming, Evidence = Opti.Core.Fixes.EvidenceLevel.Hypothesis,
+            Title = "Снять ограничение сети для мультимедиа (NetworkThrottlingIndex)",
+            Description = "Windows по умолчанию ограничивает сетевой трафик во время воспроизведения мультимедиа. Опция снимает это ограничение. Измерений выигрыша для игр нет; " +
+                          "если проблема в Wi-Fi, роутере или провайдере, она ничего не изменит — сначала смотрите результаты проверки сети.",
+            Values = new[] { new TweakValue(@"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile", "NetworkThrottlingIndex", "DWord", "4294967295") },
+            ApplyMode = TweakApplyMode.Reboot,
+        },
+        new()
+        {
+            Id = "NO_GAMEBAR_BUTTON", Category = TweakCategory.Gaming,
+            Title = "Кнопка Xbox на геймпаде не открывает Game Bar",
+            Description = "Случайное нажатие центральной кнопки геймпада больше не перекрывает игру панелью Xbox Game Bar. Сочетание Win+G продолжает работать.",
+            Values = new[] { new TweakValue(@"HKCU\Software\Microsoft\GameBar", "UseNexusForGameBarEnabled", "DWord", "0") },
+        },
+    };
+
+    /// <summary>Сначала игровые твики, затем твики удобства. Объявлено после обоих массивов: статические поля инициализируются по порядку.</summary>
+    public static IReadOnlyList<Tweak> All { get; } = GamingTweaks.Concat(BaseTweaks).ToArray();
 
     public static Tweak? Find(string id) => All.FirstOrDefault(t => t.Id == id);
 }

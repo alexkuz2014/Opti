@@ -2,6 +2,17 @@ using Opti.Core.Profile;
 
 namespace Opti.Core.Fixes;
 
+/// <summary>Насколько надёжно известно, что настройка помогает. Показывается рядом с каждым исправлением и твиком.</summary>
+public enum EvidenceLevel
+{
+    /// <summary>Исправляет заведомо неверное состояние или документированное поведение: эффект предсказуем.</summary>
+    Solid = 0,
+    /// <summary>Эффект есть, но зависит от ПК и игры — проверяйте замером.</summary>
+    Varies = 1,
+    /// <summary>Часто советуют, но надёжных измерений нет или они противоречат друг другу.</summary>
+    Hypothesis = 2,
+}
+
 public enum RiskLevel { Safe = 0, Moderate = 1, Risky = 2 }
 
 public enum FixCategory
@@ -30,6 +41,7 @@ public interface IFix
     FixCategory Category { get; }
 
     /// <summary>Эффект спорный — оставлять только по результату A/B-замера.</summary>
+    EvidenceLevel Evidence => EvidenceLevel.Solid;
     bool RequiresAbTest => false;
     /// <summary>Затрагивает BCD (нужна проверка BitLocker).</summary>
     bool TouchesBcd => false;

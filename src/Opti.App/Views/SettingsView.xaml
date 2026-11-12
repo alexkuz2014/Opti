@@ -56,6 +56,12 @@
             </Border>
             <Border Style="{StaticResource Row}">
                 <DockPanel>
+                    <CheckBox DockPanel.Dock="Right" IsChecked="{Binding NetworkCheckInAnalysis}" VerticalAlignment="Center" MinWidth="0"/>
+                    <StackPanel><TextBlock Text="Проверять сеть при анализе" Style="{StaticResource Strong}"/><TextBlock Text="Несколько секунд пинга до роутера и до адреса из поля «Адрес для теста сети» — пинг, скачки, потери" Style="{StaticResource Caption}" TextWrapping="Wrap"/></StackPanel>
+                </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Row}">
+                <DockPanel>
                     <CheckBox DockPanel.Dock="Right" IsChecked="{Binding CheckForUpdates}" VerticalAlignment="Center" MinWidth="0"/>
                     <StackPanel><TextBlock Text="Сообщать о новых версиях" Style="{StaticResource Strong}"/><TextBlock Text="Только уведомление — ничего не скачивается" Style="{StaticResource Caption}"/></StackPanel>
                 </DockPanel>

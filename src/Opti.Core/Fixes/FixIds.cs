@@ -23,4 +23,8 @@ public static class FixIds
     public const string PageFileAuto = "PAGEFILE_AUTO";
     public const string RegistryPerfDefaults = "REG_PERF_DEFAULTS";
     public const string RegistrySecurityDefaults = "REG_SECURITY_DEFAULTS";
+    public const string NetNagleOff = "NET_NAGLE_OFF";
+    public const string NetEeeOff = "NET_EEE_OFF";
+    public const string TrimOn = "TRIM_ON";
+    public const string BcdBootLimitsReset = "BCD_BOOT_LIMITS_RESET";
 }

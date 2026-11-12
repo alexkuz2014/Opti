@@ -60,6 +60,12 @@ public sealed class FindingItem
     public string FixHint => HasFix ? "Можно исправить автоматически" : IsHardware ? "Аппаратное ограничение — программно не исправить" : "Совет: действие за вами";
 }
 
+public static class EvidenceTexts
+{
+    public static string For(EvidenceLevel e) => e switch { EvidenceLevel.Varies => "зависит от ПК", EvidenceLevel.Hypothesis => "гипотеза", _ => "проверено" };
+    public static string Color(EvidenceLevel e) => e == EvidenceLevel.Hypothesis ? Palette.Warn : Palette.Neutral;
+}
+
 public sealed partial class FixItem : ObservableObject
 {
     public FixItem(PlannedFix p)
@@ -75,6 +81,9 @@ public sealed partial class FixItem : ObservableObject
     public string RiskText => Fix.Risk switch { RiskLevel.Safe => "безопасно", RiskLevel.Moderate => "умеренно", _ => "рискованно" };
     public string RiskColor => Fix.Risk switch { RiskLevel.Safe => Palette.Good, RiskLevel.Moderate => Palette.Warn, _ => Palette.Bad };
     public bool RequiresReboot => Fix.RequiresReboot;
+    public bool ShowEvidence => Fix.Evidence != EvidenceLevel.Solid;
+    public string EvidenceText => EvidenceTexts.For(Fix.Evidence);
+    public string EvidenceColor => EvidenceTexts.Color(Fix.Evidence);
     public bool IsAb => Planned.ApplySeparately;
     public string Reason => "Причина: " + string.Join(", ", Planned.TriggeredBy);
     public IReadOnlyList<string> Notes => Planned.Notes;
