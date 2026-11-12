@@ -16,6 +16,12 @@ public sealed class ResizableBarCollector : ICollector
         try
         {
             var r = ProcessRunner.Instance.Run("nvidia-smi", "-q -d MEMORY", TimeSpan.FromSeconds(15));
+            var link = ProcessRunner.Instance.Run("nvidia-smi", "--query-gpu=pcie.link.width.current,pcie.link.width.max --format=csv,noheader,nounits", TimeSpan.FromSeconds(15));
+            if (link.Ok && ToolParsers.ParseNvidiaPcieWidth(link.StdOut) is { } w)
+            {
+                p.Graphics.PcieWidthCurrent = w.Current;
+                p.Graphics.PcieWidthMax = w.Max;
+            }
             if (!r.Ok) return;
             if (ToolParsers.ParseNvidiaBar1TotalMb(r.StdOut) is { } bar)
             {

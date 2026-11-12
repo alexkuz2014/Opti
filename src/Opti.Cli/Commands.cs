@@ -42,6 +42,7 @@ internal static class Commands
               report   [--session ID] [--out report.html] [--open]          HTML-отчёт
               rollback --fix ID [--session ID] | --session ID | --all       Откат
               history                                                        Сессии и журнал изменений
+              verify   [--restore]                                            Что из изменённого Opti сбросилось (Windows, драйверы)
               latency  [--seconds 60]                                        Задержка системы: DPC/ISR + точность таймера
               net      [--target 1.1.1.1] [--no-load]                        Пинг, джиттер, bufferbloat
               version                                                        Версия и проверка обновлений
@@ -609,6 +610,22 @@ internal static class Commands
         var path = WriteReport(host, s, null, a.Get("out"));
         Console.WriteLine($"Отчёт: {path}");
         if (a.Has("open")) OpenFile(path);
+        return 0;
+    }
+
+    /// <summary>Сверяет журнал с системой: что из изменённого Opti сбросилось (обновление Windows, установка драйвера). --restore возвращает.</summary>
+    public static int Verify(Args a)
+    {
+        RequireWindows("Проверка настроек");
+        using var host = new CliHost();
+        var svc = new DriftService(WindowsBackends.Create(), host.Journal);
+        var drift = svc.Check();
+        if (drift.Count == 0) { Console.WriteLine("Все настройки, которые менял Opti, на месте."); return 0; }
+        Output.Color(ConsoleColor.Yellow, $"Изменились {drift.Count}:\n");
+        foreach (var d in drift)
+            Console.WriteLine($"  {FixIds.Title(d.Record.FixId)} ({d.Record.Target}): стояло {d.Record.After}, сейчас {d.Current}");
+        if (!a.Has("restore")) { Console.WriteLine("Вернуть: opti-cli verify --restore"); return 1; }
+        Console.WriteLine($"Восстановлено: {svc.Restore(drift)}.");
         return 0;
     }
 

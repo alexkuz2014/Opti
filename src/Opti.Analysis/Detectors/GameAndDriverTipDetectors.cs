@@ -64,7 +64,7 @@ public sealed class GpuPanelTipsDetector : DetectorBase
     {
         var gpu = p.DiscreteGpu;
         if (gpu is null || p.Games.Count == 0 || gpu.Vendor is not (GpuVendor.Nvidia or GpuVendor.Amd)) yield break;
-        var hz = p.PrimaryDisplay?.CurrentHz is > 0 and var h ? $"{h} Гц" : "частота монитора";
+        var hz = p.PrimaryDisplay?.CurrentHz is > 0 and var h ? $"{FpsCap.Recommend(h, p.PrimaryDisplay?.VrrSupported)} (монитор {h} Гц)" : "частота монитора";
         var steps = new List<string>
         {
             "Если видеокарта в игре загружена на 99–100 %, очередь кадров растёт и задержка ввода увеличивается. Ограничьте FPS немного ниже того, что видеокарта выдаёт, — загрузка около 90–95 % даёт заметно более быстрый отклик.",
@@ -272,6 +272,98 @@ public sealed class GameLoadTipsDetector : DetectorBase
             Evidence = drives.Select(d => $"{d.Letter} — {d.KindText}, свободно {d.FreeGb:0} из {d.SizeGb:0} ГБ: {string.Join(", ", d.Games.Select(g => g.Name).Take(4))}{(d.Games.Count > 4 ? $" и ещё {d.Games.Count - 4}" : "")}").ToList(),
             ManualSteps = steps,
             Links = links.Distinct().ToList(),
+        };
+    }
+}
+
+/// <summary>Видеокарта работает не на полной ширине шины PCIe (x8 или x4 вместо x16).</summary>
+public sealed class PcieLinkWidthDetector : DetectorBase
+{
+    public override string Id => "GPU_PCIE_WIDTH";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var g = p.Graphics;
+        if (p.Device.IsLaptop || p.DiscreteGpu is not { Vendor: GpuVendor.Nvidia } gpu) yield break;
+        if (g.PcieWidthCurrent is not { } cur || g.PcieWidthMax is not { } max || max < 16 || cur >= max || cur > 8) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = $"Видеокарта работает на шине PCIe x{cur} вместо x{max}",
+            Severity = Severity.Important,
+            Explanation = "Видеокарта получила меньше линий PCIe, чем умеет. Для большинства игр x8 хватает, но x4 и меньше уже режет подгрузку текстур и карты (GTA V и ей подобные) и просаживает минимальные кадры. " +
+                          "Частые причины: видеокарта стоит в нижнем слоте, часть линий отдана M.2-накопителю, перекошен райзер или пыль в слоте. Ширина шины в простое у части видеокарт снижается штатно, поэтому проверьте под нагрузкой.",
+            Evidence = { $"{gpu.Name}: x{cur} из x{max}" },
+            ManualSteps =
+            {
+                "Откройте GPU-Z → «Bus Interface» → «?» и запустите «Render Test»: если под нагрузкой написано x16 — всё в порядке.",
+                "Если ширина осталась x8 или x4: переставьте видеокарту в верхний слот PCIe x16, проверьте в инструкции к плате, не делят ли линии слот M.2 и слот видеокарты, продуйте слот.",
+            },
+        };
+    }
+}
+
+/// <summary>NVMe-накопитель горячий: при перегреве он сбрасывает скорость, и подгрузка игры «запинается».</summary>
+public sealed class NvmeThermalDetector : DetectorBase
+{
+    public override string Id => "DISK_NVME_HOT";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var hot = p.Disks.Where(d => d.MediaType == DiskMediaType.Nvme && (d.TemperatureC >= 65 || d.TemperatureMaxC >= 80)).ToList();
+        if (hot.Count == 0) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = "NVMe-накопитель сильно греется",
+            Severity = Severity.Advice,
+            Explanation = "Быстрые NVMe без радиатора греются и при перегреве снижают скорость — иногда до уровня медленного диска. В играх это выглядит как фризы при подгрузке карты, а после выхода из игры температура быстро падает, и причина остаётся незамеченной. " +
+                          "Порог срабатывания защиты зависит от модели (обычно 70–85 °C).",
+            Evidence = hot.Select(d => $"{d.Model}: сейчас {(d.TemperatureC is { } t ? t + " °C" : "?")}" + (d.TemperatureMaxC is { } m ? $", максимум за всё время {m} °C" : "")).ToList(),
+            ManualSteps = { "Поставьте радиатор на M.2 (у многих плат он в комплекте), улучшите обдув корпуса. Накопитель под горячей видеокартой греется сильнее.", "Если слотов несколько, игры лучше держать на накопителе, который остаётся холоднее." },
+            IsHardwareLimitation = true,
+        };
+    }
+}
+
+/// <summary>Режим MSI у видеокарты явно выключен.</summary>
+public sealed class MsiAuditDetector : DetectorBase
+{
+    public override string Id => "GPU_MSI_OFF";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        if (p.DiscreteGpu is not { MsiSupported: 0 } gpu) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = "У видеокарты выключен режим прерываний MSI",
+            Severity = Severity.Advice,
+            Explanation = "Современные видеокарты работают в режиме MSI, а при выключенном используют общие линии прерываний, что увеличивает задержки обработки (ISR/DPC). Иногда режим сбрасывается после неудачного обновления драйвера. " +
+                          "Opti это только показывает: менять ветку реестра устройства вручную рискованно, правильный путь — чистая установка драйвера.",
+            Evidence = { $"{gpu.Name}: MSISupported = 0" },
+            ManualSteps = { "Установите драйвер видеокарты заново: установщик NVIDIA → «Выборочная установка» → «Выполнить чистую установку».", "Если не помогло, проверьте вывод LatencyMon — он покажет, какой драйвер даёт большие задержки." },
+        };
+    }
+}
+
+/// <summary>RSS отключён: входящие пакеты обрабатывает одно ядро.</summary>
+public sealed class NetRssDetector : DetectorBase
+{
+    public override string Id => "NET_RSS_OFF";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var a = p.Network.Where(n => n.IsUp && n.RssEnabled == false && n.Kind is NetAdapterKind.Ethernet or NetAdapterKind.WiFi).ToList();
+        if (a.Count == 0 || p.Cpu.Threads < 4) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = "Масштабирование приёма пакетов (RSS) выключено",
+            Severity = Severity.Advice,
+            Explanation = "RSS распределяет обработку входящего сетевого трафика по ядрам процессора. Когда он выключен, всё идёт через одно ядро: на онлайн-играх с большим числом игроков это может давать сетевые статтеры. По умолчанию RSS включён — его отключают «оптимизаторы» или сторонние драйверы.",
+            Evidence = a.Select(n => $"{n.Description ?? n.Name}: RSS выключен").ToList(),
+            FixIds = { FixIds.NetRssOn },
         };
     }
 }

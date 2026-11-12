@@ -10,6 +10,8 @@
                             ToolTip="Замер «до», затем список исправлений с галочками"/>
                     <Button Style="{StaticResource LinkButton}" Content="Без замера" Command="{Binding SkipToStrategyCommand}" Margin="16,0,0,0"
                             ToolTip="Сразу к списку исправлений, без теста"/>
+                    <Button Style="{StaticResource LinkButton}" Content="Копировать сводку" Command="{Binding CopyCardCommand}" Margin="16,0,0,0"
+                            ToolTip="Короткая обезличенная сводка о ПК для техподдержки и чатов"/>
                     <Button Style="{StaticResource LinkButton}" Content="Отчёт" Command="{Binding ExportReportCommand}" Margin="16,0,0,0"
                             ToolTip="Сохранить и открыть отчёт в HTML"/>
                 </StackPanel>

@@ -228,12 +228,13 @@ public sealed partial class NetworkCollector : ICollector
     {
         string script =
             "$pm = @{}; Get-NetAdapterPowerManagement -ErrorAction SilentlyContinue | ForEach-Object { $pm[$_.Name] = [string]$_.AllowComputerToTurnOffDevice };" +
+            "$rss = @{}; Get-NetAdapterRss -ErrorAction SilentlyContinue | ForEach-Object { $rss[$_.Name] = [string]$_.Enabled };" +
             "$kw = @(" + EnergyKeywordsPs + "); $adv = @{};" +
             "Get-NetAdapterAdvancedProperty -ErrorAction SilentlyContinue | Where-Object { $kw -contains $_.RegistryKeyword } | ForEach-Object {" +
             " $v = [string]($_.RegistryValue | Select-Object -First 1); if ($v -ne '' -and $v -ne '0') { if (-not $adv.ContainsKey($_.Name)) { $adv[$_.Name] = @() }; $adv[$_.Name] += $_.RegistryKeyword } };" +
             "Get-NetAdapter -Physical | ForEach-Object { [pscustomobject]@{ Name=$_.Name; Desc=$_.InterfaceDescription; Status=[string]$_.Status;" +
             " Speed=$_.ReceiveLinkSpeed; Driver=$_.DriverVersionString; DriverDate=$_.DriverDate; Media=[string]$_.PhysicalMediaType; Pm=$pm[$_.Name];" +
-            " Guid=[string]$_.InterfaceGuid; Eco=@($adv[$_.Name] | Where-Object { $_ }) } } | ConvertTo-Json -Compress -Depth 4";
+            " Guid=[string]$_.InterfaceGuid; Rss=$rss[$_.Name]; Eco=@($adv[$_.Name] | Where-Object { $_ }) } } | ConvertTo-Json -Compress -Depth 4";
         var r = ProcessRunner.Instance.RunPowerShell(script, TimeSpan.FromSeconds(30));
         if (!r.Ok) { p.CollectorErrors.Add("Get-NetAdapter: " + r.StdErr.Trim()); return; }
         if (string.IsNullOrWhiteSpace(r.StdOut)) return;
@@ -257,6 +258,7 @@ public sealed partial class NetworkCollector : ICollector
             if (e.TryGetProperty("Eco", out var eco) && eco.ValueKind == JsonValueKind.Array)
                 adapter.EnergySavingKeywords = eco.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString()!).Distinct().ToList();
             adapter.NagleDisabled = ReadNagleDisabled(adapter.InterfaceGuid);
+            adapter.RssEnabled = S("Rss") switch { "True" => true, "False" => false, _ => null };
             p.Network.Add(adapter);
         }
 

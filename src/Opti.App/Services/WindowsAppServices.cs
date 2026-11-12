@@ -34,6 +34,7 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
     public TuneWorkflow Workflow { get; }
     public TweakService Tweaks { get; }
     public int OsBuild => Environment.OSVersion.Version.Build;
+    public void CopyText(string text) { try { System.Windows.Clipboard.SetText(text); } catch { /* буфер обмена занят */ } }
     public Opti.Workflow.Game.IProcessControl? Processes { get; } = new Opti.Workflow.Game.SystemProcessControl();
     public int AnalysisStepCount => SystemAnalyzer.DefaultCollectors(null, Settings.NetworkCheckInAnalysis ? Settings.NetworkTarget : null).Count;
 

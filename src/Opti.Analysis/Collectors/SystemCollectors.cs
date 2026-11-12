@@ -38,6 +38,11 @@ public sealed partial class DiskCollector : ICollector
                 IsSystem = sysDiskNumber is not null && id == sysDiskNumber.ToString(),
                 WearPercent = id is not null && wear.TryGetValue(id, out var w) ? w : null,
             };
+            if (id is not null && _temps.TryGetValue(id, out var tt))
+            {
+                disk.TemperatureC = tt.Temp > 0 ? tt.Temp : null;
+                disk.TemperatureMaxC = tt.TempMax > 0 ? tt.TempMax : null;
+            }
             if (id is not null && letters.TryGetValue(id, out var own)) disk.DriveLetters = own;
             foreach (var letter in disk.DriveLetters)
             {
@@ -86,20 +91,28 @@ public sealed partial class DiskCollector : ICollector
         return map;
     }
 
+    private static Dictionary<string, (int Temp, int TempMax)> _temps = new();
+
     private static Dictionary<string, int> ReadWear()
     {
         var map = new Dictionary<string, int>();
+        _temps = new();
         try
         {
             var r = ProcessRunner.Instance.RunPowerShell(
-                "Get-PhysicalDisk | ForEach-Object { $c = $_ | Get-StorageReliabilityCounter; [pscustomobject]@{Id=$_.DeviceId; Wear=$c.Wear} } | ConvertTo-Json -Compress",
+                "Get-PhysicalDisk | ForEach-Object { $c = $_ | Get-StorageReliabilityCounter; [pscustomobject]@{Id=$_.DeviceId; Wear=$c.Wear; Temp=$c.Temperature; TempMax=$c.TemperatureMax} } | ConvertTo-Json -Compress",
                 TimeSpan.FromSeconds(30));
             if (!r.Ok || string.IsNullOrWhiteSpace(r.StdOut)) return map;
             using var doc = JsonDocument.Parse(r.StdOut);
             var items = doc.RootElement.ValueKind == JsonValueKind.Array ? doc.RootElement.EnumerateArray().ToList() : new() { doc.RootElement };
             foreach (var e in items)
-                if (e.TryGetProperty("Wear", out var w) && w.ValueKind == JsonValueKind.Number && e.TryGetProperty("Id", out var id))
-                    map[id.ToString()] = w.GetInt32();
+            {
+                if (!e.TryGetProperty("Id", out var id)) continue;
+                if (e.TryGetProperty("Wear", out var w) && w.ValueKind == JsonValueKind.Number) map[id.ToString()] = w.GetInt32();
+                int t = e.TryGetProperty("Temp", out var tv) && tv.ValueKind == JsonValueKind.Number ? tv.GetInt32() : 0;
+                int tm = e.TryGetProperty("TempMax", out var tmv) && tmv.ValueKind == JsonValueKind.Number ? tmv.GetInt32() : 0;
+                if (t > 0 || tm > 0) _temps[id.ToString()] = (t, tm);
+            }
         }
         catch { /* счётчики надёжности доступны не на всех дисках */ }
         return map;
@@ -249,6 +262,8 @@ public sealed class GraphicsSettingsCollector : ICollector
         var g = p.Graphics;
         if (g.HagsEnabled is null && Reg.Int(@"HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers", "HwSchMode") is { } hw)
             g.HagsEnabled = hw == 2;
+        foreach (var gpu in p.Gpus.Where(x => !string.IsNullOrEmpty(x.PnpDeviceId)))
+            gpu.MsiSupported = Reg.Int(@"HKLM\SYSTEM\CurrentControlSet\Enum\" + gpu.PnpDeviceId + @"\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties", "MSISupported");
         g.OverlayTestMode = Reg.Int(@"HKLM\SOFTWARE\Microsoft\Windows\Dwm", "OverlayTestMode");
 
         var global = ParsePrefs(Reg.Str(UserGpuPrefs, "DirectXUserGlobalSettings"));

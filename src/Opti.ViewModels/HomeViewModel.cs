@@ -26,6 +26,9 @@ public sealed partial class HomeViewModel : PageViewModel
     public bool ProgressUnknown => Main.Services.AnalysisStepCount <= 0;
     /// <summary>«Действует 5 изменений Opti» — или null, если Opti ничего не менял.</summary>
     [ObservableProperty] private string? _activeChangesText;
+    /// <summary>«2 из 8 настроек Opti изменились после применения» — или null.</summary>
+    [ObservableProperty] private string? _driftText;
+    private IReadOnlyList<Opti.Fixes.Services.DriftItem> _drift = Array.Empty<Opti.Fixes.Services.DriftItem>();
     [ObservableProperty] private string? _openSessionText;
     [ObservableProperty] private bool _hasOpenSession;
 
@@ -94,6 +97,32 @@ public sealed partial class HomeViewModel : PageViewModel
                 : $"{AnalysisViewModel.Plural(active, "Действует", "Действуют", "Действует")} {active} {AnalysisViewModel.Plural(active, "изменение", "изменения", "изменений")} Opti";
         }
         catch { ActiveChangesText = null; }
+        CheckDrift();
+    }
+
+    /// <summary>Сверяет журнал с системой: настройки, которые Opti менял, могла сбросить Windows или установщик драйвера.</summary>
+    public void CheckDrift()
+    {
+        try
+        {
+            var svc = new Opti.Fixes.Services.DriftService(Main.Services.Workflow.BackendsForRollback, Main.Services.Journal);
+            _drift = svc.Check();
+            int total = Main.Services.Journal.GetAll().Where(r => !r.RolledBack).Select(r => (r.Type, r.Target)).Distinct().Count();
+            DriftText = _drift.Count == 0 ? null
+                : $"{_drift.Count} из {total} настроек, которые менял Opti, изменились: {string.Join(", ", _drift.Select(d => Short(d.Record)).Distinct().Take(3))}. Обычно это обновление Windows или установка драйвера.";
+        }
+        catch { DriftText = null; }
+    }
+
+    private static string Short(Opti.Core.Fixes.ChangeRecord r) => Opti.Core.Fixes.FixIds.Title(r.FixId);
+
+    [RelayCommand]
+    private void RestoreDrift()
+    {
+        var svc = new Opti.Fixes.Services.DriftService(Main.Services.Workflow.BackendsForRollback, Main.Services.Journal);
+        int n = svc.Restore(_drift);
+        Main.ShowMessage(n > 0 ? $"Восстановлено настроек: {n}." : "Ничего восстановить не удалось.", error: n == 0);
+        CheckDrift();
     }
 
     private bool CanAnalyze() => !IsAnalyzing;

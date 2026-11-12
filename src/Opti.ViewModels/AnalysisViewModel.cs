@@ -101,6 +101,15 @@ public sealed partial class AnalysisViewModel : PageViewModel
 
     [RelayCommand] private Task AutoFixAsync() => Main.StartAutoFlowAsync();
 
+    /// <summary>Обезличенная сводка о ПК в буфер обмена — для техподдержки и чатов.</summary>
+    [RelayCommand]
+    private void CopyCard()
+    {
+        if (Main.Session?.Profile is not { } p) return;
+        Main.Services.CopyText(HtmlReport.DiagnosticCardText(p, Main.Session.Findings, Main.Services.AppVersion));
+        Main.ShowMessage("Сводка скопирована. В ней нет имени пользователя и компьютера — можно отправлять в техподдержку.");
+    }
+
     /// <summary>Повторный анализ с той же целью — после ручных шагов (драйверы, обновления, кабель).</summary>
     [RelayCommand]
     private async Task ReanalyzeAsync()

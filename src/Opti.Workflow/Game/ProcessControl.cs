@@ -14,6 +14,8 @@ public interface IProcessControl
     bool TrySetPriority(int pid, ProcPriority priority);
     /// <summary>Просит закрыться штатно (как крестик в окне); если не вышло за время — завершает процесс.</summary>
     bool TryClose(int pid, TimeSpan grace);
+    /// <summary>Режим эффективности (EcoQoS); по умолчанию недоступен.</summary>
+    bool TrySetEfficiency(int pid, bool on) => false;
 }
 
 public sealed class SystemProcessControl : IProcessControl
@@ -59,6 +61,9 @@ public sealed class SystemProcessControl : IProcessControl
         }
         catch { return false; }
     }
+
+    public bool TrySetEfficiency(int pid, bool on) =>
+        OperatingSystem.IsWindows() && Opti.Native.ProcessPowerNative.SetEfficiency(pid, on);
 
     public bool TryClose(int pid, TimeSpan grace)
     {

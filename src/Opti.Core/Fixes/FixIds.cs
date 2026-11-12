@@ -27,4 +27,16 @@ public static class FixIds
     public const string NetEeeOff = "NET_EEE_OFF";
     public const string TrimOn = "TRIM_ON";
     public const string BcdBootLimitsReset = "BCD_BOOT_LIMITS_RESET";
+    public const string NetRssOn = "NET_RSS_ON";
+
+    /// <summary>Понятное имя для списка «что изменилось»: идентификатор без префикса, твики — по каталогу.</summary>
+    public static string Title(string fixId) => fixId.StartsWith("TWEAK_", StringComparison.Ordinal)
+        ? (Opti.Core.Tweaks.TweakCatalog.Find(fixId["TWEAK_".Length..])?.Title ?? fixId)
+        : fixId switch
+        {
+            DisplayMaxHz => "частота экрана", PowerSchemePerf => "схема питания", PowerAcTuning => "питание от сети", HagsAb => "HAGS", GameModeOn => "игровой режим",
+            GameDvrOff => "Game Bar", MpoReset => "MPO", TimerResGlobal => "таймер", BcdTimersReset => "таймеры загрузки", NetAdapterPowerOff => "сетевой адаптер",
+            NetNagleOff => "алгоритм Нейгла", NetEeeOff => "EEE", NetRssOn => "RSS", TrimOn => "TRIM", MouseAccelOff => "ускорение мыши", PowerThrottlingOff => "Power Throttling",
+            _ => fixId,
+        };
 }
