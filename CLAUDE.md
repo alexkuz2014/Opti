@@ -54,7 +54,7 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 ## Выпуск
 
 - CI (`ci.yml`): push в `main`/`opti-prototype` и PR → `dotnet test` + сборка App и Cli на Windows.
-- Релиз (`release.yml`): пуш в ветку `release` или тег `v*` → тесты → `build/publish.ps1` → GitHub Release; описание берётся из `docs/release-notes/v<версия>.md` (иначе `CHANGELOG.md`).
+- Релиз (`release.yml`) собирает и `Opti.Dev.exe` (`DEV=1`), он публикуется рядом с `Opti.exe`. Пуш в ветку `release` или тег `v*` → тесты → `build/publish.ps1` → GitHub Release; описание берётся из `docs/release-notes/v<версия>.md` (иначе `CHANGELOG.md`).
 - При смене версии: `Directory.Build.props`, `CHANGELOG.md`, `docs/release-notes/`, статус в README.
 
 ## Мелочи, о которые можно споткнуться

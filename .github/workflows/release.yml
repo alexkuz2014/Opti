@@ -32,6 +32,8 @@ jobs:
         run: dotnet test -c Release --nologo
       - name: Портативная сборка
         shell: pwsh
+        env:
+          DEV: '1'   # кроме Opti.exe собираем Opti.Dev.exe: он ведёт dev.zip с диагностикой
         run: ./build/publish.ps1 -Version ${{ steps.ver.outputs.version }}
       - name: Описание релиза
         shell: pwsh
@@ -47,5 +49,6 @@ jobs:
           prerelease: ${{ steps.ver.outputs.prerelease == 'true' }}
           files: |
             artifacts/Opti.exe
+            artifacts/Opti.Dev.exe
             artifacts/opti-cli.exe
             artifacts/SHA256SUMS.txt
