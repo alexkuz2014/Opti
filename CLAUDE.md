@@ -1,11 +1,11 @@
 # Opti — карта репозитория
 
-Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.5.0-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
+Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.5.1-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
 
 ## Команды
 
 ```bash
-dotnet test                      # 264 теста, xUnit, ~20 с; работает в Linux
+dotnet test                      # 266 тестов, xUnit, ~20 с; работает в Linux
 dotnet build src/Opti.Cli        # CLI
 dotnet build src/Opti.App        # WPF; в Linux собирается (EnableWindowsTargeting), но не запускается
 build/publish.sh [версия]        # win-x64 single-file → artifacts/Opti.exe, opti-cli.exe, SHA256SUMS.txt
@@ -24,7 +24,7 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 |---|---|
 | `Opti.Core` | Без зависимостей. `SystemProfile` (модель ПК), `Finding`/`IDetector`, справочники (`Os/WindowsLifecycle`, `Os/BootLimits`, `Games/GameProfiles`, `Hardware/GpuSupport`, `Network/NetworkApps`, `Network/PingProbe`, `Drivers/`, `Registry/`, `Tweaks/`, `Software/`), `IFix`/`FixIds`/`ChangeContext`/`ChangeRecord`/`StateValue`, `IStateBackend`/`IChangeJournal`, `StrategyEngine`, `UserGoal`, `Sources` (ссылки на первоисточники) |
 | `Opti.Native` | P/Invoke (экран, DXGI, HAGS, питание), `ProcessRunner`, `ToolParsers` (разбор вывода bcdedit/powercfg/nvidia-smi и т. п.) |
-| `Opti.Analysis` | `Collectors/` — 18 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 57 детекторов, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
+| `Opti.Analysis` | `Collectors/` — 18 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 58 детекторов, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
 | `Opti.Fixes` | `Catalog/` — 25 исправлений (`FixBase`); `Backends/` — Windows-бэкенды + `InMemoryBackend`/`ProfileSeeder` для тестов; `Journal/` — SQLite и in-memory; `ApplyService`, `RollbackService`, точка восстановления |
 | `Opti.Measure` | `Stats/` — `FrameMetrics`, блочный бутстреп, `Comparison` (вердикт лучше/шум/хуже); `Capture/` — ETW (кадры, DPC/ISR), PresentMon CSV, сеть, таймер |
 | `Opti.Bench` | Синтетический тест D3D11 (Vortice); встроен в `Opti.exe`, запускается ключом `--bench` |
@@ -64,6 +64,7 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 - Данные программы: `C:\ProgramData\Opti\` (`journal.db`, сессии, отчёты) — пути в `OptiPaths` (`Fixes/Backends/WindowsBackends.cs`).
 - Страница «Игра»: `GamePrep` закрывает выбранные программы, `BackgroundThrottler` понижает приоритет браузерам и лаунчерам на время игры (таймер 5 с в `App.xaml.cs`, возврат при выходе). Список защищённых процессов `GamePrep.Protected` — не сокращать; Discord и OBS из приглушения исключены намеренно. «Очистку ОЗУ» не добавлять: миф.
 - Метки надёжности (`EvidenceLevel`: Solid / Varies / Hypothesis) у исправлений и твиков: новый твик без измерений — только Hypothesis и выключен по умолчанию.
+- Из PC-Optimization-Hub/PC-Tuning сознательно не берём: xHCI IMOD через RWEverything (требует отключить защиту от уязвимых драйверов), разнесение прерываний по ядрам, режим MSI вручную, отключение виртуализации в BIOS (ломает античиты), dual-boot. Подсказки по BIOS/USB-топологии — только текстом.
 - Сознательно не делаем (антиочит и безопасность): приоритет процесса игры через IFEO, исключения Defender, отключение Defender/Update, правка файлов игры.
 - Советы по играм (`GameProfiles`) — только про настройки в самой игре и системную часть. Файлы игры (settings.xml и т. п.) Opti не меняет: решение владельца, пользователям это может не понравиться. Добавляя игру, ссылаться на обзоры, цифры без источника не писать.
 - Эвристики про «твики из роликов» проверены поиском: `msconfig → число процессоров` не ускоряет (Windows использует все ядра), MMCSS/Win32PrioritySeparation/NetworkThrottling дают нестабильный эффект, Ultimate Performance — единицы процентов, VBS/HVCI — около 5 % (до 10 %), HAGS — по-разному. Крупные выигрыши — настройки графики в игре и исправление неверной конфигурации.

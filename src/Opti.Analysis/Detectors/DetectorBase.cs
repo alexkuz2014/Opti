@@ -80,6 +80,7 @@ public static class DetectorCatalog
         new Gta5ProfileDetector(),
         new GpuPanelTipsDetector(),
         new ResizableBarDetector(),
+        new PeripheralSoftwareDetector(),
         new DriverAuditDetector(),
         new RegistryAuditDetector(),
     };

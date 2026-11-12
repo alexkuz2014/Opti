@@ -79,6 +79,7 @@ public sealed class BackgroundCollector : ICollector
             var names = procs.Select(pr => pr.ProcessName).ToHashSet(StringComparer.OrdinalIgnoreCase);
             p.Background.RunningOverlays = OverlayProcesses.Where(kv => names.Contains(kv.Key)).Select(kv => kv.Value).ToList();
             p.Background.NetworkHeavyApps = Opti.Core.Network.NetworkApps.Match(names).ToList();
+            p.Background.PeripheralApps = Opti.Core.Hardware.PeripheralApps.Match(names).ToList();
 
             // Загрузка CPU за 1 секунду
             var t0 = new Dictionary<int, (string Name, TimeSpan Cpu, long Ws)>();

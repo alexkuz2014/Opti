@@ -231,6 +231,30 @@ public class GameToolsTests
         Assert.Equal(StateValue.Str("Medium"), map[ChangeType.Registry].Read(Opti.Fixes.Backends.Targets.Reg(games, "Scheduling Category")));
     }
 
+    [Fact]
+    public void PeripheralSoftware_DetectedByProcessNames()
+    {
+        var found = Opti.Core.Hardware.PeripheralApps.Match(new[] { "explorer", "SteelSeriesGGClient", "lghub_agent", "LGHUB", "chrome" }).ToList();
+        Assert.Equal(new[] { "SteelSeries GG", "Logitech G HUB" }, found);
+
+        var p = new SystemProfile { Background = { PeripheralApps = found } };
+        var f = TestProfiles.Findings(p).Single(x => x.Id == "PERIPHERAL_SOFTWARE");
+        Assert.Equal(Severity.Advice, f.Severity);
+        Assert.Contains(f.Evidence, e => e.Contains("Logitech"));
+        Assert.Empty(f.FixIds);
+        p.Background.PeripheralApps.Clear();
+        Assert.DoesNotContain(TestProfiles.Findings(p), x => x.Id == "PERIPHERAL_SOFTWARE");
+    }
+
+    [Fact]
+    public void GpuPanelTips_MentionGpuLoadCapAndMonitorProcessing()
+    {
+        var f = TestProfiles.Findings(TestProfiles.Load("gta-majestic-pc")).Single(x => x.Id == "GPU_PANEL_TIPS");
+        Assert.Contains(f.ManualSteps, s => s.Contains("99–100 %"));
+        Assert.Contains(f.ManualSteps, s => s.Contains("Dynamic Contrast"));
+        Assert.Contains(f.ManualSteps, s => s.Contains("чистую установку"));
+    }
+
     private static class FixCatalogHelper
     {
         public static EvidenceLevel Level(string id) => Opti.Fixes.Catalog.FixCatalog.Find(id)!.Evidence;

@@ -288,6 +288,8 @@ public sealed class BackgroundInfo
     public List<ProcessUsage> HeavyProcesses { get; set; } = new();
     /// <summary>Запущенные программы, которые качают или раздают в фоне (торренты, облака, загрузчики).</summary>
     public List<string> NetworkHeavyApps { get; set; } = new();
+    /// <summary>Запущенное фоновое ПО периферии: G HUB, Synapse, Armoury Crate, SteelSeries GG, iCUE…</summary>
+    public List<string> PeripheralApps { get; set; } = new();
 }
 
 public sealed class ObsInfo

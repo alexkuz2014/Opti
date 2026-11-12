@@ -65,7 +65,10 @@ public sealed class GpuPanelTipsDetector : DetectorBase
         var gpu = p.DiscreteGpu;
         if (gpu is null || p.Games.Count == 0 || gpu.Vendor is not (GpuVendor.Nvidia or GpuVendor.Amd)) yield break;
         var hz = p.PrimaryDisplay?.CurrentHz is > 0 and var h ? $"{h} Гц" : "частота монитора";
-        var steps = new List<string>();
+        var steps = new List<string>
+        {
+            "Если видеокарта в игре загружена на 99–100 %, очередь кадров растёт и задержка ввода увеличивается. Ограничьте FPS немного ниже того, что видеокарта выдаёт, — загрузка около 90–95 % даёт заметно более быстрый отклик.",
+        };
         if (gpu.Vendor == GpuVendor.Nvidia)
         {
             steps.Add("Игры с поддержкой NVIDIA Reflex: включите «Reflex» в настройках игры. Он заменяет драйверный «Режим низкой задержки»; режим «On + Boost» в тестах TechPowerUp отличий от «On» не дал.");
@@ -73,6 +76,7 @@ public sealed class GpuPanelTipsDetector : DetectorBase
             steps.Add($"Панель NVIDIA → «Макс. частота кадров» → {hz}. Ровные кадры ощущаются лучше, видеокарта холоднее и тише.");
             steps.Add("Панель NVIDIA → «Режим управления электропитанием» → «Предпочтителен режим максимальной производительности» — полезно, если частота видеокарты в игре «прыгает»; на средний FPS почти не влияет.");
             steps.Add("Фильтры NVIDIA (Alt+F3 в игре) выключите, если не пользуетесь ими: они съедают часть кадров.");
+            steps.Add("Драйвер ставьте через «Выборочную установку» → «Выполнить чистую установку», только видеодрайвер: без лишних модулей и телеметрии.");
         }
         else
         {
@@ -80,6 +84,7 @@ public sealed class GpuPanelTipsDetector : DetectorBase
             steps.Add("«Radeon Chill» для игр, где нужен максимум FPS, выключите: он сознательно снижает частоту кадров, когда вы не двигаетесь.");
             steps.Add($"Ограничьте частоту кадров значением {hz} (в игре или через «Radeon Chill» с одинаковым минимумом и максимумом) — кадры ровнее, нагрев ниже.");
         }
+        steps.Add("В меню самого монитора выключите «улучшайзеры» — Dynamic Contrast, Local Dimming, шумоподавление, эмуляцию HDR: монитор буферизует кадр, и к выводу добавляется задержка. Режим Overdrive оставьте без артефактов.");
         yield return new Finding
         {
             Id = Id,
@@ -120,6 +125,35 @@ public sealed class ResizableBarDetector : DetectorBase
             },
             Links = { Sources.PcTuning },
             IsHardwareLimitation = false,
+        };
+    }
+}
+
+/// <summary>Фоновое ПО мыши, клавиатуры и подсветки: сохраните настройки в память устройства и закройте программу.</summary>
+public sealed class PeripheralSoftwareDetector : DetectorBase
+{
+    public override string Id => "PERIPHERAL_SOFTWARE";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var apps = p.Background.PeripheralApps;
+        if (apps.Count == 0) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = "Работает фоновое ПО периферии",
+            Severity = Severity.Advice,
+            Explanation = "Программы мышей, клавиатур и подсветки держат в фоне тяжёлые службы (часто на браузерном движке) и постоянно обращаются к драйверам и USB. " +
+                          "Большинству устройств они нужны только для настройки: DPI, частоту опроса и подсветку можно один раз сохранить во встроенную память устройства и дальше обходиться без программы. " +
+                          "Прямых измерений выигрыша в FPS нет — это меньше фоновой нагрузки и меньше обращений к USB, что важнее на слабых процессорах.",
+            Evidence = apps.Select(a => $"Запущено: {a}").ToList(),
+            ManualSteps =
+            {
+                "Настройте устройство в программе и сохраните профиль во встроенную память (Onboard Memory).",
+                "Затем уберите программу из автозагрузки (раздел «Исправления» → автозагрузка) или закройте перед игрой на странице «Игра».",
+                "Подсветку на время соревновательных игр лучше выключить: её анимацию считает тот же микроконтроллер, что обрабатывает клики и движение сенсора.",
+            },
+            Links = { Sources.PcOptimizationHub },
         };
     }
 }
