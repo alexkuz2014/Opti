@@ -76,6 +76,9 @@ public static class DetectorCatalog
         new OnBatteryDetector(),
         new BackgroundCpuHogDetector(),
         new GamesOnHddDetector(),
+        new BootLimitsDetector(),
+        new Gta5ProfileDetector(),
+        new GpuPanelTipsDetector(),
         new DriverAuditDetector(),
         new RegistryAuditDetector(),
     };

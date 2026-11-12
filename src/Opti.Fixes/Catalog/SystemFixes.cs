@@ -31,7 +31,9 @@ public sealed class PowerSchemePerfFix : FixBase
 {
     public override string Id => FixIds.PowerSchemePerf;
     public override string Title => "Схема питания «Высокая производительность»";
-    public override string Explanation => "Процессор быстрее выходит на высокие частоты и не паркует ядра. Только для настольных ПК; на ноутбуке меняются лишь параметры от сети.";
+    public override string Explanation => "Процессор быстрее выходит на высокие частоты и не паркует ядра. Если в системе есть только «Сбалансированная» схема, создаётся скрытая «Максимальная производительность» " +
+                                          "(как командой powercfg -duplicatescheme). Выигрыш обычно небольшой — единицы процентов; зато плавнее отклик. Только для настольных ПК; на ноутбуке меняются лишь параметры от сети. " +
+                                          "При откате прежняя схема возвращается, созданная остаётся в списке и ничего не расходует.";
     public override FixCategory Category => FixCategory.Power;
     public override int Priority => -10; // раньше POWER_AC_TUNING, чтобы тонкая настройка применялась к новой схеме
 
@@ -39,13 +41,18 @@ public sealed class PowerSchemePerfFix : FixBase
         p.Power.AvailableSchemeGuids.FirstOrDefault(g => Eq(g, PowerGuids.UltimatePerformance))
         ?? p.Power.AvailableSchemeGuids.FirstOrDefault(g => Eq(g, PowerGuids.HighPerformance));
 
-    public override bool IsApplicable(SystemProfile p) => !p.Device.IsLaptop && p.Power.OnAcPower != false && PickScheme(p) is not null;
+    /// <summary>Скрытую схему «Максимальная производительность» можно создать на настольном ПК с Windows 10 1803 и новее.</summary>
+    public static bool CanCreateUltimate(SystemProfile p) => !p.Device.IsLaptop && p.Os.Build >= 17134;
+
+    public override bool IsApplicable(SystemProfile p) => !p.Device.IsLaptop && p.Power.OnAcPower != false && (PickScheme(p) is not null || CanCreateUltimate(p));
     public override bool IsAlreadyApplied(SystemProfile p) =>
         Eq(p.Power.ActiveSchemeGuid, PowerGuids.HighPerformance) || Eq(p.Power.ActiveSchemeGuid, PowerGuids.UltimatePerformance);
 
     protected override void Execute(ChangeContext ctx)
     {
-        var scheme = PickScheme(ctx.Profile) ?? throw new ChangeAbortedException("Схема высокой производительности не найдена");
+        // В списке нет ни «Высокой», ни «Максимальной» (как на чистой Windows 11) — бэкенд создаст скрытую «Максимальную производительность»
+        var scheme = PickScheme(ctx.Profile) ?? (CanCreateUltimate(ctx.Profile) ? PowerGuids.UltimatePerformance
+            : throw new ChangeAbortedException("Схема высокой производительности не найдена"));
         ctx.Set(ChangeType.PowerSetting, Targets.ActiveScheme, StateValue.Str(scheme.Trim('{', '}').ToLowerInvariant()));
     }
 

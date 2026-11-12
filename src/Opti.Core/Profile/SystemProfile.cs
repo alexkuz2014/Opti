@@ -223,6 +223,11 @@ public sealed class TimerInfo
     public bool? UsePlatformClock { get; set; }
     public bool? UsePlatformTick { get; set; }
     public bool? DisableDynamicTick { get; set; }
+    /// <summary>Ограничения загрузки из BCD (msconfig → Загрузка → Дополнительные параметры): число процессоров, предел памяти и т. п.</summary>
+    public int? BcdNumProc { get; set; }
+    public bool? BcdOneCpu { get; set; }
+    public string? BcdMaxMem { get; set; }
+    public string? BcdTruncateMemory { get; set; }
     public string? TscSyncPolicy { get; set; }
     public bool? GlobalTimerResolutionRequests { get; set; }
 }

@@ -63,6 +63,7 @@ public static class FixCatalog
         new NagleOffFix(),
         new NetEeeOffFix(),
         new TrimOnFix(),
+        new BcdBootLimitsResetFix(),
     };
 
     public static IFix? Find(string id) => All().FirstOrDefault(f => string.Equals(f.Id, id, StringComparison.OrdinalIgnoreCase));

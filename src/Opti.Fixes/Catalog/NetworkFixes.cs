@@ -58,6 +58,37 @@ public sealed class NetEeeOffFix : FixBase
     }
 }
 
+/// <summary>
+/// Снимает ограничения загрузки, оставленные через msconfig или «оптимизаторы»: число процессоров меньше имеющегося,
+/// предел памяти, режим одного процессора.
+/// </summary>
+public sealed class BcdBootLimitsResetFix : FixBase
+{
+    public override string Id => FixIds.BcdBootLimitsReset;
+    public override string Title => "Снять ограничения загрузки (число процессоров, предел памяти)";
+    public override string Explanation => "Удаляет из параметров загрузки значения numproc, maxmem, onecpu, truncatememory, которые ограничивают Windows. " +
+                                          "Сами по себе они ничего не ускоряют: Windows и так использует все ядра и всю память. Вступает в силу после перезагрузки.";
+    public override RiskLevel Risk => RiskLevel.Moderate;
+    public override bool RequiresReboot => true;
+    public override bool TouchesBcd => true;
+    public override FixCategory Category => FixCategory.Timers;
+    public override int Priority => -5;
+
+    public override bool IsApplicable(SystemProfile p) => Opti.Core.Os.BootLimits.Find(p).Count > 0;
+    public override bool IsAlreadyApplied(SystemProfile p) => !IsApplicable(p);
+
+    protected override void Execute(ChangeContext ctx)
+    {
+        if (ctx.Profile.Security.BitLockerOnSystemDrive == true && !ctx.Options.ContainsKey("bitlockerAcknowledged"))
+            throw new ChangeAbortedException("Включён BitLocker: подтвердите, что ключ восстановления под рукой (опция bitlockerAcknowledged).");
+        foreach (var limit in Opti.Core.Os.BootLimits.Find(ctx.Profile))
+        {
+            var t = Targets.Bcd(limit.Element);
+            if (ctx.Read(ChangeType.Bcd, t).Exists) ctx.Delete(ChangeType.Bcd, t);
+        }
+    }
+}
+
 /// <summary>Включение TRIM для SSD.</summary>
 public sealed class TrimOnFix : FixBase
 {

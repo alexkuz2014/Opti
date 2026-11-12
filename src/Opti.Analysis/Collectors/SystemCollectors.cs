@@ -195,6 +195,10 @@ public sealed class TimersAndSecurityCollector : ICollector
             p.Timers.UsePlatformTick = Flag("useplatformtick");
             p.Timers.DisableDynamicTick = Flag("disabledynamictick");
             p.Timers.TscSyncPolicy = map.GetValueOrDefault("tscsyncpolicy");
+            p.Timers.BcdNumProc = map.TryGetValue("numproc", out var np) && int.TryParse(np, out var npv) ? npv : null;
+            p.Timers.BcdOneCpu = Flag("onecpu");
+            p.Timers.BcdMaxMem = map.GetValueOrDefault("maxmem");
+            p.Timers.BcdTruncateMemory = map.GetValueOrDefault("truncatememory");
             p.Security.HypervisorLaunchType = map.GetValueOrDefault("hypervisorlaunchtype");
         }
         else p.CollectorErrors.Add("bcdedit недоступен (нужны права администратора)");

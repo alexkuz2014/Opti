@@ -36,6 +36,10 @@ public sealed partial class WindowsPowerBackend : IStateBackend
         if (target == Targets.ActiveScheme)
         {
             var guid = Guid.Parse(value.Value ?? throw new ArgumentException("Нужен GUID схемы")).ToString();
+            // Скрытой «Максимальной производительности» нет в списке — создаём её под тем же GUID
+            if (guid.Equals(Catalog.PowerGuids.UltimatePerformance, StringComparison.OrdinalIgnoreCase)
+                && !_runner.RunConsoleUtf8("powercfg /list").StdOut.Contains(guid, StringComparison.OrdinalIgnoreCase))
+                Check(_runner.RunConsoleUtf8($"powercfg -duplicatescheme {guid} {guid}"), "powercfg -duplicatescheme");
             Check(_runner.RunConsoleUtf8($"powercfg /setactive {guid}"), "powercfg /setactive");
             return;
         }

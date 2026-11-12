@@ -414,4 +414,153 @@ public class GamingAndNetworkTests
         foreach (var t in gaming) svc.Disable(t);
         Assert.Equal(before.Count, map[ChangeType.Registry].Snapshot().Count(kv => kv.Value.Exists));
     }
+
+    // ---------- Ограничения загрузки (msconfig) ----------
+
+    [Fact]
+    public void BootLimits_NumProcBelowThreadsIsFlagged_EqualIsHarmless()
+    {
+        var p = new SystemProfile { Cpu = { Cores = 6, Threads = 12 }, Timers = { BcdNumProc = 2 } };
+        var f = Run(p).Single(x => x.Id == "BOOT_LIMITS");
+        Assert.Equal(Severity.Critical, f.Severity);
+        Assert.Contains(FixIds.BcdBootLimitsReset, f.FixIds);
+        Assert.Contains(f.Evidence, e => e.Contains("2 из 12"));
+
+        // «Число процессоров» = максимум: Windows и так использует все ядра, это не ошибка
+        p.Timers.BcdNumProc = 12;
+        Assert.DoesNotContain("BOOT_LIMITS", Ids(p));
+
+        p.Timers.BcdMaxMem = "4096";
+        Assert.Equal(Severity.Important, Run(p).Single(x => x.Id == "BOOT_LIMITS").Severity);
+        p.Timers.BcdMaxMem = null; p.Timers.BcdOneCpu = true;
+        Assert.Equal(Severity.Critical, Run(p).Single(x => x.Id == "BOOT_LIMITS").Severity);
+    }
+
+    [Fact]
+    public void BootLimitsFix_RemovesOnlyLimitsAndRollsBack()
+    {
+        var p = TestProfiles.Load("gta-majestic-pc");
+        p.Timers.BcdMaxMem = "8192";
+        var reg = ProfileSeeder.CreateEmulation(p, out var map);
+        var journal = new InMemoryChangeJournal();
+        var report = new ApplyService(reg, journal, null).Apply(p, new[] { FixCatalog.Find(FixIds.BcdBootLimitsReset)! }, UserGoal.MaxFps);
+        Assert.Equal(FixOutcome.Applied, report.Results.Single().Outcome);
+        Assert.False(map[ChangeType.Bcd].Read(Targets.Bcd("numproc")).Exists);
+        Assert.False(map[ChangeType.Bcd].Read(Targets.Bcd("maxmem")).Exists);
+
+        new RollbackService(reg, journal).RollbackAll();
+        Assert.Equal(StateValue.Str("2"), map[ChangeType.Bcd].Read(Targets.Bcd("numproc")));
+        Assert.Equal(StateValue.Str("8192"), map[ChangeType.Bcd].Read(Targets.Bcd("maxmem")));
+    }
+
+    [Fact]
+    public void BootLimitsFix_NotSelectedByDefaultWithBitLocker()
+    {
+        var p = TestProfiles.Load("gta-majestic-pc");
+        p.Security.BitLockerOnSystemDrive = true;
+        var plan = new StrategyEngine(FixCatalog.All()).Build(p, Run(p), UserGoal.MaxFps);
+        Assert.False(plan.Fixes.Single(f => f.Fix.Id == FixIds.BcdBootLimitsReset).Selected);
+    }
+
+    // ---------- Максимальная производительность ----------
+
+    [Fact]
+    public void PowerScheme_CreatesUltimateOnDesktopWithOnlyBalanced()
+    {
+        var p = TestProfiles.Load("gta-majestic-pc");
+        Assert.Null(PowerSchemePerfFix.PickScheme(p));
+        var fix = new PowerSchemePerfFix();
+        Assert.True(fix.IsApplicable(p));
+        var (report, map, _, _) = Apply(p, FixIds.PowerSchemePerf);
+        Assert.Equal(FixOutcome.Applied, report.Results.Single().Outcome);
+        Assert.Equal(StateValue.Str(PowerGuids.UltimatePerformance), map[ChangeType.PowerSetting].Read(Targets.ActiveScheme));
+    }
+
+    [Fact]
+    public void PowerScheme_PrefersExistingHighPerformance_NeverOnLaptopOrOldWindows()
+    {
+        var fix = new PowerSchemePerfFix();
+        var withHigh = TestProfiles.Load("desktop-rtx");
+        Assert.Equal(PowerGuids.HighPerformance, PowerSchemePerfFix.PickScheme(withHigh));
+
+        var laptop = TestProfiles.Load("gta-majestic-pc");
+        laptop.Device.IsLaptop = true;
+        Assert.False(fix.IsApplicable(laptop));
+
+        var win7 = TestProfiles.Load("gta-majestic-pc");
+        win7.Os.Build = 7601;
+        Assert.False(fix.IsApplicable(win7));
+    }
+
+    // ---------- GTA V / Majestic и панель драйвера ----------
+
+    [Fact]
+    public void Gta5Profile_ListsTipsByImpact_AndTailorsToThePc()
+    {
+        var p = TestProfiles.Load("gta-majestic-pc");
+        var f = Run(p).Single(x => x.Id == "GAME_GTA5_PROFILE");
+        Assert.Equal(Severity.Advice, f.Severity);
+        Assert.Contains(f.Evidence, e => e.Contains("Majestic"));
+        Assert.NotEmpty(f.Links);
+        // Игра на HDD — первый пункт; MSAA и трава — среди «больше всего»
+        Assert.StartsWith("[больше всего]", f.ManualSteps[0]);
+        Assert.Contains("жёсткий диск", f.ManualSteps[0]);
+        Assert.Contains(f.ManualSteps, s => s.Contains("MSAA"));
+        Assert.Contains(f.ManualSteps, s => s.Contains("144 Гц"));
+        Assert.Contains(f.ManualSteps, s => s.Contains("Discord"));
+        // Видеопамяти достаточно — предупреждения про текстуры нет
+        Assert.DoesNotContain(f.ManualSteps, s => s.Contains("Видеопамяти мало"));
+        // Порядок по убыванию эффекта
+        var order = f.ManualSteps.Select(s => s.StartsWith("[больше всего]") ? 0 : s.StartsWith("[заметно]") ? 1 : 2).ToList();
+        Assert.Equal(order.OrderBy(x => x), order);
+        // Файлы игры Opti не трогает: исправлений у находки нет
+        Assert.Empty(f.FixIds);
+    }
+
+    [Fact]
+    public void Gta5Profile_AbsentWithoutTheGame_AndLowVramWarns()
+    {
+        Assert.DoesNotContain("GAME_GTA5_PROFILE", TestProfiles.FindingIds("desktop-rtx"));
+        var p = TestProfiles.Load("gta-majestic-pc");
+        p.Gpus[0].DedicatedVramMb = 2048;
+        var f = Run(p).Single(x => x.Id == "GAME_GTA5_PROFILE");
+        Assert.Contains(f.ManualSteps, s => s.Contains("Видеопамяти мало"));
+    }
+
+    [Theory]
+    [InlineData("Grand Theft Auto V", null, true)]
+    [InlineData("Majestic RP (altV)", null, true)]
+    [InlineData("Some Game", @"D:\Games\GTA5.exe", true)]
+    [InlineData("Cyberpunk 2077", @"D:\Games\Cyberpunk2077.exe", false)]
+    public void Gta5Match(string name, string? exe, bool expected)
+    {
+        var g = new GameInfo { Name = name };
+        if (exe is not null) g.Executables.Add(exe);
+        Assert.Equal(expected, Opti.Core.Games.GameProfiles.IsGta5(g));
+    }
+
+    [Fact]
+    public void GpuPanelTips_PerVendor_OnlyWithDiscreteGpuAndGames()
+    {
+        var p = TestProfiles.Load("gta-majestic-pc");
+        var f = Run(p).Single(x => x.Id == "GPU_PANEL_TIPS");
+        Assert.Contains("NVIDIA", f.Title);
+        Assert.Contains(f.ManualSteps, s => s.Contains("144 Гц"));
+        Assert.Contains(f.ManualSteps, s => s.Contains("Reflex"));
+        Assert.Empty(f.FixIds);
+
+        p.Gpus[0].Vendor = GpuVendor.Amd;
+        Assert.Contains("Radeon", Run(p).Single(x => x.Id == "GPU_PANEL_TIPS").Title);
+
+        p.Games.Clear();
+        Assert.DoesNotContain("GPU_PANEL_TIPS", Ids(p));
+    }
+
+    [Fact]
+    public void HvciAdvice_QuotesMeasuredCost()
+    {
+        var f = Run(TestProfiles.Load("gta-majestic-pc")).Single(x => x.Id == "HVCI_ON");
+        Assert.Contains("5 %", f.Explanation);
+        Assert.Contains(Opti.Core.Findings.Sources.HvciBenchmark, f.Links);
+    }
 }

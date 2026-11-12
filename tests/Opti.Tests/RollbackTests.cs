@@ -40,6 +40,7 @@ public class RollbackTests
     {
         [FixIds.StartupDisable] = new Dictionary<string, string> { ["items"] = "Teams\nSpotify" },
         [FixIds.BcdTimersReset] = new Dictionary<string, string> { ["bitlockerAcknowledged"] = "1" },
+        [FixIds.BcdBootLimitsReset] = new Dictionary<string, string> { ["bitlockerAcknowledged"] = "1" },
     };
 
     [Theory]

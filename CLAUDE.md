@@ -1,11 +1,11 @@
 # Opti — карта репозитория
 
-Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.3.1-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
+Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.4.0-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
 
 ## Команды
 
 ```bash
-dotnet test                      # 232 теста, xUnit, ~20 с; работает в Linux
+dotnet test                      # 246 тестов, xUnit, ~20 с; работает в Linux
 dotnet build src/Opti.Cli        # CLI
 dotnet build src/Opti.App        # WPF; в Linux собирается (EnableWindowsTargeting), но не запускается
 build/publish.sh [версия]        # win-x64 single-file → artifacts/Opti.exe, opti-cli.exe, SHA256SUMS.txt
@@ -22,17 +22,17 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 
 | Проект | Что внутри |
 |---|---|
-| `Opti.Core` | Без зависимостей. `SystemProfile` (модель ПК), `Finding`/`IDetector`, справочники (`Os/WindowsLifecycle`, `Hardware/GpuSupport`, `Network/NetworkApps`, `Network/PingProbe`, `Drivers/`, `Registry/`, `Tweaks/`, `Software/`), `IFix`/`FixIds`/`ChangeContext`/`ChangeRecord`/`StateValue`, `IStateBackend`/`IChangeJournal`, `StrategyEngine`, `UserGoal`, `Sources` (ссылки на первоисточники) |
+| `Opti.Core` | Без зависимостей. `SystemProfile` (модель ПК), `Finding`/`IDetector`, справочники (`Os/WindowsLifecycle`, `Os/BootLimits`, `Games/GameProfiles`, `Hardware/GpuSupport`, `Network/NetworkApps`, `Network/PingProbe`, `Drivers/`, `Registry/`, `Tweaks/`, `Software/`), `IFix`/`FixIds`/`ChangeContext`/`ChangeRecord`/`StateValue`, `IStateBackend`/`IChangeJournal`, `StrategyEngine`, `UserGoal`, `Sources` (ссылки на первоисточники) |
 | `Opti.Native` | P/Invoke (экран, DXGI, HAGS, питание), `ProcessRunner`, `ToolParsers` (разбор вывода bcdedit/powercfg/nvidia-smi и т. п.) |
-| `Opti.Analysis` | `Collectors/` — 17 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 53 детектора, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
-| `Opti.Fixes` | `Catalog/` — 24 исправления (`FixBase`); `Backends/` — Windows-бэкенды + `InMemoryBackend`/`ProfileSeeder` для тестов; `Journal/` — SQLite и in-memory; `ApplyService`, `RollbackService`, точка восстановления |
+| `Opti.Analysis` | `Collectors/` — 17 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 56 детекторов, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
+| `Opti.Fixes` | `Catalog/` — 25 исправлений (`FixBase`); `Backends/` — Windows-бэкенды + `InMemoryBackend`/`ProfileSeeder` для тестов; `Journal/` — SQLite и in-memory; `ApplyService`, `RollbackService`, точка восстановления |
 | `Opti.Measure` | `Stats/` — `FrameMetrics`, блочный бутстреп, `Comparison` (вердикт лучше/шум/хуже); `Capture/` — ETW (кадры, DPC/ISR), PresentMon CSV, сеть, таймер |
 | `Opti.Bench` | Синтетический тест D3D11 (Vortice); встроен в `Opti.exe`, запускается ключом `--bench` |
 | `Opti.Workflow` | `TuneWorkflow` (сессия: анализ → план → до → применение → перезагрузка/resume → после → сравнение → откат; A/B), `Sessions/`, `Measuring/` (раннеры), `Cleanup/`, `Reports/` (HTML + SVG), `Settings`, `AppInfo`/`UpdateChecker` |
 | `Opti.ViewModels` | MVVM (CommunityToolkit.Mvvm), `IAppServices` — шов для тестов без Windows |
 | `Opti.App` | WPF Fluent, `net10.0-windows`. Views без кода — только XAML; `WindowsAppServices` — реальная реализация `IAppServices` |
 | `Opti.Cli` | `opti-cli`; все команды в `Commands.cs` (run, resume, analyze, plan, measure, apply, ab, compare, report, rollback, history, latency, net, version, doctor) |
-| `tests/Opti.Tests` | Тесты + `Profiles/*.json` — 7 эталонных ПК (laptop-optimus, desktop-rtx, laptop-igpu, weak-pc, revios, fresh-install, old-gaming-pc); `TestProfiles.Now` — фиксированное время |
+| `tests/Opti.Tests` | Тесты + `Profiles/*.json` — 8 эталонных ПК (laptop-optimus, desktop-rtx, laptop-igpu, weak-pc, revios, fresh-install, old-gaming-pc, gta-majestic-pc); `TestProfiles.Now` — фиксированное время |
 
 ## Инварианты, которые нельзя ломать
 
@@ -62,6 +62,9 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 - `origin` — `alexkuz2014/Opti`, но в коде и README зашит `allora-dev/optim` (`AppInfo.Repository`, `RepositoryUrl`, ссылка на релизы): проверка обновлений смотрит туда.
 - Остатки старого имени: `Opti.Core/Json/GameTuneJson.cs`, миграция данных GameTune 1.0.0-beta — оставлены намеренно ради отката старых изменений.
 - Данные программы: `C:\ProgramData\Opti\` (`journal.db`, сессии, отчёты) — пути в `OptiPaths` (`Fixes/Backends/WindowsBackends.cs`).
+- Советы по играм (`GameProfiles`) — только про настройки в самой игре и системную часть. Файлы игры (settings.xml и т. п.) Opti не меняет: решение владельца, пользователям это может не понравиться. Добавляя игру, ссылаться на обзоры, цифры без источника не писать.
+- Эвристики про «твики из роликов» проверены поиском: `msconfig → число процессоров` не ускоряет (Windows использует все ядра), MMCSS/Win32PrioritySeparation/NetworkThrottling дают нестабильный эффект, Ultimate Performance — единицы процентов, VBS/HVCI — около 5 % (до 10 %), HAGS — по-разному. Крупные выигрыши — настройки графики в игре и исправление неверной конфигурации.
+- Ссылки `Gta5Guide`, `ReflexTest`, `HvciBenchmark` взяты из выдачи поиска, страницы из контейнера не открывались.
 - Сроки поддержки Windows (`WindowsLifecycle`) и списки снятых с поддержки видеокарт (`GpuSupport`) — данные с датами: при появлении новых выпусков их нужно дополнять. Неизвестная новая сборка Windows считается поддерживаемой.
 - Потери пакетов: порог выше 5 %, потому что одна потеря из 20 пингов — случайность. Роутер, не отвечающий на пинг, — это «нет данных», а не 100 % потерь.
 - Ссылки в `Sources` из облачного контейнера не проверить (microsoft.com закрыт прокси) — новые ссылки проверять вручную.
