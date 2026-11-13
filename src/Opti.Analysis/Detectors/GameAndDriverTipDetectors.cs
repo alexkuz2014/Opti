@@ -3,6 +3,7 @@ using Opti.Core.Fixes;
 using Opti.Core.Games;
 using Opti.Core.Os;
 using Opti.Core.Profile;
+using Opti.Core.Stutter;
 
 namespace Opti.Analysis.Detectors;
 
@@ -433,5 +434,153 @@ public sealed class NetServicesDetector : DetectorBase
                 ManualSteps = { "Смените DNS на 1.1.1.1 и 8.8.8.8: Параметры → Сеть и Интернет → подключение → «Назначение DNS-сервера»." },
                 Links = { Sources.NetworkStatus },
             };
+    }
+}
+
+/// <summary>Причины фризов из отдельной проверки (страница «Фризы»): прерывания драйверов, диск, память, процессор.</summary>
+public sealed class StutterCauseDetector : DetectorBase
+{
+    public override string Id => "STUTTER_CAUSES";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        if (p.Stutter is not { } info) yield break;
+        foreach (var c in info.Causes)
+        {
+            var culprits = c.Culprits.Count > 0 ? string.Join(", ", c.Culprits) : null;
+            var ev = new List<string> { $"{c.Seconds} из {info.Seconds} с: {c.Detail}" };
+            if (culprits is not null) ev.Add("Чаще всего: " + culprits);
+            switch (c.Kind)
+            {
+                case "stall":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_STALLS", Title = "Система замирает на миллисекунды", Severity = Severity.Important,
+                        Explanation = "Opti наблюдал за системой с точностью до долей миллисекунды: бывают моменты, когда программы вообще не получают процессор на 4–30 мс. Это и есть микрофризы: секундные счётчики их не видят, а в игре они выглядят как рывок. " +
+                                      "Частые причины: драйвер, надолго занимающий процессор (смотрите отдельную находку про драйверы), перегрев и сброс частот, энергосбережение процессора и шин (PCIe, USB), прерывания от прошивки (SMI) и фоновая нагрузка.",
+                        Evidence = ev,
+                        ManualSteps = { "Подключите питание и включите схему «Максимальная производительность»: исправление «питание от сети» в «Исправлениях» убирает парковку ядер и энергосбережение шин.", "Проверьте температуру: при перегреве процессор и видеокарта сбрасывают частоты рывками (раздел «Анализ»).", "Обновите BIOS и драйверы чипсета, сети и звука: часть замираний даёт прошивка.", "Если замирания повторяются раз в одно и то же число секунд, посмотрите, что запускается по расписанию (антивирус, обновления, облако)." },
+                    };
+                    break;
+                case "dpc":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_DPC", Title = "Драйверы надолго занимают процессор", Severity = Severity.Critical,
+                        Explanation = "Пока драйвер обрабатывает прерывания, процессор не занимается игрой: отсюда микрофризы, треск звука и «ватная» мышь. Чаще всего виноваты драйверы сети, Wi-Fi, звука, видео или ACPI. Конкретное имя драйвера показывает отдельный тест DPC/ISR (он включён в эту проверку, если у Opti есть права администратора).",
+                        Evidence = ev,
+                        ManualSteps = { "Обновите драйверы сети, Wi-Fi и звука с сайта производителя (раздел «Драйверы» подскажет, какие устарели).", "Отключите в «Диспетчере устройств» то, чем не пользуетесь (второй сетевой адаптер, виртуальные адаптеры, Bluetooth).", "Если помогает только после перезагрузки, отключите «Быстрый запуск» (раздел «Твики»)." },
+                    };
+                    break;
+                case "disk":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_DISK", Title = "Фризы из-за загруженного диска", Severity = Severity.Important,
+                        Explanation = "Во время проверки диск работал на пределе. Игра, которой в этот момент нужно подгрузить карту или текстуры, ждёт очереди — это и есть фриз. На жёстком диске это ощущается сильнее всего.",
+                        Evidence = ev,
+                        ManualSteps = { culprits is not null ? $"Закройте или поставьте на паузу: {culprits} (облачные диски, торренты, обновления, антивирус)." : "Закройте облачные диски, торренты и обновления на время игры.", "Игры лучше держать на SSD (раздел «Игра» покажет, где лежат ваши)." },
+                    };
+                    break;
+                case "memory":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_MEMORY", Title = "Фризы из-за нехватки памяти", Severity = Severity.Important,
+                        Explanation = "Памяти не хватало, и Windows сбрасывала данные на диск и читала обратно. Каждый такой обмен — задержка, которую видно как фриз.",
+                        Evidence = ev,
+                        ManualSteps = { "Закройте браузер с множеством вкладок и ненужные программы перед игрой (страница «Игра» → «Перед игрой»).", "Файл подкачки должен управляться системой (Opti поправит это в исправлениях, если он отключён).", "Если памяти 8 ГБ и меньше, это самая частая причина: поможет только добавить планку." },
+                    };
+                    break;
+                case "cpu-game":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_CPU_GAME", Title = "Процессор упирается в игру", Severity = Severity.Advice,
+                        Explanation = "Процессор был загружен почти полностью, и больше всего времени брала сама игра. Фризы в таком случае дают просадки кадров, когда нагрузка скачет. Системными настройками это почти не лечится.",
+                        Evidence = ev,
+                        ManualSteps = { "Снизьте в игре то, что нагружает процессор: дальность прорисовки, количество объектов, тени.", "Ограничьте FPS лимитом: ровные кадры лучше «максимума» с просадками.", "Закройте фоновые программы (страница «Игра»)." },
+                        IsHardwareLimitation = true,
+                    };
+                    break;
+                default:
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_CPU_BG", Title = "Фоновая программа забирает процессор", Severity = Severity.Important,
+                        Explanation = "Процессор был загружен почти полностью, и не игрой, а фоном. Пока фон забирает ядра, игре их не хватает в самые неудачные моменты.",
+                        Evidence = ev,
+                        ManualSteps = { culprits is not null ? $"Закройте или ограничьте: {culprits}." : "Откройте «Диспетчер задач», вкладка «Процессы», отсортируйте по ЦП.", "Включите «Приглушать фон во время игры» на странице «Игра»." },
+                    };
+                    break;
+            }
+        }
+    }
+}
+
+/// <summary>Wi-Fi: на вашем канале тесно — соседние сети мешают, растёт джиттер и теряются пакеты.</summary>
+public sealed class WifiCongestionDetector : DetectorBase
+{
+    public override string Id => "NET_WIFI_CROWDED";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var wifi = p.Network.FirstOrDefault(n => n.IsUp && n.Kind == NetAdapterKind.WiFi);
+        if (wifi?.WifiChannel is not { } ch || p.Network.Any(n => n.IsUp && n.Kind == NetAdapterKind.Ethernet)) yield break;
+        int rivals = Opti.Core.Network.WifiScan.Interfering(ch, p.NetSettings.WifiNeighbors);
+        if (rivals < 3) yield break;
+        bool band24 = ch <= 14;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = $"Wi-Fi: канал {ch} перегружен соседними сетями",
+            Severity = Severity.Important,
+            Explanation = "Рядом работают другие сети на том же или пересекающемся канале. Они делят эфир с вашей: растут скачки пинга и потери пакетов, даже когда сигнал сильный. Лечится сменой канала в роутере.",
+            Evidence = { $"Ваш канал: {ch} ({(band24 ? "2,4" : "5")} ГГц), заметных сетей-соперников: {rivals}" },
+            ManualSteps =
+            {
+                band24 ? "В настройках роутера выберите канал 1, 6 или 11 (они не пересекаются) с наименьшим числом соседей; «Авто» часто выбирает неудачно." : "В настройках роутера выберите другой канал 5 ГГц (36–48 или 149–165) или оставьте «Авто».",
+                band24 ? "Лучше перейти на 5 ГГц: там тише и быстрее." : "Если стены мешают сигналу, поставьте роутер ближе.",
+                "Самое надёжное по-прежнему кабель.",
+            },
+            IsHardwareLimitation = true,
+        };
+    }
+}
+
+/// <summary>Износ батареи ноутбука.</summary>
+public sealed class BatteryHealthDetector : DetectorBase
+{
+    public override string Id => "BATTERY_WORN";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        if (!p.Device.IsLaptop || p.Power.BatteryHealthPercent is not { } h || h >= 60) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = $"Батарея ноутбука изношена: осталось {h} % ёмкости",
+            Severity = h < 40 ? Severity.Important : Severity.Advice,
+            Explanation = "Ёмкость батареи упала, ноутбук держит заряд заметно хуже. На скорость при работе от сети это не влияет, но от батареи ноутбук может внезапно выключаться и сбрасывать производительность при нагрузке. Сильно изношенная батарея иногда вздувается, это опасно для корпуса и самой батареи.",
+            Evidence = { $"Полная ёмкость сейчас — {h} % от проектной" },
+            ManualSteps = { "Играйте от сети с оригинальным блоком питания.", "Если батарея вздулась (корпус или тачпад приподнялись), замените её в сервисе, не откладывая." },
+            IsHardwareLimitation = true,
+        };
+    }
+}
+
+/// <summary>Два антивируса сразу: конфликтуют и оба сканируют файлы.</summary>
+public sealed class MultipleAntivirusDetector : DetectorBase
+{
+    public override string Id => "AV_MULTIPLE";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var third = p.Security.AntiVirus.Where(n => !n.Contains("Defender", StringComparison.OrdinalIgnoreCase) && !n.Contains("Windows", StringComparison.OrdinalIgnoreCase)).Distinct().ToList();
+        if (third.Count < 2) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = "Установлено несколько антивирусов",
+            Severity = Severity.Important,
+            Explanation = "Два сторонних антивируса работают одновременно: они проверяют одни и те же файлы, мешают друг другу и заметно грузят диск и процессор. В играх это выглядит как фризы при подгрузке и долгая загрузка. Защита от этого лучше не становится.",
+            Evidence = third.Select(n => "Установлен: " + n).ToList(),
+            ManualSteps = { "Оставьте один антивирус (подойдёт и встроенный Защитник Windows), второй удалите через «Параметры» → «Приложения» штатным деинсталлятором или утилитой удаления от производителя." },
+        };
     }
 }

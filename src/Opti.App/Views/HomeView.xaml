@@ -76,6 +76,19 @@
                 </StackPanel>
             </Border>
 
+            <!-- Итог последнего анализа: факты, а не оценка -->
+            <Button Style="{StaticResource CardButton}" Margin="0,8,0,0" Command="{Binding OpenLastReportCommand}"
+                    Visibility="{Binding LastAnalysisText, Converter={StaticResource StrToVis}}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="&#xE76C;" Style="{StaticResource Icon}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Text="&#xE9D9;" Style="{StaticResource Icon}" Margin="0,0,14,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                    <StackPanel>
+                        <TextBlock Text="{Binding LastAnalysisText}" Style="{StaticResource Strong}"/>
+                        <TextBlock Text="{Binding LastAnalysisHint}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </DockPanel>
+            </Button>
+
             <!-- Изменения Opti, которые сейчас действуют -->
             <Button Style="{StaticResource CardButton}" Margin="0,8,0,0" Command="{Binding OpenHistoryCommand}"
                     Visibility="{Binding ActiveChangesText, Converter={StaticResource StrToVis}}">

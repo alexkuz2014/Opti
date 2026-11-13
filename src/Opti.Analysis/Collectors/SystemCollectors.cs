@@ -186,7 +186,25 @@ public sealed partial class PowerCollector : ICollector
             p.Power.AcMaxProcessorState = QueryAc(scheme, SubProcessor, "bc5038f7-23e0-4960-96da-33abaf5935ec");
             p.Power.AcCoreParkingMinCores = QueryAc(scheme, SubProcessor, "0cc5b647-c1df-4637-891a-dec35c318583");
         }
+        if (p.Device.IsLaptop || p.Device.HasBattery)
+        {
+            try
+            {
+                var r = ProcessRunner.Instance.RunPowerShell("$f=(Get-CimInstance -Namespace root\\wmi -ClassName BatteryFullChargedCapacity -ErrorAction Stop | Select-Object -First 1).FullChargedCapacity; $d=(Get-CimInstance -Namespace root\\wmi -ClassName BatteryStaticData -ErrorAction Stop | Select-Object -First 1).DesignedCapacity; \"$f,$d\"", TimeSpan.FromSeconds(15));
+                if (r.Ok) p.Power.BatteryHealthPercent = ParseBatteryHealth(r.StdOut);
+            }
+            catch { /* счётчики батареи есть не на всех ноутбуках */ }
+        }
         p.Power.PowerThrottlingDisabledGlobally = Reg.Int(@"HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling", "PowerThrottlingOff") == 1;
+    }
+
+    /// <summary>«полная ёмкость,проектная ёмкость» → процент износа; нереальные значения (больше 110 %) отбрасываем.</summary>
+    public static int? ParseBatteryHealth(string output)
+    {
+        var parts = output.Trim().Split(',');
+        if (parts.Length != 2 || !double.TryParse(parts[0], out var full) || !double.TryParse(parts[1], out var design) || design <= 0 || full <= 0) return null;
+        var pct = (int)Math.Round(100 * full / design);
+        return pct is > 0 and <= 110 ? Math.Min(100, pct) : null;
     }
 
     private static int? QueryAc(string scheme, string sub, string setting)

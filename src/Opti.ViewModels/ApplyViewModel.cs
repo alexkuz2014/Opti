@@ -22,9 +22,10 @@ public sealed partial class ApplyViewModel : PageViewModel
             Log.Add(new LogItem
             {
                 Title = title,
-                Status = r.Outcome switch { FixOutcome.Applied => "применено", FixOutcome.Failed => "не применилось", FixOutcome.NothingToChange => "уже в нужном состоянии", _ => "пропущено" },
-                Color = r.Outcome switch { FixOutcome.Applied => Palette.Good, FixOutcome.Failed => Palette.Bad, _ => Palette.Neutral },
+                Status = r.Outcome == FixOutcome.Applied && r.Unverified.Count > 0 ? "записано, но не подтверждено" : r.Outcome switch { FixOutcome.Applied => "применено", FixOutcome.Failed => "не применилось", FixOutcome.NothingToChange => "уже в нужном состоянии", _ => "пропущено" },
+                Color = r.Outcome == FixOutcome.Applied && r.Unverified.Count > 0 ? Palette.Warn : r.Outcome switch { FixOutcome.Applied => Palette.Good, FixOutcome.Failed => Palette.Bad, _ => Palette.Neutral },
                 Details = (r.Outcome == FixOutcome.Failed && r.Error is not null ? new[] { "Причина: " + r.Error } : Array.Empty<string>())
+                    .Concat(r.Unverified.Select(c => $"Не подтверждено повторным чтением: {c.Type} {c.Target} (Windows приняла запись, но значение не изменилось)"))
                     .Concat(r.Changes.Select(c => $"{c.Type} {c.Target}: {c.Before} → {c.After}")).ToList(),
             });
         }

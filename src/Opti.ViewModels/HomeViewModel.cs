@@ -30,6 +30,14 @@ public sealed partial class HomeViewModel : PageViewModel
     /// <summary>«2 из 8 настроек Opti изменились после применения» — или null.</summary>
     [ObservableProperty] private string? _driftText;
     private IReadOnlyList<Opti.Fixes.Services.DriftItem> _drift = Array.Empty<Opti.Fixes.Services.DriftItem>();
+    /// <summary>«Последний анализ: 1 критично, 2 важных, 3 совета» — реальные находки вместо абстрактной оценки; null, если анализа ещё не было.</summary>
+    [ObservableProperty] private string? _lastAnalysisText;
+    [ObservableProperty] private string? _lastAnalysisHint;
+    [RelayCommand]
+    private void OpenLastReport()
+    {
+        if (Main.Session?.Findings is { Count: > 0 } && Main.Session.Profile is not null) Main.Navigate(Main.Analysis);
+    }
     [ObservableProperty] private string? _openSessionText;
     [ObservableProperty] private bool _hasOpenSession;
 
@@ -91,6 +99,20 @@ public sealed partial class HomeViewModel : PageViewModel
             SessionStage.Compared => "Сравнение готово.",
             _ => null,
         };
+        LastAnalysisText = null; LastAnalysisHint = null;
+        if (s?.Profile is not null && s.Findings is { } fs)
+        {
+            int crit = fs.Count(f => f.Severity == Opti.Core.Findings.Severity.Critical);
+            int imp = fs.Count(f => f.Severity == Opti.Core.Findings.Severity.Important);
+            int adv = fs.Count(f => f.Severity == Opti.Core.Findings.Severity.Advice);
+            var parts = new List<string>();
+            if (crit > 0) parts.Add($"{crit} {AnalysisViewModel.Plural(crit, "критичная", "критичные", "критичных")}");
+            if (imp > 0) parts.Add($"{imp} {AnalysisViewModel.Plural(imp, "важная", "важные", "важных")}");
+            if (adv > 0) parts.Add($"{adv} {AnalysisViewModel.Plural(adv, "совет", "совета", "советов")}");
+            LastAnalysisText = parts.Count == 0 ? "Последний анализ: проблем не найдено" : "Последний анализ: " + string.Join(", ", parts);
+            var top = fs.OrderByDescending(f => f.Severity).FirstOrDefault();
+            LastAnalysisHint = top is null ? null : "Главное: " + top.Title;
+        }
         try
         {
             int active = Main.Services.Journal.GetAll().Where(r => !r.RolledBack).Select(r => r.FixId).Distinct().Count();

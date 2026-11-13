@@ -61,7 +61,7 @@ public sealed partial class AnalysisViewModel : PageViewModel
 
     public void Load(TuneSession s, List<string> collectorErrors)
     {
-        _all = s.Findings.Select(f => new FindingItem(f)).ToList();
+        _all = s.Findings.Select(f => new FindingItem(f, Main.Services.Workflow.Catalog)).ToList();
         CriticalCount = _all.Count(f => f.Finding.Severity == Severity.Critical);
         ImportantCount = _all.Count(f => f.Finding.Severity == Severity.Important);
         AdviceCount = _all.Count(f => f.Finding.Severity == Severity.Advice);

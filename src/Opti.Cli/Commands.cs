@@ -168,6 +168,7 @@ internal static class Commands
             var word = res.Outcome switch { FixOutcome.Applied => "применено", FixOutcome.Failed => "ошибка", FixOutcome.NothingToChange => "уже в нужном состоянии", _ => "пропущено" };
             Output.Color(color, $"  {res.FixId}: {word}");
             Console.WriteLine(res.Error is null ? "" : " — " + res.Error);
+            foreach (var c in res.Unverified) Output.Color(ConsoleColor.Yellow, $"     не подтверждено повторным чтением: {c.Type} {c.Target}\n");
             foreach (var c in res.Changes) Output.Color(ConsoleColor.DarkGray, $"     {c.Type} {c.Target}: {c.Before} → {c.After}\n");
         }
     }
@@ -326,9 +327,10 @@ internal static class Commands
     private static void PrintRollback(RollbackReport rep)
     {
         foreach (var r in rep.Restored) Output.Color(ConsoleColor.Green, $"  восстановлено {r.Type} {r.Target} = {r.Before}\n");
+        foreach (var r in rep.SkippedChangedExternally) Output.Color(ConsoleColor.Yellow, $"  оставлено {r.Type} {r.Target}: значение позже изменено вами или Windows\n");
         foreach (var r in rep.SkippedSupersededBy) Output.Color(ConsoleColor.Yellow, $"  оставлено {r.Type} {r.Target}: позже изменено другим исправлением\n");
         foreach (var e in rep.Errors) Output.Color(ConsoleColor.Red, $"  ошибка: {e}\n");
-        if (rep.Restored.Count + rep.SkippedSupersededBy.Count + rep.Errors.Count == 0) Console.WriteLine("  Нечего откатывать.");
+        if (rep.Restored.Count + rep.SkippedChangedExternally.Count + rep.SkippedSupersededBy.Count + rep.Errors.Count == 0) Console.WriteLine("  Нечего откатывать.");
         if (rep.Restored.Any(r => r.Type is ChangeType.Bcd) || rep.Restored.Any(r => r.Target.Contains("GraphicsDrivers") || r.Target.Contains("Dwm") || r.Target.Contains("kernel")))
             Output.Color(ConsoleColor.Yellow, "  Часть возвращённых настроек вступит в силу после перезагрузки.\n");
     }

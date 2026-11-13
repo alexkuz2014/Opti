@@ -98,9 +98,9 @@ public class MaximumTests
     {
         var (opt, _, _) = Make(new FakeDrivers());
         using var cts = new CancellationTokenSource();
-        var r = await opt.RunAsync("s", new Progress<MaxStep>(_ => cts.Cancel()), null, true, cts.Token);
-        Assert.Single(r.Steps.Where(_ => true).Take(1));
-        Assert.True(r.Steps.Count < 3);
+        cts.Cancel();                                              // отмена до начала: ни один шаг не выполняется
+        var r = await opt.RunAsync("s", null, null, true, cts.Token);
+        Assert.Empty(r.Steps);
     }
 
     [Fact]

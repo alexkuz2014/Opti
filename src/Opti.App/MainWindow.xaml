@@ -20,6 +20,7 @@
         <DataTemplate DataType="{x:Type vm:AutoSetupViewModel}"><v:AutoSetupView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:TweaksViewModel}"><v:TweaksView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:GameViewModel}"><v:GameView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:StutterViewModel}"><v:StutterView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:MaxRunViewModel}"><v:MaxRunView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:HistoryViewModel}"><v:HistoryView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><v:SettingsView/></DataTemplate>

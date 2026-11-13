@@ -7,6 +7,8 @@ public sealed class RollbackReport
     public List<ChangeRecord> Restored { get; } = new();
     /// <summary>Настройку позже изменило другое активное исправление — оставлена как есть.</summary>
     public List<ChangeRecord> SkippedSupersededBy { get; } = new();
+    /// <summary>Пользователь (или Windows) сам поменял значение после Opti — откат его не затирает.</summary>
+    public List<ChangeRecord> SkippedChangedExternally { get; } = new();
     public List<string> Errors { get; } = new();
 }
 
@@ -47,6 +49,12 @@ public sealed class RollbackService
                                                  && string.Equals(o.Target, rec.Target, StringComparison.OrdinalIgnoreCase));
             try
             {
+                if (!superseded && ChangedExternally(rec))
+                {
+                    report.SkippedChangedExternally.Add(rec);
+                    _journal.MarkRolledBack(rec.Id, DateTimeOffset.Now);
+                    continue;
+                }
                 if (superseded)
                     report.SkippedSupersededBy.Add(rec);
                 else
@@ -60,5 +68,17 @@ public sealed class RollbackService
             }
         }
         return report;
+    }
+
+    /// <summary>Текущее значение не равно ни тому, что поставил Opti, ни исходному: это чужой выбор, перезаписывать молча нельзя.</summary>
+    private bool ChangedExternally(ChangeRecord rec)
+    {
+        if (rec.Type == ChangeType.File) return false;
+        try
+        {
+            var current = _backends.Get(rec.Type).Read(rec.Target);
+            return current != rec.After && current != rec.Before;
+        }
+        catch { return false; }   // не прочитать — поведение как раньше
     }
 }

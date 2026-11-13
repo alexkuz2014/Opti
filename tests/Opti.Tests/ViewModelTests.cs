@@ -73,6 +73,9 @@ public sealed class ViewModelTests : IDisposable
         public int OsBuild => 26100;
         public Opti.Workflow.Game.IProcessControl? Processes { get; set; }
         public Opti.Workflow.Maximum.IDriverUpdater? DriverUpdater { get; set; }
+        public Opti.Core.Stutter.IStutterSampler? StutterSampler { get; set; }
+        public Opti.Core.Profile.DpcLatencyInfo? Dpc { get; set; }
+        public Task<Opti.Core.Profile.DpcLatencyInfo?> CaptureDpcAsync(TimeSpan duration, CancellationToken ct) => Task.FromResult(Dpc);
         public int KeepAwakeCalls { get; private set; }
         public bool Awake { get; private set; }
         public void KeepAwake(bool on) { KeepAwakeCalls++; Awake = on; }
@@ -142,6 +145,20 @@ public sealed class ViewModelTests : IDisposable
         Assert.Same(main.History, main.CurrentPage);
         Assert.Single(main.History.Sessions);
         Assert.Equal("стало лучше", main.History.Sessions[0].OutcomeText);
+    }
+
+    [Fact]
+    public async Task Home_ShowsLastAnalysisFacts_AfterAnalysis()
+    {
+        var svc = new FakeServices(_dir, "laptop-optimus", _ => 8.0);
+        var main = new MainViewModel(svc);
+        Assert.Null(main.Home.LastAnalysisText);
+        await main.Home.AnalyzeCommand.ExecuteAsync(null);
+        main.Navigate(main.Home);
+        Assert.StartsWith("Последний анализ:", main.Home.LastAnalysisText);
+        Assert.StartsWith("Главное:", main.Home.LastAnalysisHint);
+        main.Home.OpenLastReportCommand.Execute(null);
+        Assert.Same(main.Analysis, main.CurrentPage);
     }
 
     [Fact]

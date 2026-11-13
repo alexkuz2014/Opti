@@ -74,12 +74,20 @@ public sealed partial class CompareViewModel : PageViewModel
     public bool SuggestRollback => Recommendation == Recommendation.SuggestRollback && _session.Outcome != SessionOutcome.RolledBack;
     public bool IsAb => _ab is not null;
 
+    /// <summary>Две отдельные строки итога: что исправлено в настройках и что измерено. Не смешиваются в один «+N %».</summary>
+    public string FixedSummary { get; private set; } = "";
+    public string MeasuredSummary =>
+        _ab is not null ? "Измерено: сравнение двух вариантов в синтетической сцене Opti — это не то же самое, что в вашей игре."
+        : Result.Metrics.Count == 0 ? "Измерение: нет данных для сравнения."
+        : "Измерено: синтетическая сцена Opti (не ваша игра). Реальный эффект в игре может отличаться.";
+
     private void LoadFixes()
     {
         AppliedFixes.Clear();
         MaxSteps.Clear();
         foreach (var st in _session.MaxSteps ?? new()) MaxSteps.Add(MaxRunViewModel.ToItem(st));
         var records = Main.Services.Journal.GetAll().Where(r => r.SessionId.StartsWith(_session.Id, StringComparison.Ordinal)).ToList();
+        int total = records.Select(r => r.FixId).Distinct().Count();
         foreach (var g in records.GroupBy(r => r.FixId))
         {
             AppliedFixes.Add(new AppliedFixItem
@@ -90,6 +98,10 @@ public sealed partial class CompareViewModel : PageViewModel
                 RolledBack = g.All(r => r.RolledBack),
             });
         }
+        int active = AppliedFixes.Count(f => !f.RolledBack);
+        FixedSummary = total == 0 ? "Исправлено: изменений настроек в этой сессии нет."
+            : $"Исправлено: настроек изменено — {active} из {total}" + (_session.Outcome == SessionOutcome.RolledBack ? " (сессия откачена)." : ".");
+        OnPropertyChanged(nameof(FixedSummary));
     }
 
     [RelayCommand]
@@ -108,7 +120,7 @@ public sealed partial class CompareViewModel : PageViewModel
         var r = await Task.Run(() => Main.Services.Workflow.RollbackSession(_session));
         LoadFixes();
         OnPropertyChanged(nameof(SuggestRollback));
-        Main.ShowMessage($"Откачено изменений: {r.Restored.Count}." + (r.Errors.Count > 0 ? $" Ошибок: {r.Errors.Count}." : "") + " Некоторые настройки вернутся после перезагрузки.");
+        Main.ShowMessage($"Откачено изменений: {r.Restored.Count}." + (r.SkippedChangedExternally.Count > 0 ? $" Оставлено без изменений (вы или Windows поменяли позже): {r.SkippedChangedExternally.Count}." : "") + (r.Errors.Count > 0 ? $" Ошибок: {r.Errors.Count}." : "") + " Некоторые настройки вернутся после перезагрузки.");
     }
 
     [RelayCommand]

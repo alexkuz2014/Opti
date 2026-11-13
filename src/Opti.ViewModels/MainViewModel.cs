@@ -46,6 +46,7 @@ public sealed partial class MainViewModel : ObservableObject
         Software = new SoftwareViewModel(this);
         Tweaks = new TweaksViewModel(this);
         Game = new GameViewModel(this);
+        Stutter = new StutterViewModel(this);
         Nav = new ObservableCollection<NavItem>
         {
             // Значки — глифы шрифта Segoe Fluent Icons / Segoe MDL2 Assets
@@ -56,6 +57,7 @@ public sealed partial class MainViewModel : ObservableObject
             new() { Title = "Драйверы", Icon = "\uE950", Page = () => Drivers, IsEnabled = false, Header = "ИНСТРУМЕНТЫ", DisabledHint = "Появится после анализа" },
             new() { Title = "Твики", Icon = "\uE70F", Page = () => Tweaks },
             new() { Title = "Игра", Icon = "\uE7FC", Page = () => Game },
+            new() { Title = "Фризы", Icon = "\uE916", Page = () => Stutter },
             new() { Title = "Очистка", Icon = "\uEA99", Page = () => Cleanup },
             new() { Title = "Программы", Icon = "\uE71D", Page = () => Software },
             new() { Title = "История", Icon = "\uE81C", Page = () => History, IsFooter = true },
@@ -76,6 +78,7 @@ public sealed partial class MainViewModel : ObservableObject
     public SoftwareViewModel Software { get; }
     public TweaksViewModel Tweaks { get; }
     public GameViewModel Game { get; }
+    public StutterViewModel Stutter { get; }
     public CompareViewModel? Compare { get; private set; }
     public ObservableCollection<NavItem> Nav { get; }
     public IEnumerable<NavItem> NavTop => Nav.Where(n => !n.IsFooter);

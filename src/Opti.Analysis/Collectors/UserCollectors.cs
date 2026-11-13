@@ -276,6 +276,9 @@ public sealed partial class NetworkCollector : ICollector
             var w = ProcessRunner.Instance.RunConsoleUtf8("netsh wlan show interfaces");
             wifi.WifiBandGhz = ParseWifiBand(w.StdOut);
             wifi.WifiSignalPercent = ParseWifiSignal(w.StdOut);
+            wifi.WifiChannel = ChannelRegex().Match(w.StdOut) is { Success: true } cm && int.TryParse(cm.Groups[1].Value, out var chn) ? chn : null;
+            try { p.NetSettings.WifiNeighbors = Opti.Core.Network.WifiScan.Parse(ProcessRunner.Instance.RunConsoleUtf8("netsh wlan show networks mode=bssid", TimeSpan.FromSeconds(15)).StdOut); }
+            catch { /* сканирование недоступно — соседей не оцениваем */ }
             wifi.WifiRadioType = ParseWifiRadio(w.StdOut);
         }
         CollectSettings(p);
