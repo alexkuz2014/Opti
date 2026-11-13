@@ -29,11 +29,14 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
         Workflow = new TuneWorkflow(Settings, new SessionStore(), backends, _journal,
             new WindowsRestorePointService(), scheduler, new WindowsCrashEventSource());
         Tweaks = new TweakService(backends, _journal);
+        Startup = new Opti.Fixes.Services.StartupService(backends, _journal);
     }
 
     public TuneWorkflow Workflow { get; }
     public TweakService Tweaks { get; }
     public int OsBuild => Environment.OSVersion.Version.Build;
+    public IReadOnlyList<Opti.Core.Profile.StartupItem> ReadStartupItems() => Opti.Analysis.Collectors.BackgroundCollector.ReadStartupItems();
+    public Opti.Fixes.Services.StartupService? Startup { get; private set; }
     public Opti.Workflow.Maximum.IDriverUpdater? DriverUpdater { get; } = new Opti.Workflow.Maximum.WindowsUpdateDriverUpdater();
 
     [System.Runtime.InteropServices.DllImport("kernel32.dll")] private static extern uint SetThreadExecutionState(uint flags);

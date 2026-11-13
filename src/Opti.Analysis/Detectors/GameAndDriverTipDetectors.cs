@@ -367,3 +367,71 @@ public sealed class NetRssDetector : DetectorBase
         };
     }
 }
+
+/// <summary>
+/// Дерево решений из диагностики Test-NetConnection / Resolve-DnsName: имя не разрешается (смотрим DNS) — или имя разрешается, а порт закрыт
+/// (файрвол, антивирус, VPN, блокировка провайдером или сервис недоступен) — или DNS просто медленный.
+/// </summary>
+public sealed class NetServicesDetector : DetectorBase
+{
+    public override string Id => "NET_SERVICES";
+    public const int SlowDnsMs = 100;
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var all = p.NetSettings.Services;
+        var control = all.FirstOrDefault(s => s.IsControl);
+        // Не открылся даже контрольный сервис — интернета нет совсем, это не проблема отдельных сервисов
+        if (all.Count == 0 || control is { TcpOk: false, SystemDnsOk: false } || control is { TcpOk: false, PublicDnsOk: false }) yield break;
+        var games = all.Where(s => !s.IsControl).ToList();
+
+        var dnsBroken = games.Where(s => !s.SystemDnsOk && s.PublicDnsOk).ToList();
+        if (dnsBroken.Count > 0)
+            yield return new Finding
+            {
+                Id = "NET_DNS_BROKEN",
+                Title = "DNS не находит игровые сервисы",
+                Severity = Severity.Important,
+                Explanation = "Системный DNS (обычно от провайдера) не может найти адреса этих сервисов, а публичный DNS находит. Из-за этого клиенты игр не подключаются или подключаются с задержкой. " +
+                              "Пинг в самой игре это не меняет, но «не заходит в игру» и «долго ищет сервер» объясняет.",
+                Evidence = dnsBroken.Select(s => $"{s.Name} ({s.Host}): системный DNS не ответил, 1.1.1.1 ответил за {s.PublicDnsMs} мс").ToList(),
+                ManualSteps =
+                {
+                    "Параметры → Сеть и Интернет → ваше подключение → «Назначение DNS-сервера» → вручную: 1.1.1.1 и 8.8.8.8 (или DNS роутера).",
+                    "Затем в PowerShell: Clear-DnsClientCache — очистит старые ответы.",
+                },
+                Links = { Sources.NetworkStatus },
+            };
+
+        var blocked = games.Where(s => s.SystemDnsOk && !s.TcpOk).ToList();
+        if (blocked.Count > 0)
+            yield return new Finding
+            {
+                Id = "NET_SERVICE_BLOCKED",
+                Title = "Порт сервиса не открывается, хотя имя находится",
+                Severity = Severity.Important,
+                Explanation = "Адрес сервиса получен, но подключиться к порту 443 не удалось, а остальной интернет работает. Когда DNS отвечает верно, причина обычно не в нём: " +
+                              "файрвол или антивирус, включённый VPN или прокси, блокировка на стороне провайдера или недоступность самого сервиса.",
+                Evidence = blocked.Select(s => $"{s.Name} ({s.Host}:{s.Port}): имя найдено, подключение не удалось").ToList(),
+                ManualSteps =
+                {
+                    "Проверьте на другом устройстве в той же сети: если там тоже не открывается, это сервис или провайдер.",
+                    "Отключите VPN и прокси, проверьте файрвол и антивирус (разрешите клиент игры).",
+                    "Проверка вручную: Test-NetConnection " + blocked[0].Host + " -Port " + blocked[0].Port + " — TcpTestSucceeded покажет результат.",
+                },
+            };
+
+        var slow = games.Where(s => s.SystemDnsOk && s.PublicDnsOk && s.SystemDnsMs >= SlowDnsMs && s.SystemDnsMs >= 2 * Math.Max(1, s.PublicDnsMs)).ToList();
+        if (slow.Count >= 2 && dnsBroken.Count == 0)
+            yield return new Finding
+            {
+                Id = "NET_DNS_SLOW",
+                Title = "Медленный DNS-сервер",
+                Severity = Severity.Advice,
+                Explanation = "Системный DNS отвечает заметно медленнее публичного. Это замедляет начало подключения (вход в игру, открытие страниц и магазинов), но не пинг во время игры.",
+                Evidence = slow.Select(s => $"{s.Name}: системный DNS {s.SystemDnsMs} мс, 1.1.1.1 — {s.PublicDnsMs} мс").ToList(),
+                ManualSteps = { "Смените DNS на 1.1.1.1 и 8.8.8.8: Параметры → Сеть и Интернет → подключение → «Назначение DNS-сервера»." },
+                Links = { Sources.NetworkStatus },
+            };
+    }
+}

@@ -117,6 +117,8 @@ public static partial class DevBundle
         yield return new("physical-disk", "ps", "Get-PhysicalDisk | Select-Object FriendlyName,MediaType,BusType,HealthStatus,@{n='SizeGB';e={[int]($_.Size/1GB)}} | Format-Table -AutoSize | Out-String -Width 200");
         yield return new("nvidia-smi", "cmd", "nvidia-smi & nvidia-smi -q -d PERFORMANCE,TEMPERATURE,CLOCK,POWER");
         yield return new("systeminfo", "cmd", "systeminfo", 60);
+        yield return new("test-netconnection", "ps", "foreach ($h in 'discord.com','store.steampowered.com','www.epicgames.com') { Test-NetConnection $h -Port 443 -WarningAction SilentlyContinue | Format-List ComputerName,RemoteAddress,RemotePort,TcpTestSucceeded,PingSucceeded | Out-String -Width 200 }");
+        yield return new("resolve-dns", "ps", "foreach ($s in $null,'1.1.1.1','8.8.8.8') { \"== DNS: $(if ($s) { $s } else { 'системный' })\"; foreach ($h in 'discord.com','store.steampowered.com') { $sw=[Diagnostics.Stopwatch]::StartNew(); try { $r = if ($s) { Resolve-DnsName $h -DnsOnly -Server $s -ErrorAction Stop } else { Resolve-DnsName $h -DnsOnly -ErrorAction Stop }; \"$h: $($sw.ElapsedMilliseconds) мс, $((($r | Where-Object IPAddress).IPAddress) -join ', ')\" } catch { \"$h: ошибка $($_.Exception.Message)\" } } }", 60);
         yield return new("ping-internet", "cmd", "ping -n 12 1.1.1.1", 30);
         if (gateway is not null) yield return new("ping-router", "cmd", $"ping -n 12 {gateway}", 30);
         yield return new("tracert", "cmd", "tracert -d -h 10 -w 800 1.1.1.1", 60);

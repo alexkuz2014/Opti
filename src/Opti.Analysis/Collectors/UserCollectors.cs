@@ -35,15 +35,17 @@ public sealed class BackgroundCollector : ICollector
         ["MSIAfterburner"] = "MSI Afterburner (через RTSS)",
     };
 
-    public void Collect(SystemProfile p)
+    /// <summary>Автозагрузка (Run, папки «Автозагрузка») с состоянием из StartupApproved — как во вкладке «Автозагрузка» Диспетчера задач.</summary>
+    public static List<StartupItem> ReadStartupItems()
     {
+        var list = new List<StartupItem>();
         foreach (var (runKey, approvedKey) in RunKeys)
         {
             var approved = Reg.Values(approvedKey).ToDictionary(v => v.Name, v => v.Value as byte[], StringComparer.OrdinalIgnoreCase);
             foreach (var (name, value) in Reg.Values(runKey))
             {
                 approved.TryGetValue(name, out var flag);
-                p.Background.StartupItems.Add(new StartupItem
+                list.Add(new StartupItem
                 {
                     Name = name,
                     Command = value?.ToString(),
@@ -65,7 +67,7 @@ public sealed class BackgroundCollector : ICollector
             {
                 var fn = Path.GetFileName(file);
                 approved.TryGetValue(fn, out var flag);
-                p.Background.StartupItems.Add(new StartupItem
+                list.Add(new StartupItem
                 {
                     Name = Path.GetFileNameWithoutExtension(file), Command = file, Location = folder,
                     Enabled = IsEnabled(flag), ApprovedKey = approvedKey + "|" + fn,
@@ -73,6 +75,12 @@ public sealed class BackgroundCollector : ICollector
             }
         }
 
+        return list;
+    }
+
+    public void Collect(SystemProfile p)
+    {
+        p.Background.StartupItems.AddRange(ReadStartupItems());
         var procs = Process.GetProcesses();
         try
         {

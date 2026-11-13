@@ -28,6 +28,7 @@ public static class Sources
     public const string GameLoadBenchmark = "https://www.legitreviews.com/game-load-time-benchmarking-shootout-six-ssds-one-hdd_204468";
     public const string DirectStorageTest = "https://www.pcworld.com/article/1486755/tested-microsofts-directstorage-tech-signals-the-sunset-of-sata-ssds.html";
     public const string FortniteShaders = "https://www.epicgames.com/help/c-34254770/c-38015632/a11302262?lang=en-US";
+    public const string NetworkStatus = "ms-settings:network-status";
     public const string PcOptimizationHub = "https://github.com/BoringBoredom/PC-Optimization-Hub";
     public const string PcTuning = "https://github.com/valleyofdoom/PC-Tuning";
     public const string WindowsLifecycle = "https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro";

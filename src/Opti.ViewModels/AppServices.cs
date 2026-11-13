@@ -33,6 +33,9 @@ public interface IAppServices
     Opti.Fixes.Services.TweakService Tweaks { get; }
     /// <summary>Сборка Windows (0 — неизвестно).</summary>
     int OsBuild => 0;
+    /// <summary>Автозагрузка сейчас (для раздела на странице «Игра»); пусто — недоступно.</summary>
+    IReadOnlyList<Opti.Core.Profile.StartupItem> ReadStartupItems() => Array.Empty<Opti.Core.Profile.StartupItem>();
+    Opti.Fixes.Services.StartupService? Startup => null;
     /// <summary>Установка драйверов через Центр обновления для «Максимума оптимизации»; null — недоступно.</summary>
     Opti.Workflow.Maximum.IDriverUpdater? DriverUpdater => null;
     /// <summary>Не давать компьютеру засыпать, пока Opti работает без присмотра.</summary>
