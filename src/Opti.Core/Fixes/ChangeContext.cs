@@ -33,6 +33,9 @@ public sealed class ChangeContext
     /// <summary>Параметры, выбранные пользователем (например, какие пункты автозагрузки отключить).</summary>
     public IReadOnlyDictionary<string, string> Options { get; }
     public IReadOnlyList<ChangeRecord> Records => _records;
+    private readonly List<ChangeRecord> _unverified = new();
+    /// <summary>Записи, после которых повторное чтение вернуло не то значение: Windows приняла вызов, но настройка не изменилась (или не читается).</summary>
+    public IReadOnlyList<ChangeRecord> Unverified => _unverified;
 
     public StateValue Read(ChangeType type, string target) => _backends.Get(type).Read(target);
 
@@ -63,6 +66,8 @@ public sealed class ChangeContext
             throw new ChangeAbortedException($"Не удалось изменить {type} {target}: {ex.Message}", ex);
         }
         _records.Add(record);
+        try { if (backend.Read(target) != value) _unverified.Add(record); }
+        catch { _unverified.Add(record); }
         return record;
     }
 

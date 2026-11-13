@@ -168,6 +168,7 @@ internal static class Commands
             var word = res.Outcome switch { FixOutcome.Applied => "применено", FixOutcome.Failed => "ошибка", FixOutcome.NothingToChange => "уже в нужном состоянии", _ => "пропущено" };
             Output.Color(color, $"  {res.FixId}: {word}");
             Console.WriteLine(res.Error is null ? "" : " — " + res.Error);
+            foreach (var c in res.Unverified) Output.Color(ConsoleColor.Yellow, $"     не подтверждено повторным чтением: {c.Type} {c.Target}\n");
             foreach (var c in res.Changes) Output.Color(ConsoleColor.DarkGray, $"     {c.Type} {c.Target}: {c.Before} → {c.After}\n");
         }
     }

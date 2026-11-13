@@ -6,7 +6,11 @@ namespace Opti.Fixes.Services;
 
 public enum FixOutcome { Applied, NothingToChange, Failed, Skipped }
 
-public sealed record FixApplyResult(string FixId, FixOutcome Outcome, IReadOnlyList<ChangeRecord> Changes, string? Error = null);
+public sealed record FixApplyResult(string FixId, FixOutcome Outcome, IReadOnlyList<ChangeRecord> Changes, string? Error = null)
+{
+    /// <summary>Изменения, которые не подтвердились повторным чтением из системы.</summary>
+    public IReadOnlyList<ChangeRecord> Unverified { get; init; } = Array.Empty<ChangeRecord>();
+}
 
 public sealed class ApplyReport
 {
@@ -56,7 +60,7 @@ public sealed class ApplyService
             try
             {
                 var changes = fix.Apply(ctx);
-                report.Results.Add(new FixApplyResult(fix.Id, changes.Count > 0 ? FixOutcome.Applied : FixOutcome.NothingToChange, changes));
+                report.Results.Add(new FixApplyResult(fix.Id, changes.Count > 0 ? FixOutcome.Applied : FixOutcome.NothingToChange, changes) { Unverified = ctx.Unverified.ToList() });
                 if (changes.Count > 0 && fix.RequiresReboot) report.RebootRequired = true;
             }
             catch (Exception ex)

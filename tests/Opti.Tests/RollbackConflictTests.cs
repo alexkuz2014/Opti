@@ -45,4 +45,26 @@ public class RollbackConflictTests
         Assert.Single(rep.Restored);
         Assert.Equal(StateValue.DWord(1), map[ChangeType.Registry].Read(target));
     }
+
+    [Fact]
+    public void Set_ReportsUnverified_WhenSystemIgnoresWrite()
+    {
+        var reg = InMemoryBackend.CreateRegistry(out var map);
+        var target = Targets.Reg(@"HKEY_CURRENT_USER\Software\Test", "V");
+        map[ChangeType.Registry].Seed(target, StateValue.DWord(1));
+        var ctx = new ChangeContext(new IgnoringRegistry(reg), new InMemoryChangeJournal(), "s", "FIX", new Opti.Core.Profile.SystemProfile());
+        ctx.Set(ChangeType.Registry, target, StateValue.DWord(2));
+        Assert.Single(ctx.Unverified);
+    }
+
+    private sealed class IgnoringRegistry(IBackendRegistry inner) : IBackendRegistry
+    {
+        public IStateBackend Get(ChangeType type) => new Ignoring(inner.Get(type));
+        private sealed class Ignoring(IStateBackend b) : IStateBackend
+        {
+            public ChangeType Type => b.Type;
+            public StateValue Read(string t) => b.Read(t);
+            public void Write(string t, StateValue v) { }
+        }
+    }
 }
