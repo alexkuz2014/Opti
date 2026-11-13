@@ -45,11 +45,38 @@ public sealed class LinkItem
     };
 }
 
+/// <summary>Строка «что программа изменит» в карточке находки.</summary>
+public sealed class FixInfoItem
+{
+    public FixInfoItem(IFix fix)
+    {
+        Title = fix.Title;
+        What = fix.Explanation;
+        Risk = fix.Risk switch { RiskLevel.Safe => "безопасно", RiskLevel.Moderate => "умеренный риск", _ => "рискованно" };
+        RiskColor = fix.Risk switch { RiskLevel.Safe => Palette.Good, RiskLevel.Moderate => Palette.Warn, _ => Palette.Bad };
+        Evidence = EvidenceTexts.For(fix.Evidence);
+        EvidenceColor = EvidenceTexts.Color(fix.Evidence);
+        Reboot = fix.RequiresReboot ? "нужна перезагрузка" : "без перезагрузки";
+        Rollback = "откат из журнала: вернём исходное значение";
+    }
+    public string Title { get; }
+    public string What { get; }
+    public string Risk { get; }
+    public string RiskColor { get; }
+    public string Evidence { get; }
+    public string EvidenceColor { get; }
+    public string Reboot { get; }
+    public string Rollback { get; }
+}
+
 public sealed class FindingItem
 {
-    public FindingItem(Finding f)
+    public FindingItem(Finding f, IEnumerable<IFix>? catalog = null)
     {
         Finding = f;
+        var all = catalog?.ToDictionary(x => x.Id, StringComparer.OrdinalIgnoreCase);
+        Fixes = all is null ? Array.Empty<FixInfoItem>()
+            : f.FixIds.Where(all.ContainsKey).Select(id => new FixInfoItem(all[id])).ToList();
         SeverityText = f.Severity switch { Severity.Critical => "критично", Severity.Important => "важно", _ => "совет" };
         Color = f.Severity switch { Severity.Critical => Palette.Critical, Severity.Important => Palette.Important, _ => Palette.Advice };
     }
@@ -63,6 +90,9 @@ public sealed class FindingItem
     public IReadOnlyList<string> ManualSteps => Finding.ManualSteps;
     public IReadOnlyList<string> Links => Finding.Links;
     public IReadOnlyList<LinkItem> LinkItems => Finding.Links.Select(LinkItem.From).ToList();
+    /// <summary>Что именно изменит программа, с риском, уверенностью и откатом.</summary>
+    public IReadOnlyList<FixInfoItem> Fixes { get; }
+    public bool HasFixInfo => Fixes.Count > 0;
     public bool HasDetails => Evidence.Count + ManualSteps.Count + Links.Count > 0;
     public bool HasFix => Finding.FixIds.Count > 0;
     public string FixHint => HasFix ? "Можно исправить автоматически" : IsHardware ? "Аппаратное ограничение — программно не исправить" : "Совет: действие за вами";

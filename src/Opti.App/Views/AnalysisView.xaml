@@ -89,6 +89,28 @@
                             </Expander.Header>
                             <StackPanel Margin="18,4,0,4">
                                 <TextBlock Text="{Binding Explanation}" Style="{StaticResource Body}"/>
+                                <ItemsControl ItemsSource="{Binding Fixes}" Margin="0,12,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Callout}" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Title, StringFormat=Что изменит Opti: {0}}" Style="{StaticResource Strong}"/>
+                                                    <TextBlock Text="{Binding What}" Style="{StaticResource Body}" Margin="0,2,0,6"/>
+                                                    <WrapPanel>
+                                                        <Border Style="{StaticResource Tag}" Margin="0,0,6,0" Background="{Binding RiskColor, Converter={StaticResource ToneToSoft}}">
+                                                            <TextBlock Text="{Binding Risk}" Style="{StaticResource TagText}" Foreground="{Binding RiskColor, Converter={StaticResource ToneToBrush}}"/>
+                                                        </Border>
+                                                        <Border Style="{StaticResource Tag}" Margin="0,0,6,0" Background="{Binding EvidenceColor, Converter={StaticResource ToneToSoft}}">
+                                                            <TextBlock Text="{Binding Evidence}" Style="{StaticResource TagText}" Foreground="{Binding EvidenceColor, Converter={StaticResource ToneToBrush}}"/>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding Reboot}" Style="{StaticResource Caption}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding Rollback}" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+                                                    </WrapPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 <ItemsControl ItemsSource="{Binding Evidence}" Margin="0,10,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

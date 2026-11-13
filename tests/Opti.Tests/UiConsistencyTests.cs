@@ -164,3 +164,28 @@ public class UiConsistencyTests
         }
     }
 }
+
+public class FindingCardTests
+{
+    [Fact]
+    public void FixableFindings_ShowWhatWillChange_WithRiskAndRollback()
+    {
+        var catalog = Opti.Fixes.Catalog.FixCatalog.All();
+        int fixable = 0;
+        foreach (var name in TestProfiles.All)
+            foreach (var f in TestProfiles.Findings(TestProfiles.Load(name)).Where(f => f.FixIds.Count > 0))
+            {
+                var item = new FindingItem(f, catalog);
+                Assert.True(item.HasFixInfo, $"{name}/{f.Id}: нет карточки исправления");
+                Assert.Equal(f.FixIds.Count, item.Fixes.Count);
+                foreach (var x in item.Fixes)
+                {
+                    Assert.False(string.IsNullOrWhiteSpace(x.What));
+                    Assert.False(string.IsNullOrWhiteSpace(x.Risk));
+                    Assert.Contains("откат", x.Rollback);
+                }
+                fixable++;
+            }
+        Assert.True(fixable > 10);
+    }
+}
