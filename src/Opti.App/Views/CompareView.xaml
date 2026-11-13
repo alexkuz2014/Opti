@@ -9,6 +9,8 @@
                 <Ellipse Style="{StaticResource Dot}" Width="10" Height="10" Fill="{Binding MessageColor, Converter={StaticResource ToneToBrush}}"/>
                 <TextBlock Text="{Binding Message}" Style="{StaticResource Body}" FontSize="15"/>
             </DockPanel>
+            <TextBlock Text="{Binding FixedSummary}" Style="{StaticResource Caption}" Margin="20,6,0,0" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding MeasuredSummary}" Style="{StaticResource Caption}" Margin="20,2,0,0" TextWrapping="Wrap"/>
             <ItemsControl ItemsSource="{Binding Warnings}" Margin="20,6,0,0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
