@@ -5,7 +5,7 @@
 ## Команды
 
 ```bash
-dotnet test                      # 368 тестов, xUnit, ~20 с; работает в Linux
+dotnet test                      # 369 тестов, xUnit, ~20 с; работает в Linux
 dotnet build src/Opti.Cli        # CLI
 dotnet build src/Opti.App        # WPF; в Linux собирается (EnableWindowsTargeting), но не запускается
 build/publish.sh [версия]        # win-x64 single-file → artifacts/Opti.exe, opti-cli.exe, SHA256SUMS.txt

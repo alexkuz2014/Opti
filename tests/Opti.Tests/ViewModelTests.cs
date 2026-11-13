@@ -148,6 +148,20 @@ public sealed class ViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Home_ShowsLastAnalysisFacts_AfterAnalysis()
+    {
+        var svc = new FakeServices(_dir, "laptop-optimus", _ => 8.0);
+        var main = new MainViewModel(svc);
+        Assert.Null(main.Home.LastAnalysisText);
+        await main.Home.AnalyzeCommand.ExecuteAsync(null);
+        main.Navigate(main.Home);
+        Assert.StartsWith("Последний анализ:", main.Home.LastAnalysisText);
+        Assert.StartsWith("Главное:", main.Home.LastAnalysisHint);
+        main.Home.OpenLastReportCommand.Execute(null);
+        Assert.Same(main.Analysis, main.CurrentPage);
+    }
+
+    [Fact]
     public async Task Worse_SuggestsRollback_AndRollbackRestoresEverything()
     {
         var svc = new FakeServices(_dir, "desktop-rtx", n => n < 2 ? 7.0 : 8.5);
