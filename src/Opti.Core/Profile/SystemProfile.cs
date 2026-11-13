@@ -391,8 +391,28 @@ public sealed class NetworkQuality
 }
 
 /// <summary>Сетевые настройки Windows, влияющие на пинг и скорость.</summary>
+/// <summary>
+/// Проверка одного сервиса: имя разрешается системным DNS и публичным (1.1.1.1), порт открывается или нет.
+/// Так отличают «не работает DNS провайдера» от «порт закрыт файрволом, антивирусом, VPN или блокировкой».
+/// </summary>
+public sealed class ServiceCheck
+{
+    public string Name { get; set; } = "";
+    public string Host { get; set; } = "";
+    public int Port { get; set; } = 443;
+    public bool SystemDnsOk { get; set; }
+    public int SystemDnsMs { get; set; }
+    public bool PublicDnsOk { get; set; }
+    public int PublicDnsMs { get; set; }
+    public bool TcpOk { get; set; }
+    public int TcpMs { get; set; }
+    /// <summary>Контрольный сервис (Microsoft): если не открылся и он, интернета нет вообще, а не проблема конкретного сервиса.</summary>
+    public bool IsControl { get; set; }
+}
+
 public sealed class NetSettingsInfo
 {
+    public List<ServiceCheck> Services { get; set; } = new();
     /// <summary>Активные VPN-/туннельные адаптеры.</summary>
     public List<string> ActiveVpnAdapters { get; set; } = new();
     /// <summary>Включён системный прокси (Параметры → Сеть → Прокси).</summary>

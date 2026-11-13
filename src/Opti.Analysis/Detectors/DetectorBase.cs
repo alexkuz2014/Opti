@@ -86,6 +86,7 @@ public static class DetectorCatalog
         new NvmeThermalDetector(),
         new MsiAuditDetector(),
         new NetRssDetector(),
+        new NetServicesDetector(),
         new GamesDiskFullDetector(),
         new GameLoadTipsDetector(),
         new DriverAuditDetector(),

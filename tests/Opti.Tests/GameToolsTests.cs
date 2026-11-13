@@ -592,6 +592,110 @@ public class GameToolsTests
     public void BenchLoad_ScalesTowardsTargetFps(double baseLoad, double fps, double expected) =>
         Assert.Equal(expected, Opti.Workflow.Measuring.SyntheticRunner.ScaleLoad(baseLoad, fps));
 
+    // ---------- Доступность сервисов и DNS ----------
+
+    private static ServiceCheck Svc(string name, bool sysOk = true, int sysMs = 20, bool pubOk = true, int pubMs = 20, bool tcp = true, bool control = false) =>
+        new() { Name = name, Host = name.ToLowerInvariant() + ".example", SystemDnsOk = sysOk, SystemDnsMs = sysMs, PublicDnsOk = pubOk, PublicDnsMs = pubMs, TcpOk = tcp, TcpMs = tcp ? 30 : 0, IsControl = control };
+
+    private static List<Finding> Net(params ServiceCheck[] s)
+    {
+        var p = new SystemProfile();
+        p.NetSettings.Services.AddRange(s);
+        return TestProfiles.Findings(p);
+    }
+
+    [Fact]
+    public void Services_AllHealthyGivesNothing() =>
+        Assert.DoesNotContain(Net(Svc("Microsoft", control: true), Svc("Steam"), Svc("Discord")), f => f.Id.StartsWith("NET_DNS") || f.Id == "NET_SERVICE_BLOCKED");
+
+    [Fact]
+    public void Services_NameNotResolvedBySystemDns_PointsAtDns()
+    {
+        var f = Net(Svc("Microsoft", control: true), Svc("Discord", sysOk: false, sysMs: 0, pubMs: 35, tcp: false), Svc("Steam")).Single(x => x.Id == "NET_DNS_BROKEN");
+        Assert.Equal(Severity.Important, f.Severity);
+        Assert.Contains(f.Evidence, e => e.Contains("Discord") && e.Contains("35 мс"));
+        Assert.Contains(f.ManualSteps, s => s.Contains("1.1.1.1"));
+        Assert.Contains(f.ManualSteps, s => s.Contains("Clear-DnsClientCache"));
+    }
+
+    [Fact]
+    public void Services_PortClosedWhileDnsAnswers_PointsAtFirewallOrBlock()
+    {
+        var f = Net(Svc("Microsoft", control: true), Svc("Steam"), Svc("Discord", tcp: false)).Single(x => x.Id == "NET_SERVICE_BLOCKED");
+        Assert.Contains("файрвол", f.Explanation);
+        Assert.Contains(f.ManualSteps, s => s.Contains("Test-NetConnection discord.example -Port 443"));
+        Assert.DoesNotContain(Net(Svc("Microsoft", control: true), Svc("Discord", tcp: false)), x => x.Id == "NET_DNS_BROKEN");
+    }
+
+    [Fact]
+    public void Services_NoInternetAtAll_IsNotBlamedOnServices()
+    {
+        var all = Net(Svc("Microsoft", sysOk: false, pubOk: false, tcp: false, control: true), Svc("Steam", sysOk: false, pubOk: false, tcp: false), Svc("Discord", sysOk: false, pubOk: false, tcp: false));
+        Assert.DoesNotContain(all, f => f.Id.StartsWith("NET_DNS") || f.Id == "NET_SERVICE_BLOCKED");
+    }
+
+    [Fact]
+    public void Services_SlowDnsNeedsTwoServicesAndClearGap()
+    {
+        Assert.Contains(Net(Svc("Microsoft", control: true), Svc("Steam", sysMs: 220, pubMs: 25), Svc("Discord", sysMs: 180, pubMs: 30)), f => f.Id == "NET_DNS_SLOW");
+        Assert.DoesNotContain(Net(Svc("Microsoft", control: true), Svc("Steam", sysMs: 220, pubMs: 25), Svc("Discord")), f => f.Id == "NET_DNS_SLOW");        // один раз — случайность
+        Assert.DoesNotContain(Net(Svc("Microsoft", control: true), Svc("Steam", sysMs: 120, pubMs: 100), Svc("Discord", sysMs: 130, pubMs: 110)), f => f.Id == "NET_DNS_SLOW");
+    }
+
+    [Fact]
+    public void DnsScriptOutput_IsParsedForArrayAndSingleObject()
+    {
+        var many = Opti.Analysis.Collectors.ServiceReachabilityCollector.ParseDns("[{\"Host\":\"discord.com\",\"SysOk\":true,\"SysMs\":42,\"PubOk\":true,\"PubMs\":18},{\"Host\":\"x.y\",\"SysOk\":false,\"SysMs\":0,\"PubOk\":true,\"PubMs\":20}]");
+        Assert.Equal(2, many.Count);
+        Assert.Equal(42, many[0].SystemDnsMs);
+        Assert.False(many[1].SystemDnsOk);
+        var one = Opti.Analysis.Collectors.ServiceReachabilityCollector.ParseDns("{\"Host\":\"a.b\",\"SysOk\":true,\"SysMs\":5,\"PubOk\":true,\"PubMs\":6}");
+        Assert.Single(one);
+        Assert.Empty(Opti.Analysis.Collectors.ServiceReachabilityCollector.ParseDns(""));
+        Assert.Empty(Opti.Analysis.Collectors.ServiceReachabilityCollector.ParseDns("не json"));
+    }
+
+    // ---------- Автозагрузка с переключателями ----------
+
+    [Fact]
+    public void Startup_ToggleOffAndOnRestoresOriginalValue()
+    {
+        var reg = Opti.Fixes.Backends.InMemoryBackend.CreateRegistry(out var map);
+        const string key = @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run|Spotify";
+        var original = new StateValue(true, "Binary", "02" + new string('0', 22));
+        map[ChangeType.Registry].Seed(key, original);
+        var item = new StartupItem { Name = "Spotify", ApprovedKey = key, Enabled = true };
+        var svc = new Opti.Fixes.Services.StartupService(reg, new Opti.Fixes.Journal.InMemoryChangeJournal());
+
+        svc.Disable(item);
+        Assert.StartsWith("03000000", map[ChangeType.Registry].Read(key).Value);
+        svc.Enable(item);
+        Assert.Equal(original, map[ChangeType.Registry].Read(key));
+    }
+
+    [Fact]
+    public void Startup_EnableOfItemDisabledElsewhereWritesEnabledFlag_AndNoKeyThrows()
+    {
+        var reg = Opti.Fixes.Backends.InMemoryBackend.CreateRegistry(out var map);
+        const string key = @"HKCU\x|Teams";
+        map[ChangeType.Registry].Seed(key, new StateValue(true, "Binary", "03000000" + new string('0', 16)));
+        var svc = new Opti.Fixes.Services.StartupService(reg, new Opti.Fixes.Journal.InMemoryChangeJournal());
+        svc.Enable(new StartupItem { Name = "Teams", ApprovedKey = key });
+        Assert.StartsWith("02", map[ChangeType.Registry].Read(key).Value);
+        Assert.Throws<InvalidOperationException>(() => svc.Disable(new StartupItem { Name = "NoKey" }));
+    }
+
+    [Fact]
+    public void GamePage_ListsStartupAndToggles()
+    {
+        using var dir = new TempDir();
+        var svc = new ViewModelTests.FakeServices(dir.Path, "desktop-rtx", _ => 10);
+        var main = new MainViewModel(svc);
+        main.Game.OnShown();
+        Assert.Empty(main.Game.StartupItems);                         // на тестовой системе списка нет
+        Assert.Null(main.Game.StartupSummary);
+    }
+
     private static class FixCatalogHelper
     {
         public static EvidenceLevel Level(string id) => Opti.Fixes.Catalog.FixCatalog.Find(id)!.Evidence;

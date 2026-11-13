@@ -26,7 +26,7 @@ public static class SystemAnalyzer
             new GraphicsSettingsCollector(), new BackgroundCollector(), new ObsCollector(obsConfigDir), new NetworkCollector(), new GamesCollector(), new ExtrasCollector(), new DriversCollector(), new ResizableBarCollector(), new DiskActivityCollector(),
         };
         // Быстрый пинг до роутера и интернета; networkTarget = null — проверка сети выключена в настройках
-        if (networkTarget is not null) list.Add(new NetworkQualityCollector(networkTarget));
+        if (networkTarget is not null) { list.Add(new NetworkQualityCollector(networkTarget)); list.Add(new ServiceReachabilityCollector()); }
         return list;
     }
 

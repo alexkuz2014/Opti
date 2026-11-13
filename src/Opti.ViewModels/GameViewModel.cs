@@ -42,6 +42,32 @@ public sealed class GameDriveItem
     public string Color { get; }
 }
 
+/// <summary>Программа автозагрузки с переключателем: включено — запускается вместе с Windows.</summary>
+public sealed partial class StartupToggle : ObservableObject
+{
+    private readonly GameViewModel _owner;
+    private bool _suppress;
+    public StartupToggle(GameViewModel owner, Opti.Core.Profile.StartupItem item)
+    {
+        _owner = owner;
+        Item = item;
+        _isOn = item.Enabled;
+    }
+    public Opti.Core.Profile.StartupItem Item { get; }
+    public string Name => Item.Name;
+    public string Detail => Item.Command is { Length: > 70 } c ? c[..70] + "…" : Item.Command ?? "";
+    public bool CanToggle => Item.ApprovedKey is not null;
+    [ObservableProperty] private bool _isOn;
+    [ObservableProperty] private string? _error;
+
+    partial void OnIsOnChanged(bool value)
+    {
+        if (_suppress) return;
+        Error = _owner.ToggleStartup(this, value);
+        if (Error is not null) { _suppress = true; IsOn = !value; _suppress = false; }
+    }
+}
+
 /// <summary>Страница «Игра»: «Перед игрой» (закрыть выбранные фоновые программы) и «Приглушать фон во время игры».</summary>
 public sealed partial class GameViewModel : PageViewModel
 {
@@ -54,6 +80,8 @@ public sealed partial class GameViewModel : PageViewModel
 
     public ObservableCollection<AppChoice> Apps { get; } = new();
     public ObservableCollection<GameDriveItem> Drives { get; } = new();
+    public ObservableCollection<StartupToggle> StartupItems { get; } = new();
+    [ObservableProperty] private string? _startupSummary;
     [ObservableProperty] private bool _hasDrives;
     [ObservableProperty] private bool _isAvailable;
     [ObservableProperty] private bool _throttleBackground;
@@ -79,7 +107,33 @@ public sealed partial class GameViewModel : PageViewModel
         ThrottleBackground = Main.Services.Settings.ThrottleBackground;
         _loading = false;
         LoadDrives();
+        LoadStartup();
         Refresh();
+    }
+
+    private void LoadStartup()
+    {
+        StartupItems.Clear();
+        foreach (var i in Main.Services.ReadStartupItems().OrderByDescending(i => i.Enabled).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase))
+            StartupItems.Add(new StartupToggle(this, i));
+        UpdateStartupSummary();
+    }
+
+    private void UpdateStartupSummary() =>
+        StartupSummary = StartupItems.Count == 0 ? null : $"{StartupItems.Count(i => i.IsOn)} из {StartupItems.Count} запускаются вместе с Windows";
+
+    internal string? ToggleStartup(StartupToggle t, bool on)
+    {
+        var svc = Main.Services.Startup;
+        if (svc is null) return "Недоступно на этом компьютере.";
+        try
+        {
+            if (on) svc.Enable(t.Item); else svc.Disable(t.Item);
+            t.Item.Enabled = on;
+        }
+        catch (Exception ex) { return "Не удалось: " + ex.Message; }
+        UpdateStartupSummary();
+        return null;
     }
 
     private void LoadDrives()
