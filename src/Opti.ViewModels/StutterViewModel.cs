@@ -44,7 +44,7 @@ public sealed partial class StutterViewModel : PageViewModel
                 Status = $"Идёт проверка: {s} из {Seconds} с. Играйте или пользуйтесь компьютером как обычно, лучше в тот момент, когда подлагивает.";
             });
             var result = await StutterCheck.RunAsync(sampler, Main.Services.CaptureDpcAsync, Seconds, n => games.Contains(n),
-                Main.Session?.Profile?.Memory.TotalMb ?? 0, progress, _cts.Token);
+                Main.Session?.Profile?.Memory.TotalMb ?? 0, progress, _cts.Token, stallProbe: Main.Services.StallProbe);
             foreach (var f in result.Findings) Findings.Add(new FindingItem(f));
             HasResult = true;
             Summary = Findings.Count == 0

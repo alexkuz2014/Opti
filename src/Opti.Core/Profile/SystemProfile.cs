@@ -238,6 +238,8 @@ public sealed class PowerInfo
 {
     public bool? OnAcPower { get; set; }
     public int? BatteryPercent { get; set; }
+    /// <summary>Износ батареи: полная ёмкость сейчас в процентах от проектной (100 — как новая).</summary>
+    public int? BatteryHealthPercent { get; set; }
     public string? ActiveSchemeGuid { get; set; }
     public string? ActiveSchemeName { get; set; }
     public List<string> AvailableSchemeGuids { get; set; } = new();
@@ -364,6 +366,7 @@ public sealed class NetAdapterInfo
     public double? WifiBandGhz { get; set; }
     /// <summary>Уровень сигнала Wi-Fi, 0–100 % (netsh wlan show interfaces).</summary>
     public int? WifiSignalPercent { get; set; }
+    public int? WifiChannel { get; set; }
     /// <summary>Стандарт Wi-Fi: «802.11n», «802.11ac», «802.11ax»…</summary>
     public string? WifiRadioType { get; set; }
     /// <summary>GUID интерфейса — для параметров TCP/IP этого адаптера.</summary>
@@ -412,8 +415,16 @@ public sealed class ServiceCheck
     public bool IsControl { get; set; }
 }
 
+public sealed class WifiNeighbor
+{
+    public int Channel { get; set; }
+    public int Signal { get; set; }
+}
+
 public sealed class NetSettingsInfo
 {
+    /// <summary>Соседние сети Wi-Fi, видимые адаптеру (канал и уровень сигнала).</summary>
+    public List<WifiNeighbor> WifiNeighbors { get; set; } = new();
     public List<ServiceCheck> Services { get; set; } = new();
     /// <summary>Активные VPN-/туннельные адаптеры.</summary>
     public List<string> ActiveVpnAdapters { get; set; } = new();

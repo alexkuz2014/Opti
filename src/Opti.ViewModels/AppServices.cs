@@ -35,6 +35,7 @@ public interface IAppServices
     int OsBuild => 0;
     /// <summary>Счётчики для проверки фризов; null — недоступно.</summary>
     Opti.Core.Stutter.IStutterSampler? StutterSampler => null;
+    Opti.Core.Stutter.IStallProbe? StallProbe => null;
     /// <summary>Запись DPC/ISR драйверов на время проверки; null — нет прав или недоступно.</summary>
     Task<Opti.Core.Profile.DpcLatencyInfo?> CaptureDpcAsync(TimeSpan duration, CancellationToken ct) => Task.FromResult<Opti.Core.Profile.DpcLatencyInfo?>(null);
     /// <summary>Автозагрузка сейчас (для раздела на странице «Игра»); пусто — недоступно.</summary>

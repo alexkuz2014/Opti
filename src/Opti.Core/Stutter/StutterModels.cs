@@ -20,6 +20,7 @@ public sealed class StutterInfo
 {
     public int Seconds { get; set; }
     public List<StutterCause> Causes { get; set; } = new();
+    public StallSummary? Stalls { get; set; }
 }
 
 /// <summary>Шов над счётчиками производительности Windows: в тестах подменяется.</summary>
@@ -37,10 +38,19 @@ public static class StutterAnalyzer
     public const int MinSeconds = 3;
     public const double DpcPercent = 10, DiskBusy = 90, DiskQueue = 3, PagesPerSec = 1500, CpuBusy = 95, LowMemoryPercent = 8;
 
-    public static StutterInfo Analyze(IReadOnlyList<StutterSample> samples, Func<string, bool> isGame, double totalRamMb = 0)
+    public static StutterInfo Analyze(IReadOnlyList<StutterSample> samples, Func<string, bool> isGame, double totalRamMb = 0, StallSummary? stalls = null)
     {
-        var info = new StutterInfo { Seconds = samples.Count };
+        var info = new StutterInfo { Seconds = samples.Count, Stalls = stalls };
         int need = Math.Max(MinSeconds, (int)Math.Ceiling(samples.Count * 0.05));
+
+        // Микрозамирания: пять и больше по 4+ мс или хотя бы одно дольше кадра (16 мс). Одиночные 4-мс паузы — обычная работа планировщика.
+        if (stalls is not null && (stalls.Over4Ms >= 5 || stalls.Over16Ms >= 1))
+            info.Causes.Add(new StutterCause
+            {
+                Kind = "stall", Seconds = (int)Math.Round(stalls.Seconds),
+                Detail = $"система «замирала» на 4+ мс {stalls.Over4Ms} раз, на 16+ мс {stalls.Over16Ms} раз, самое длинное замирание {stalls.MaxMs:0.#} мс" +
+                         (stalls.Worst.Count > 0 ? "; самые длинные на " + string.Join(", ", stalls.Worst.Take(3).Select(w => $"{w.AtSec:0.#} с ({w.Ms:0.#} мс)")) : ""),
+            });
 
         var dpc = samples.Where(s => s.DpcPercent >= DpcPercent || s.InterruptPercent >= DpcPercent).ToList();
         if (dpc.Count >= need)

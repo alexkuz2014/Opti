@@ -452,6 +452,16 @@ public sealed class StutterCauseDetector : DetectorBase
             if (culprits is not null) ev.Add("Чаще всего: " + culprits);
             switch (c.Kind)
             {
+                case "stall":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_STALLS", Title = "Система замирает на миллисекунды", Severity = Severity.Important,
+                        Explanation = "Opti наблюдал за системой с точностью до долей миллисекунды: бывают моменты, когда программы вообще не получают процессор на 4–30 мс. Это и есть микрофризы: секундные счётчики их не видят, а в игре они выглядят как рывок. " +
+                                      "Частые причины: драйвер, надолго занимающий процессор (смотрите отдельную находку про драйверы), перегрев и сброс частот, энергосбережение процессора и шин (PCIe, USB), прерывания от прошивки (SMI) и фоновая нагрузка.",
+                        Evidence = ev,
+                        ManualSteps = { "Подключите питание и включите схему «Максимальная производительность»: исправление «питание от сети» в «Исправлениях» убирает парковку ядер и энергосбережение шин.", "Проверьте температуру: при перегреве процессор и видеокарта сбрасывают частоты рывками (раздел «Анализ»).", "Обновите BIOS и драйверы чипсета, сети и звука: часть замираний даёт прошивка.", "Если замирания повторяются раз в одно и то же число секунд, посмотрите, что запускается по расписанию (антивирус, обновления, облако)." },
+                    };
+                    break;
                 case "dpc":
                     yield return new Finding
                     {
@@ -500,5 +510,77 @@ public sealed class StutterCauseDetector : DetectorBase
                     break;
             }
         }
+    }
+}
+
+/// <summary>Wi-Fi: на вашем канале тесно — соседние сети мешают, растёт джиттер и теряются пакеты.</summary>
+public sealed class WifiCongestionDetector : DetectorBase
+{
+    public override string Id => "NET_WIFI_CROWDED";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var wifi = p.Network.FirstOrDefault(n => n.IsUp && n.Kind == NetAdapterKind.WiFi);
+        if (wifi?.WifiChannel is not { } ch || p.Network.Any(n => n.IsUp && n.Kind == NetAdapterKind.Ethernet)) yield break;
+        int rivals = Opti.Core.Network.WifiScan.Interfering(ch, p.NetSettings.WifiNeighbors);
+        if (rivals < 3) yield break;
+        bool band24 = ch <= 14;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = $"Wi-Fi: канал {ch} перегружен соседними сетями",
+            Severity = Severity.Important,
+            Explanation = "Рядом работают другие сети на том же или пересекающемся канале. Они делят эфир с вашей: растут скачки пинга и потери пакетов, даже когда сигнал сильный. Лечится сменой канала в роутере.",
+            Evidence = { $"Ваш канал: {ch} ({(band24 ? "2,4" : "5")} ГГц), заметных сетей-соперников: {rivals}" },
+            ManualSteps =
+            {
+                band24 ? "В настройках роутера выберите канал 1, 6 или 11 (они не пересекаются) с наименьшим числом соседей; «Авто» часто выбирает неудачно." : "В настройках роутера выберите другой канал 5 ГГц (36–48 или 149–165) или оставьте «Авто».",
+                band24 ? "Лучше перейти на 5 ГГц: там тише и быстрее." : "Если стены мешают сигналу, поставьте роутер ближе.",
+                "Самое надёжное по-прежнему кабель.",
+            },
+            IsHardwareLimitation = true,
+        };
+    }
+}
+
+/// <summary>Износ батареи ноутбука.</summary>
+public sealed class BatteryHealthDetector : DetectorBase
+{
+    public override string Id => "BATTERY_WORN";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        if (!p.Device.IsLaptop || p.Power.BatteryHealthPercent is not { } h || h >= 60) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = $"Батарея ноутбука изношена: осталось {h} % ёмкости",
+            Severity = h < 40 ? Severity.Important : Severity.Advice,
+            Explanation = "Ёмкость батареи упала, ноутбук держит заряд заметно хуже. На скорость при работе от сети это не влияет, но от батареи ноутбук может внезапно выключаться и сбрасывать производительность при нагрузке. Сильно изношенная батарея иногда вздувается, это опасно для корпуса и самой батареи.",
+            Evidence = { $"Полная ёмкость сейчас — {h} % от проектной" },
+            ManualSteps = { "Играйте от сети с оригинальным блоком питания.", "Если батарея вздулась (корпус или тачпад приподнялись), замените её в сервисе, не откладывая." },
+            IsHardwareLimitation = true,
+        };
+    }
+}
+
+/// <summary>Два антивируса сразу: конфликтуют и оба сканируют файлы.</summary>
+public sealed class MultipleAntivirusDetector : DetectorBase
+{
+    public override string Id => "AV_MULTIPLE";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        var third = p.Security.AntiVirus.Where(n => !n.Contains("Defender", StringComparison.OrdinalIgnoreCase) && !n.Contains("Windows", StringComparison.OrdinalIgnoreCase)).Distinct().ToList();
+        if (third.Count < 2) yield break;
+        yield return new Finding
+        {
+            Id = Id,
+            Title = "Установлено несколько антивирусов",
+            Severity = Severity.Important,
+            Explanation = "Два сторонних антивируса работают одновременно: они проверяют одни и те же файлы, мешают друг другу и заметно грузят диск и процессор. В играх это выглядит как фризы при подгрузке и долгая загрузка. Защита от этого лучше не становится.",
+            Evidence = third.Select(n => "Установлен: " + n).ToList(),
+            ManualSteps = { "Оставьте один антивирус (подойдёт и встроенный Защитник Windows), второй удалите через «Параметры» → «Приложения» штатным деинсталлятором или утилитой удаления от производителя." },
+        };
     }
 }
