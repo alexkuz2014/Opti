@@ -5,7 +5,7 @@
 ## Команды
 
 ```bash
-dotnet test                      # 363 теста, xUnit, ~20 с; работает в Linux
+dotnet test                      # 366 тестов, xUnit, ~20 с; работает в Linux
 dotnet build src/Opti.Cli        # CLI
 dotnet build src/Opti.App        # WPF; в Linux собирается (EnableWindowsTargeting), но не запускается
 build/publish.sh [версия]        # win-x64 single-file → artifacts/Opti.exe, opti-cli.exe, SHA256SUMS.txt
@@ -59,7 +59,7 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 
 ## Мелочи, о которые можно споткнуться
 
-- `origin` — `alexkuz2014/Opti`, но в коде и README зашит `allora-dev/optim` (`AppInfo.Repository`, `RepositoryUrl`, ссылка на релизы): проверка обновлений смотрит туда.
+- Репозиторий обновлений: `AppInfo.Repository` = `alexkuz2014/Opti` (раньше был `allora-dev/optim`, исправлено; тест `UpdateSource_PointsToOfficialRepository`).
 - Остатки старого имени: `Opti.Core/Json/GameTuneJson.cs`, миграция данных GameTune 1.0.0-beta — оставлены намеренно ради отката старых изменений.
 - Данные программы: `C:\ProgramData\Opti\` (`journal.db`, сессии, отчёты) — пути в `OptiPaths` (`Fixes/Backends/WindowsBackends.cs`).
 - Страница «Игра»: `GamePrep` закрывает выбранные программы, `BackgroundThrottler` понижает приоритет браузерам и лаунчерам на время игры (таймер 5 с в `App.xaml.cs`, возврат при выходе). Список защищённых процессов `GamePrep.Protected` — не сокращать; Discord и OBS из приглушения исключены намеренно. «Очистку ОЗУ» не добавлять: миф.

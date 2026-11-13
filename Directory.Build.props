@@ -11,6 +11,6 @@
     <Version>1.10.0-beta</Version>
     <SatelliteResourceLanguages>ru;en</SatelliteResourceLanguages>
     <Authors>Opti</Authors>
-    <RepositoryUrl>https://github.com/allora-dev/optim</RepositoryUrl>
+    <RepositoryUrl>https://github.com/alexkuz2014/Opti</RepositoryUrl>
   </PropertyGroup>
 </Project>
