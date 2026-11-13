@@ -3,6 +3,7 @@ using Opti.Core.Fixes;
 using Opti.Core.Games;
 using Opti.Core.Os;
 using Opti.Core.Profile;
+using Opti.Core.Stutter;
 
 namespace Opti.Analysis.Detectors;
 
@@ -433,5 +434,71 @@ public sealed class NetServicesDetector : DetectorBase
                 ManualSteps = { "Смените DNS на 1.1.1.1 и 8.8.8.8: Параметры → Сеть и Интернет → подключение → «Назначение DNS-сервера»." },
                 Links = { Sources.NetworkStatus },
             };
+    }
+}
+
+/// <summary>Причины фризов из отдельной проверки (страница «Фризы»): прерывания драйверов, диск, память, процессор.</summary>
+public sealed class StutterCauseDetector : DetectorBase
+{
+    public override string Id => "STUTTER_CAUSES";
+
+    protected override IEnumerable<Finding> Run(SystemProfile p, DetectionContext ctx)
+    {
+        if (p.Stutter is not { } info) yield break;
+        foreach (var c in info.Causes)
+        {
+            var culprits = c.Culprits.Count > 0 ? string.Join(", ", c.Culprits) : null;
+            var ev = new List<string> { $"{c.Seconds} из {info.Seconds} с: {c.Detail}" };
+            if (culprits is not null) ev.Add("Чаще всего: " + culprits);
+            switch (c.Kind)
+            {
+                case "dpc":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_DPC", Title = "Драйверы надолго занимают процессор", Severity = Severity.Critical,
+                        Explanation = "Пока драйвер обрабатывает прерывания, процессор не занимается игрой: отсюда микрофризы, треск звука и «ватная» мышь. Чаще всего виноваты драйверы сети, Wi-Fi, звука, видео или ACPI. Конкретное имя драйвера показывает отдельный тест DPC/ISR (он включён в эту проверку, если у Opti есть права администратора).",
+                        Evidence = ev,
+                        ManualSteps = { "Обновите драйверы сети, Wi-Fi и звука с сайта производителя (раздел «Драйверы» подскажет, какие устарели).", "Отключите в «Диспетчере устройств» то, чем не пользуетесь (второй сетевой адаптер, виртуальные адаптеры, Bluetooth).", "Если помогает только после перезагрузки, отключите «Быстрый запуск» (раздел «Твики»)." },
+                    };
+                    break;
+                case "disk":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_DISK", Title = "Фризы из-за загруженного диска", Severity = Severity.Important,
+                        Explanation = "Во время проверки диск работал на пределе. Игра, которой в этот момент нужно подгрузить карту или текстуры, ждёт очереди — это и есть фриз. На жёстком диске это ощущается сильнее всего.",
+                        Evidence = ev,
+                        ManualSteps = { culprits is not null ? $"Закройте или поставьте на паузу: {culprits} (облачные диски, торренты, обновления, антивирус)." : "Закройте облачные диски, торренты и обновления на время игры.", "Игры лучше держать на SSD (раздел «Игра» покажет, где лежат ваши)." },
+                    };
+                    break;
+                case "memory":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_MEMORY", Title = "Фризы из-за нехватки памяти", Severity = Severity.Important,
+                        Explanation = "Памяти не хватало, и Windows сбрасывала данные на диск и читала обратно. Каждый такой обмен — задержка, которую видно как фриз.",
+                        Evidence = ev,
+                        ManualSteps = { "Закройте браузер с множеством вкладок и ненужные программы перед игрой (страница «Игра» → «Перед игрой»).", "Файл подкачки должен управляться системой (Opti поправит это в исправлениях, если он отключён).", "Если памяти 8 ГБ и меньше, это самая частая причина: поможет только добавить планку." },
+                    };
+                    break;
+                case "cpu-game":
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_CPU_GAME", Title = "Процессор упирается в игру", Severity = Severity.Advice,
+                        Explanation = "Процессор был загружен почти полностью, и больше всего времени брала сама игра. Фризы в таком случае дают просадки кадров, когда нагрузка скачет. Системными настройками это почти не лечится.",
+                        Evidence = ev,
+                        ManualSteps = { "Снизьте в игре то, что нагружает процессор: дальность прорисовки, количество объектов, тени.", "Ограничьте FPS лимитом: ровные кадры лучше «максимума» с просадками.", "Закройте фоновые программы (страница «Игра»)." },
+                        IsHardwareLimitation = true,
+                    };
+                    break;
+                default:
+                    yield return new Finding
+                    {
+                        Id = "STUTTER_CPU_BG", Title = "Фоновая программа забирает процессор", Severity = Severity.Important,
+                        Explanation = "Процессор был загружен почти полностью, и не игрой, а фоном. Пока фон забирает ядра, игре их не хватает в самые неудачные моменты.",
+                        Evidence = ev,
+                        ManualSteps = { culprits is not null ? $"Закройте или ограничьте: {culprits}." : "Откройте «Диспетчер задач», вкладка «Процессы», отсортируйте по ЦП.", "Включите «Приглушать фон во время игры» на странице «Игра»." },
+                    };
+                    break;
+            }
+        }
     }
 }

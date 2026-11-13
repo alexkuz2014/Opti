@@ -1,11 +1,11 @@
 # Opti — карта репозитория
 
-Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.8.1-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
+Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.9.0-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
 
 ## Команды
 
 ```bash
-dotnet test                      # 331 тест, xUnit, ~20 с; работает в Linux
+dotnet test                      # 341 тест, xUnit, ~20 с; работает в Linux
 dotnet build src/Opti.Cli        # CLI
 dotnet build src/Opti.App        # WPF; в Linux собирается (EnableWindowsTargeting), но не запускается
 build/publish.sh [версия]        # win-x64 single-file → artifacts/Opti.exe, opti-cli.exe, SHA256SUMS.txt
@@ -66,6 +66,8 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 - Метки надёжности (`EvidenceLevel`: Solid / Varies / Hypothesis) у исправлений и твиков: новый твик без измерений — только Hypothesis и выключен по умолчанию.
 - Из PC-Optimization-Hub/PC-Tuning сознательно не берём: xHCI IMOD через RWEverything (требует отключить защиту от уязвимых драйверов), разнесение прерываний по ядрам, режим MSI вручную, отключение виртуализации в BIOS (ломает античиты), dual-boot. Подсказки по BIOS/USB-топологии — только текстом.
 - Загрузка игр: `GameStorage` + детекторы `GAME_LOAD_TIPS`, `DISK_BUSY`, `GAME_DISK_FULL`. Проверено поиском: HDD→SSD заметно (20 % … 2–3×, зависит от игры), SATA→NVMe — секунды, кроме DirectStorage; `-StraightIntoFreemode` и `-novid` для CS2 не подтверждены — не советовать; сторонний фикс загрузки GTA Online правит файлы игры и грозит баном — не советовать. Исключения антивируса — только текстом.
+- Фризы: страница `StutterViewModel` → `StutterCheck` (Workflow/Game) собирает секундные `StutterSample` через `IStutterSampler` (`WmiStutterSampler`: счётчики Win32_PerfFormattedData) + опционально DPC/ISR через `EtwDpcCapture`; `StutterAnalyzer` (порог ≥3 с и ≥5 % проверки) → `StutterCauseDetector`. Детектор НЕ входит в `DetectorCatalog.All()` — его запускает только страница. Ничего не меняет.
+- Из Winhance не берём: удаление AppX-приложений и установку через winget (риск и чужая область), лицензия PolyForm Shield не позволяет копировать код.
 - Доступность сервисов: `ServiceReachabilityCollector` (Resolve-DnsName системный и 1.1.1.1 + TCP 443; кэш DNS сбрасывается перед замером) → `NetServicesDetector` (NET_DNS_BROKEN / NET_SERVICE_BLOCKED / NET_DNS_SLOW). Если контрольный сервис Microsoft недоступен — выводов о сервисах нет. DNS сам не меняем: на пинг в игре он не влияет.
 - Автозагрузка: `StartupService` (флаг StartupApproved, журнал, сессия `startup`), список — `BackgroundCollector.ReadStartupItems()`, показывается на странице «Игра».
 - Из optimizerDuck / Perfect Windows сознательно не берём: группировку svchost (`SvcHostSplitThresholdInKB`, миф), отключение телеметрии и служб оптом, вендорные твики реестра GPU, отключение мер защиты. OpenUI (генеративный UI для веб-фреймворков) к WPF не применим.

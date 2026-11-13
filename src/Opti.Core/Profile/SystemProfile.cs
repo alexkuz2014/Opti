@@ -31,6 +31,8 @@ public sealed class SystemProfile
     public NetworkQuality? NetQuality { get; set; }
     public NetSettingsInfo NetSettings { get; set; } = new();
     public DiskActivityInfo? DiskActivity { get; set; }
+    /// <summary>Итог проверки фризов (отдельная проверка на странице «Фризы», в обычный анализ не входит).</summary>
+    public Opti.Core.Stutter.StutterInfo? Stutter { get; set; }
     public DpcLatencyInfo? Dpc { get; set; }
     public List<GameInfo> Games { get; set; } = new();
     /// <summary>Устройства с ошибками (нет драйвера, отключены, конфликт).</summary>

@@ -35,6 +35,12 @@ public sealed class WindowsAppServices : IAppServices, IDisposable
     public TuneWorkflow Workflow { get; }
     public TweakService Tweaks { get; }
     public int OsBuild => Environment.OSVersion.Version.Build;
+    public Opti.Core.Stutter.IStutterSampler? StutterSampler { get; } = new Opti.Analysis.Collectors.WmiStutterSampler();
+    public Task<Opti.Core.Profile.DpcLatencyInfo?> CaptureDpcAsync(TimeSpan duration, CancellationToken ct) => Task.Run<Opti.Core.Profile.DpcLatencyInfo?>(() =>
+    {
+        try { return Opti.Measure.Capture.EtwDpcCapture.Run(duration, ct); }
+        catch { return null; }   // нет прав администратора
+    });
     public IReadOnlyList<Opti.Core.Profile.StartupItem> ReadStartupItems() => Opti.Analysis.Collectors.BackgroundCollector.ReadStartupItems();
     public Opti.Fixes.Services.StartupService? Startup { get; private set; }
     public Opti.Workflow.Maximum.IDriverUpdater? DriverUpdater { get; } = new Opti.Workflow.Maximum.WindowsUpdateDriverUpdater();

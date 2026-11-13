@@ -73,6 +73,9 @@ public sealed class ViewModelTests : IDisposable
         public int OsBuild => 26100;
         public Opti.Workflow.Game.IProcessControl? Processes { get; set; }
         public Opti.Workflow.Maximum.IDriverUpdater? DriverUpdater { get; set; }
+        public Opti.Core.Stutter.IStutterSampler? StutterSampler { get; set; }
+        public Opti.Core.Profile.DpcLatencyInfo? Dpc { get; set; }
+        public Task<Opti.Core.Profile.DpcLatencyInfo?> CaptureDpcAsync(TimeSpan duration, CancellationToken ct) => Task.FromResult(Dpc);
         public int KeepAwakeCalls { get; private set; }
         public bool Awake { get; private set; }
         public void KeepAwake(bool on) { KeepAwakeCalls++; Awake = on; }
