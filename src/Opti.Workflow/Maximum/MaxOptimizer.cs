@@ -42,9 +42,11 @@ public sealed class MaxOptimizer
     private readonly Func<IReadOnlyList<ICleanupTarget>> _cleanup;
     private readonly IDriverUpdater? _drivers;
     private readonly int _osBuild;
+    private readonly Opti.Core.Profile.SystemProfile? _profile;
 
-    public MaxOptimizer(TweakService tweaks, Func<IReadOnlyList<ICleanupTarget>> cleanup, IDriverUpdater? drivers, int osBuild)
+    public MaxOptimizer(TweakService tweaks, Func<IReadOnlyList<ICleanupTarget>> cleanup, IDriverUpdater? drivers, int osBuild, Opti.Core.Profile.SystemProfile? profile = null)
     {
+        _profile = profile;
         _tweaks = tweaks;
         _cleanup = cleanup;
         _drivers = drivers;
@@ -80,7 +82,7 @@ public sealed class MaxOptimizer
     {
         var done = new List<string>();
         var failed = new List<string>();
-        foreach (var id in TweakCatalog.MaxOptimizeIds)
+        foreach (var id in TweakCatalog.MaxIdsFor(_profile))
         {
             var t = TweakCatalog.Find(id);
             if (t is null || !_tweaks.IsAvailable(t, _osBuild) || _tweaks.IsOn(t)) continue;

@@ -268,5 +268,23 @@ public static class TweakCatalog
     public static readonly IReadOnlyList<string> MaxOptimizeIds = new[]
         { "NO_UPDATE_SHARING", "EDGE_NO_BACKGROUND", "NO_BACKGROUND_APPS", "NO_WIDGETS", "NO_TRANSPARENCY", "NO_GAMEBAR_BUTTON", "FAST_MENUS", "INSTANT_MINIMIZE" };
 
+    private static readonly string[] MaxAlways = { "NO_UPDATE_SHARING", "EDGE_NO_BACKGROUND", "NO_GAMEBAR_BUTTON", "FAST_MENUS", "INSTANT_MINIMIZE" };
+    private static readonly string[] MaxResourceSaving = { "NO_BACKGROUND_APPS", "NO_WIDGETS", "NO_TRANSPARENCY" };
+
+    /// <summary>
+    /// Набор для «Максимума» под конкретный ПК. Твики, которые экономят память, процессор и батарею, имеют смысл там, где этого мало:
+    /// до 12 ГБ памяти, до 4 ядер, только встроенная графика или ноутбук. На мощном настольном ПК они почти ничего не дают, и менять их незачем.
+    /// Профиля нет — берётся полный набор, как раньше.
+    /// </summary>
+    public static IReadOnlyList<string> MaxIdsFor(Opti.Core.Profile.SystemProfile? p)
+    {
+        if (p is null) return MaxOptimizeIds;
+        bool constrained = (p.Memory.TotalMb > 0 && p.Memory.TotalMb <= 12 * 1024)
+                           || (p.Cpu.Cores > 0 && p.Cpu.Cores <= 4)
+                           || (p.DiscreteGpu is null && p.IntegratedGpu is not null)
+                           || p.Device.IsLaptop;
+        return constrained ? MaxAlways.Concat(MaxResourceSaving).ToArray() : MaxAlways;
+    }
+
     public static Tweak? Find(string id) => All.FirstOrDefault(t => t.Id == id);
 }
