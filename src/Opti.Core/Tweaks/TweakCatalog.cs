@@ -1,6 +1,6 @@
 namespace Opti.Core.Tweaks;
 
-public enum TweakCategory { ContextMenu, Explorer, StartAndTaskbar, Responsiveness, System, Gaming }
+public enum TweakCategory { ContextMenu, Explorer, StartAndTaskbar, Responsiveness, System, Gaming, Privacy }
 
 /// <summary>Что нужно, чтобы твик вступил в силу.</summary>
 public enum TweakApplyMode { Immediate, RestartExplorer, SignOut, Reboot }
@@ -40,8 +40,9 @@ public static class TweakCatalog
         TweakCategory.ContextMenu => "Контекстное меню",
         TweakCategory.Explorer => "Проводник",
         TweakCategory.StartAndTaskbar => "Пуск и панель задач",
-        TweakCategory.Responsiveness => "Отзывчивость",
+        TweakCategory.Responsiveness => "Отзывчивость и ввод",
         TweakCategory.Gaming => "Игры и фоновая нагрузка",
+        TweakCategory.Privacy => "Приватность и реклама",
         _ => "Система",
     };
 
@@ -52,6 +53,7 @@ public static class TweakCatalog
         TweakCategory.StartAndTaskbar => "",
         TweakCategory.Responsiveness => "",
         TweakCategory.Gaming => "",
+        TweakCategory.Privacy => "\uE72E",
         _ => "",
     };
 
@@ -259,7 +261,7 @@ public static class TweakCatalog
     };
 
     /// <summary>Сначала игровые твики, затем твики удобства. Объявлено после обоих массивов: статические поля инициализируются по порядку.</summary>
-    public static IReadOnlyList<Tweak> All { get; } = GamingTweaks.Concat(BaseTweaks).ToArray();
+    public static IReadOnlyList<Tweak> All { get; } = GamingTweaks.Concat(BaseTweaks).Concat(ExtraTweaks.All).ToArray();
 
     /// <summary>
     /// Твики, которые включает «Максимум оптимизации»: только про память, процессор и сеть, и только те, у кого эффект известен.
@@ -267,6 +269,24 @@ public static class TweakCatalog
     /// </summary>
     public static readonly IReadOnlyList<string> MaxOptimizeIds = new[]
         { "NO_UPDATE_SHARING", "EDGE_NO_BACKGROUND", "NO_BACKGROUND_APPS", "NO_WIDGETS", "NO_TRANSPARENCY", "NO_GAMEBAR_BUTTON", "FAST_MENUS", "INSTANT_MINIMIZE" };
+
+    private static readonly string[] MaxAlways = { "NO_UPDATE_SHARING", "EDGE_NO_BACKGROUND", "NO_GAMEBAR_BUTTON", "FAST_MENUS", "INSTANT_MINIMIZE" };
+    private static readonly string[] MaxResourceSaving = { "NO_BACKGROUND_APPS", "NO_WIDGETS", "NO_TRANSPARENCY" };
+
+    /// <summary>
+    /// Набор для «Максимума» под конкретный ПК. Твики, которые экономят память, процессор и батарею, имеют смысл там, где этого мало:
+    /// до 12 ГБ памяти, до 4 ядер, только встроенная графика или ноутбук. На мощном настольном ПК они почти ничего не дают, и менять их незачем.
+    /// Профиля нет — берётся полный набор, как раньше.
+    /// </summary>
+    public static IReadOnlyList<string> MaxIdsFor(Opti.Core.Profile.SystemProfile? p)
+    {
+        if (p is null) return MaxOptimizeIds;
+        bool constrained = (p.Memory.TotalMb > 0 && p.Memory.TotalMb <= 12 * 1024)
+                           || (p.Cpu.Cores > 0 && p.Cpu.Cores <= 4)
+                           || (p.DiscreteGpu is null && p.IntegratedGpu is not null)
+                           || p.Device.IsLaptop;
+        return constrained ? MaxAlways.Concat(MaxResourceSaving).ToArray() : MaxAlways;
+    }
 
     public static Tweak? Find(string id) => All.FirstOrDefault(t => t.Id == id);
 }

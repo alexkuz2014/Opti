@@ -238,7 +238,7 @@ public sealed partial class MainViewModel : ObservableObject
         var page = new MaxRunViewModel(this);
         Navigate(page);
         var st = Services.Settings;
-        var optimizer = new Opti.Workflow.Maximum.MaxOptimizer(Services.Tweaks, () => Services.CleanupTargets(), st.MaxIncludeDrivers ? Services.DriverUpdater : null, Services.OsBuild);
+        var optimizer = new Opti.Workflow.Maximum.MaxOptimizer(Services.Tweaks, () => Services.CleanupTargets(), st.MaxIncludeDrivers ? Services.DriverUpdater : null, Services.OsBuild, s.Profile);
         var result = await optimizer.RunAsync(s.Id, new Progress<Opti.Workflow.Maximum.MaxStep>(page.Add), new Progress<string>(t => page.Status = t), st.MaxIncludeDrivers, page.Token);
         s.MaxSteps = result.Steps;
         if (result.RebootRequired) Services.Workflow.RequireReboot(s, Services.ResumeExePath);

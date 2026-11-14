@@ -1,11 +1,11 @@
 # Opti — карта репозитория
 
-Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.10.0-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
+Портативная программа для Windows 10/11 (один `Opti.exe`): диагностика причин лагов → исправления с откатом → честный замер «до / после». Бывший GameTune. Версия — `Directory.Build.props` (`<Version>`), сейчас 1.11.0-beta. Язык интерфейса, комментариев, коммитов и документации — русский.
 
 ## Команды
 
 ```bash
-dotnet test                      # 369 тестов, xUnit, ~20 с; работает в Linux
+dotnet test                      # 386 тестов, xUnit, ~20 с; работает в Linux
 dotnet build src/Opti.Cli        # CLI
 dotnet build src/Opti.App        # WPF; в Linux собирается (EnableWindowsTargeting), но не запускается
 build/publish.sh [версия]        # win-x64 single-file → artifacts/Opti.exe, opti-cli.exe, SHA256SUMS.txt
@@ -24,7 +24,7 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 |---|---|
 | `Opti.Core` | Без зависимостей. `SystemProfile` (модель ПК), `Finding`/`IDetector`, справочники (`Os/WindowsLifecycle`, `Os/BootLimits`, `Games/GameProfiles`, `Games/GameStorage` (где лежат игры: тип диска и место), `Hardware/GpuSupport`, `Network/NetworkApps`, `Network/PingProbe`, `Drivers/`, `Registry/`, `Tweaks/`, `Software/`), `IFix`/`FixIds`/`ChangeContext`/`ChangeRecord`/`StateValue`, `IStateBackend`/`IChangeJournal`, `StrategyEngine`, `UserGoal`, `Sources` (ссылки на первоисточники) |
 | `Opti.Native` | P/Invoke (экран, DXGI, HAGS, питание), `ProcessRunner`, `ToolParsers` (разбор вывода bcdedit/powercfg/nvidia-smi и т. п.) |
-| `Opti.Analysis` | `Collectors/` — 20 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 69 детекторов, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
+| `Opti.Analysis` | `Collectors/` — 20 коллекторов заполняют `SystemProfile` (только Windows; `NetworkQualityCollector` — быстрый пинг до роутера и интернета, отключается настройкой); `Detectors/` — 76 детекторов, чистые функции от профиля; `SystemAnalyzer`, `DetectorCatalog.All()` |
 | `Opti.Fixes` | `Catalog/` — 26 исправлений (`FixBase`); `Backends/` — Windows-бэкенды + `InMemoryBackend`/`ProfileSeeder` для тестов; `Journal/` — SQLite и in-memory; `ApplyService`, `RollbackService`, точка восстановления |
 | `Opti.Measure` | `Stats/` — `FrameMetrics`, блочный бутстреп, `Comparison` (вердикт лучше/шум/хуже); `Capture/` — ETW (кадры, DPC/ISR), PresentMon CSV, сеть, таймер |
 | `Opti.Bench` | Синтетический тест D3D11 (Vortice); встроен в `Opti.exe`, запускается ключом `--bench` |
@@ -48,7 +48,7 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 
 - **Детектор:** класс от `DetectorBase` в `Analysis/Detectors/*` → зарегистрировать в `DetectorCatalog.All()` → при необходимости поле в `SystemProfile` + коллектор → тест на профилях (`DetectorTests`/`SetupDetectorTests`). Счётчик детекторов в README и здесь.
 - **Исправление:** константа в `FixIds` → класс от `FixBase` в `Fixes/Catalog/*` → регистрация в `FixCatalog.All()` (`FixBase.cs`) → находка с этим `FixId` → при необходимости `ProfileSeeder` (начальное состояние in-memory бэкенда) → `RollbackTests`. Счётчик исправлений в README и здесь.
-- **Твик:** запись в `TweakCatalog` (только значения реестра; игровые — в `GamingTweaks`). Раздел «Твики» и откат подхватят сами.
+- **Твик:** запись в `TweakCatalog` (только значения реестра; игровые — в `GamingTweaks`) или в `ExtraTweaks` (приватность, Проводник, панель задач, ввод; всего 58 твиков). Два твика не должны писать одно значение (тест `NoTwoTweaksWriteTheSameValue`). Раздел «Твики» и откат подхватят сами.
 - **Экран интерфейса:** ViewModel в `Opti.ViewModels` (+ тест в `ViewModelTests`), XAML в `Opti.App/Views`, навигация в `MainViewModel`.
 
 ## Выпуск
@@ -68,11 +68,14 @@ win-x64 публикация из Linux работает (~1 мин, exe ~69 М�
 - Загрузка игр: `GameStorage` + детекторы `GAME_LOAD_TIPS`, `DISK_BUSY`, `GAME_DISK_FULL`. Проверено поиском: HDD→SSD заметно (20 % … 2–3×, зависит от игры), SATA→NVMe — секунды, кроме DirectStorage; `-StraightIntoFreemode` и `-novid` для CS2 не подтверждены — не советовать; сторонний фикс загрузки GTA Online правит файлы игры и грозит баном — не советовать. Исключения антивируса — только текстом.
 - Фризы: страница `StutterViewModel` → `StutterCheck` (Workflow/Game) собирает секундные `StutterSample` через `IStutterSampler` (`WmiStutterSampler`: счётчики Win32_PerfFormattedData) + опционально DPC/ISR через `EtwDpcCapture`; `StutterAnalyzer` (порог ≥3 с и ≥5 % проверки) → `StutterCauseDetector`. Детектор НЕ входит в `DetectorCatalog.All()` — его запускает только страница. Ничего не меняет.
 - Микрозамирания: `SpinStallProbe` (поток AboveNormal крутится по 0,5 мс и отмечает время, `timeBeginPeriod(1)` на время проверки) + `StallTracker` (чистая логика, тестируется без Windows); причина `stall` — от 5 замираний по 4+ мс или одного 16+ мс. Нагрузка ~⅓ ядра, права не нужны.
+- Winhance (по описаниям: оптимизация приватности/игр/питания/обновлений, настройка вида, WinGet-установка, удаление приложений, сохранение настроек в файл; сам сайт из контейнера не открывается): берём идею «набор под конкретный ПК» и конфиги настроек, остальное — ниже.
 - Из Winhance не берём: удаление AppX-приложений и установку через winget (риск и чужая область), лицензия PolyForm Shield не позволяет копировать код.
 - Доступность сервисов: `ServiceReachabilityCollector` (Resolve-DnsName системный и 1.1.1.1 + TCP 443; кэш DNS сбрасывается перед замером) → `NetServicesDetector` (NET_DNS_BROKEN / NET_SERVICE_BLOCKED / NET_DNS_SLOW). Если контрольный сервис Microsoft недоступен — выводов о сервисах нет. DNS сам не меняем: на пинг в игре он не влияет.
+- Страница «Твики»: поиск (`Search`), счётчики разделов, «Выключить все», набор в файле `opti-tweaks.json` рядом с exe (`TweaksViewModel.ConfigPath`; импорт только включает, ничего не выключает). Твики из `ExtraTweaks` в «Максимум» не входят.
+- Советы без коллекторов (`ExtraTipDetectors.cs`): BIOS_OLD (4+ года), VIRTUAL_MACHINE, SYSTEM_RESTORE_OFF, RAM_MIXED_MODULES, DISP_PRIMARY_SLOW, DISP_60HZ_CAP_TIP, DISP_RES_HEAVY — только текстом, ничего не меняют.
 - Автозагрузка: `StartupService` (флаг StartupApproved, журнал, сессия `startup`), список — `BackgroundCollector.ReadStartupItems()`, показывается на странице «Игра».
 - Из optimizerDuck / Perfect Windows сознательно не берём: группировку svchost (`SvcHostSplitThresholdInKB`, миф), отключение телеметрии и служб оптом, вендорные твики реестра GPU, отключение мер защиты. OpenUI (генеративный UI для веб-фреймворков) к WPF не применим.
-- «Максимум оптимизации» (`HomeViewModel.MaximumAsync`): анализ с целью LowLatency → автоцикл (`TuneSession.Maximum`) → после исправлений `MainViewModel.RunMaximumExtrasAsync` → `MaxOptimizer` (твики `TweakCatalog.MaxOptimizeIds` в сессии оптимизации, очистка `DefaultSelected` целей, драйверы через `WindowsUpdateDriverUpdater` — COM Windows Update Agent, видеодрайверы и EULA пропускаются) → автоперезагрузка с отсчётом (`ApplyViewModel.RunAutoRebootAsync`). Не добавлять в «Максимум» гипотезы, A/B и рискованное; драйверы с сайтов производителей Opti не качает.
+- «Максимум оптимизации» (`HomeViewModel.MaximumAsync`): анализ с целью LowLatency → автоцикл (`TuneSession.Maximum`) → после исправлений `MainViewModel.RunMaximumExtrasAsync` → `MaxOptimizer` (твики `TweakCatalog.MaxIdsFor(профиль)` — на мощном ПК только универсальные, экономящие ресурсы (фоновые приложения, виджеты, прозрачность) — на слабых, ноутбуках и iGPU; в сессии оптимизации, очистка `DefaultSelected` целей, драйверы через `WindowsUpdateDriverUpdater` — COM Windows Update Agent, видеодрайверы и EULA пропускаются) → автоперезагрузка с отсчётом (`ApplyViewModel.RunAutoRebootAsync`). Не добавлять в «Максимум» гипотезы, A/B и рискованное; драйверы с сайтов производителей Opti не качает.
 - Главная: кнопка «Оптимизировать» (`HomeViewModel.OptimizeAsync`) = анализ + автоцикл с рекомендованными исправлениями и быстрым тестом 2×20 с, без страницы настройки. На главной три пресета (`GoalOption.Presets`), все пять целей — в настройках (`GoalOption.All`).
 - Синтетический тест в интерфейсе подбирает нагрузку (`SyntheticRunner.AutoCalibrate`, цель ~80 FPS) и хранит её в `TuneSession.BenchGpuLoad`; CLI нагрузку не подбирает, чтобы отдельные запуски `measure` были сравнимы.
 - Найдено при первом запуске на Windows (исправлено, не повторять): `AllowComputerToTurnOffDevice` — свойство объекта `Get-NetAdapterPowerManagement`, а не параметр `Set-…`; stderr PowerShell приходит в CLIXML (`ProcessRunner.CleanPowerShellError`); системный шаблон `ListBox` в выключенном состоянии рисует белый фон — у `ChoiceList` свой шаблон; файлы (`ChangeType.File`) в проверке сброса не участвуют.
