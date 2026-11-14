@@ -1,6 +1,6 @@
 namespace Opti.Core.Tweaks;
 
-public enum TweakCategory { ContextMenu, Explorer, StartAndTaskbar, Responsiveness, System, Gaming }
+public enum TweakCategory { ContextMenu, Explorer, StartAndTaskbar, Responsiveness, System, Gaming, Privacy }
 
 /// <summary>Что нужно, чтобы твик вступил в силу.</summary>
 public enum TweakApplyMode { Immediate, RestartExplorer, SignOut, Reboot }
@@ -40,8 +40,9 @@ public static class TweakCatalog
         TweakCategory.ContextMenu => "Контекстное меню",
         TweakCategory.Explorer => "Проводник",
         TweakCategory.StartAndTaskbar => "Пуск и панель задач",
-        TweakCategory.Responsiveness => "Отзывчивость",
+        TweakCategory.Responsiveness => "Отзывчивость и ввод",
         TweakCategory.Gaming => "Игры и фоновая нагрузка",
+        TweakCategory.Privacy => "Приватность и реклама",
         _ => "Система",
     };
 
@@ -52,6 +53,7 @@ public static class TweakCatalog
         TweakCategory.StartAndTaskbar => "",
         TweakCategory.Responsiveness => "",
         TweakCategory.Gaming => "",
+        TweakCategory.Privacy => "\uE72E",
         _ => "",
     };
 
@@ -259,7 +261,7 @@ public static class TweakCatalog
     };
 
     /// <summary>Сначала игровые твики, затем твики удобства. Объявлено после обоих массивов: статические поля инициализируются по порядку.</summary>
-    public static IReadOnlyList<Tweak> All { get; } = GamingTweaks.Concat(BaseTweaks).ToArray();
+    public static IReadOnlyList<Tweak> All { get; } = GamingTweaks.Concat(BaseTweaks).Concat(ExtraTweaks.All).ToArray();
 
     /// <summary>
     /// Твики, которые включает «Максимум оптимизации»: только про память, процессор и сеть, и только те, у кого эффект известен.
